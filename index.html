@@ -1653,9 +1653,16 @@ function spawnFrom(b,type){
   const ex=exitTile(b,tx,ty,0,DEF[type].naval?wwalk:walk);const u=mkUnit(type,b.owner,(ex.x+.5)*TILE,(ex.y+.5)*TILE);
   if(b.type==='corral'){const hl=penLead(b),ps=penSpot(hl);u.x=u.px=(ps[0]+.5)*TILE;u.y=u.py=(ps[1]+.5)*TILE;u.home=hl.id;b.rally=null;}
   if(type==='scout'){const U=G.players[b.owner].unlock||(G.players[b.owner].unlock={});U.scout=1;}
+  if(type==='fishboat'){const r=b.rally&&b.rally.res&&G.byId.get(b.rally.res);const f=alive(r)&&r.type==='fish'&&!r.bare?r:fishPick(u);if(f)orderGather(u,f);else if(b.rally)orderMove([u],b.rally.x,b.rally.y);return u;}
   if(b.rally){const r=b.rally.res&&G.byId.get(b.rally.res);if(type==='villager'&&alive(r))orderGather(u,r);else orderMove([u],b.rally.x,b.rally.y);}
   return u;
 }
+/* Josh: boats start fishing on their own. Picks a fish spot in the boat's own lake (water flood fill), nearest first, spreading boats out. */
+function fishPick(u){const sx=tl(u.x),sy=tl(u.y);if(!wwalk(sx,sy))return null;const seen=new Uint8Array(MW*MH),q=[ti(sx,sy)];seen[q[0]]=1;
+  for(let i=0;i<q.length;i++){const k=q[i],x=k%MW,y=(k/MW)|0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!inB(nx,ny))continue;const nk=ti(nx,ny);if(!seen[nk]&&G.terrain[nk]===1){seen[nk]=1;q.push(nk);}}}
+  const load={};for(const e of G.ents)if(e.type==='fishboat'&&!e.dead&&e!==u&&e.order&&e.order.type==='gather')load[e.order.id]=(load[e.order.id]||0)+1;
+  let best=null,bd=1e9;for(const e of G.ents){if(e.type!=='fish'||e.dead||e.bare||!seen[ti(e.tx,e.ty)])continue;const d=Math.hypot(e.x-u.x,e.y-u.y)/TILE+(load[e.id]||0)*8;if(d<bd){bd=d;best=e;}}return best;}
+function boatIdleTick(dt){for(const u of G.ents){if(u.type!=='fishboat'||u.dead||u.owner!==0)continue;if(u.order){u.bidle=0;continue;}u.bidle=(u.bidle||0)+dt;if(u.bidle>4){u.bidle=0;const f=fishPick(u);if(f)orderGather(u,f);}}}
 function updProjs(dt){
   for(const p of G.projs){
     if(p.pt){const dx=p.px-p.x,dy=p.py-p.y,d=Math.hypot(dx,dy),st=(p.kind==='boulder'?230:p.kind==='bullet'?700:340)*dt;
@@ -1722,7 +1729,7 @@ function claimRuin(r,o){
   if(o===0){toast('Ruins explored: '+msg);G.fx.push({type:'puff',x:r.x,y:r.y-10,t:.35});CELE.on||(CELE.stars=[]);for(let i=0;i<14;i++)CELE.stars.push({x:r.x+(Math.random()-.5)*30,y:r.y,z:Math.random()*10,vz:20+Math.random()*30,t:0,life:1+Math.random(),size:2+Math.random()*2.5,rot:Math.random()*3,col:'#ffe58a'});CELE.on=true;CELE.t=Math.max(CELE.t,12);}
   else if(G.vis[0][ti(r.tx,r.ty)])toast('The red tribe explored ruins');
 }
-function updPOIs(dt){
+function updPOIs(dt){try{boatIdleTick(dt);}catch(e){}
   for(const t of G.ents)if(t.bare&&!t.dead){if(t.type==='fish'){t.amt+=dt*(RES.fish.amt/150);if(t.amt>=RES.fish.amt){t.amt=RES.fish.amt;t.bare=false;}}else{t.amt+=dt*(30/600);if(t.amt>=30){t.amt=30;t.bare=false;}}}
   for(const t of G.ents){if(t.type!=='tree'||t.dead||t.deadStump||!(t.stump||t.sapling))continue;
     let browsed=false;if(t.growT<45)for(const a of G.ents)if((a.type==='deer'||a.type==='sheep'||a.type==='cow')&&!a.dead&&Math.abs(a.x-t.x)<48&&Math.hypot(a.x-t.x,a.y-t.y)<1.6*TILE){browsed=true;break;}
