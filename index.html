@@ -5060,7 +5060,8 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
    A young donkey still being raised at the corral (u.raise) keeps the plain donkey; caravans are unchanged.
    Flour sacks / carry marks sit on top of the load (GFX.beastBackY('donkey') returns the load top).
    Veteran slingers (Josh: "a small change"): once Veteran slingers is researched, slingers wear two pale eagle feathers in the
-   headband, in every armour look (files art/c/slv<0-3>_p<1-3>.webp, packed: p1 walk+idle, p2 run+ready+die, p3 attack+whirl). ===== */
+   headband, in every armour look (files art/c/slv<0-3>_p<1-3>.webp, packed: p1 walk+idle, p2 run+ready+die, p3 attack+whirl).
+   Also (Josh, Oct 14): owned donkeys and young animals in 3D, stone tools until Bronze tools, catapult wheels/throw/recoil/bigger stone. ===== */
 try{(function(){
   if(typeof GFX_BEAST3D!=='undefined'&&GFX_BEAST3D.donkey)GFX_BEAST3D.donkeypk=Object.assign({},GFX_BEAST3D.donkey,{"seg": {"walk": [0, 12], "idle": [12, 12]}, "fw": 136, "fh": 144, "foot": 123.5, "nc": 24, "back": 44},{file:'donkeypk'});
   const bb=GFX.beastBackY;GFX.beastBackY=function(k,y){return bb(k==='donkey'&&GFX_BEAST3D.donkeypk?'donkeypk':k,y)};
@@ -5078,6 +5079,81 @@ try{(function(){
     const V=VET[S.file];if(!V)return S;
     const E=GFX.S3[V.file];if(!E||!Object.values(E).some(q=>q.ok)){GFX.seg3(V,'idle');GFX.seg3(V,'walk');return S}
     return V}})(GFX.sheetFor);
+})()}catch(err){}
+/* Owned donkeys and young oxen: draw the 3D animal, not the old painted harness sprite. A grown pack donkey shows its pack (load A);
+   a young donkey, ox or caravan donkey still being raised (u.raise) is a plain animal with no blanket, saddle, baskets or harness.
+   Grown oxen keep the harnessed working look; grown caravans are unchanged. */
+try{(function(){
+  const prev=GFX.drawUnitSpr;
+  GFX.drawUnitSpr=function(c,u,x,y,now){
+    if(u&&GFX.mode==='V23D'&&u.owner!=null&&u.owner<2){
+      const pr=Object.getPrototypeOf(u),cv=pr&&pr.type==='caravan';
+      if(u.type==='donkey'&&GFX_BEAST3D.donkey&&(!cv||u.raise))return false;
+      if(u.type==='ox'&&u.raise&&GFX_BEAST3D.ox)return false}
+    return prev.apply(this,arguments)};
+  const _dk=drawDonkey;drawDonkey=function(c,u,x,y,now){const r=_dk.apply(this,arguments);if(u&&u.type==='caravan'&&u.raise&&GFX.mode==='V23D')GFX._dkSpr=1;return r};
+})()}catch(err){}
+/* Stone tools until Bronze tools: Bronze and Iron villagers hold the stone axe, pick and hammer (chop, mine, build, attack)
+   until their player researches Bronze tools; then the bronze tools. Files art/c/<bm3ds|bw3ds|im3ds|iw3ds>_p1.webp
+   (those four segments side by side); every other segment loads the usual sheet. */
+try{(function(){
+  const ST={bm3d:1,bw3d:1,im3d:1,iw3d:1},TS={chop:0,mine:8,build:16,attack:24},VAR={};
+  function variant(S){let V=VAR[S.file];if(V)return V;const old=S.pack,pk={};
+    for(const sg in S.seg)pk[sg]=TS[sg]!=null?{f:S.file+'s_p1',x:TS[sg],n:8}:(old&&old[sg])||{f:S.file+'_'+sg,x:0,n:S.seg[sg][1]};
+    V=Object.assign({},S,{file:S.file+'s'});Object.defineProperty(V,'pack',{value:pk,enumerable:false,configurable:true,writable:true});return VAR[S.file]=V}
+  GFX.stoneVil=variant;
+  GFX.sheetFor=(function(prev){return function(rn,u){const S=prev(rn,u);
+    if(!S||!u||u.type!=='villager'||u.owner==null||u.owner>1||!ST[S.file])return S;
+    let T;try{T=G.players[u.owner].tech}catch(e){}if(!T||T.bronzetools)return S;
+    const V=variant(S),E=GFX.S3[V.file];if(!E||!Object.values(E).some(q=>q.ok)){GFX.seg3(V,'idle');GFX.seg3(V,'walk');GFX.seg3(V,'chop');return S}
+    return V}})(GFX.sheetFor);
+})()}catch(err){}
+/* Catapult (Josh): wheels turn as it rolls (8 frames per spoke turn), the throw is a real swing (arm whips past upright and bounces
+   back, the stone leaves the bucket and is loaded again near the end of the winch), the whole catapult jolts back and rocks with a puff of dust when it fires, and it throws a bigger stone.
+   One file art/c/cat3e_p1.webp (walk 8, winch 10, idle 1, throw 6). */
+try{(function(){
+  const S=Object.assign({},GFX_CAT3D,{file:'cat3e',fw:202,fh:168,foot:140.4,upx:139.64,nc:25,seg:{walk:[0,8],attack:[8,10],idle:[18,1],fire:[19,6]}});
+  const pk={};for(const k in S.seg)pk[k]={f:'cat3e_p1',x:S.seg[k][0],n:S.seg[k][1]};
+  Object.defineProperty(S,'pack',{value:pk,enumerable:false,configurable:true,writable:true});GFX.CAT3E=S;
+  const STRIDE=1.1,FIRE=.32,st=new WeakMap();
+  const prev=GFX.drawUnitSpr;
+  GFX.drawUnitSpr=function(c,u,x,y,now){
+    if(!u||u.type!=='catapult'||GFX.mode!=='V23D'||u.owner==null||u.owner>1)return prev.apply(this,arguments);
+    const sg=S.seg;let q=st.get(u);if(!q){q={d:0,ft:-1e9};st.set(u,q)}
+    if(q.px!=null){const dd=Math.hypot(x-q.px,y-q.py);if(dd<14)q.d+=dd}q.px=x;q.py=y;
+    const D=(DEF.catapult&&DEF.catapult.cd)||4.5,cd=Math.max(0,u.cd||0);
+    if(q.lcd!=null&&cd>q.lcd+.8&&u.working){q.ft=now;q.cm=cd;try{emit('dust',x,y+3,6)}catch(e){}}q.lcd=cd;
+    const t=(now-q.ft)/1000;
+    let seg=u.moving?'walk':(t<FIRE?'fire':(u.working?'attack':'idle'));
+    let L=GFX.seg3(S,seg);if(!L){for(const s2 of ['idle','walk','attack','fire'])GFX.seg3(S,s2);L=GFX.seg3(S,'idle');seg='idle';if(!L)return prev.apply(this,arguments)}
+    const n=sg[seg][1];let f=0;
+    if(seg==='walk')f=Math.floor(q.d/STRIDE)%n;
+    else if(seg==='fire')f=Math.min(n-1,Math.floor(t/FIRE*n));
+    else if(seg==='attack'){const M=q.cm||D,p=1-Math.min(M,cd)/M;f=Math.min(n-1,Math.floor(p*n))}
+    const d=((Math.round((u.face||0)/(Math.PI/4))%8)+8)%8,RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]][d],row=RM[0],mir=RM[1];
+    const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return prev.apply(this,arguments);
+    // recoil: shoved back along its facing, rocks on its wheels, settles
+    let ox=0,oy=0,tilt=0;
+    if(t>=0&&t<.9){const sh=t<.07?-4.5*t/.07:-4.5*Math.exp(-(t-.07)*5),fc=Math.cos(u.face||0),fs=Math.sin(u.face||0);ox=fc*sh;oy=fs*sh*.6;
+      const e=Math.exp(-t*5);tilt=.11*Math.sin(t*24)*e*(fc>=0?-1:1);oy-=Math.abs(Math.sin(t*18))*1.6*e}
+    const k2=(GFX.SCALE2&&GFX.SCALE2.catapult)||1,sc=(S.size||40)/S.upx,w=S.fw*sc,h=S.fh*sc;
+    c.save();c.translate(x,y);c.scale(k2,k2);
+    c.fillStyle='rgba(15,20,8,.3)';ell(c,ox*.6,4,15,5);c.fill();
+    c.translate(ox,4+oy);c.rotate(tilt);
+    const dy=1-S.foot*sc,sx=f*S.fw,sy=row*S.fh;if(mir)c.scale(-1,1);
+    c.drawImage(im,sx,sy,S.fw,S.fh,-w/2,dy,w,h);
+    if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,sx,sy,S.fw,S.fh,-w/2,dy,w,h)}
+    c.restore();return true};
+  // bigger stone in flight for catapult shots
+  const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);if(src&&src.type==='catapult'&&G.projs.length>n)G.projs[G.projs.length-1].big=1;return r};
+  const _sa=shootAt;shootAt=function(src){const n=G.projs.length;const r=_sa.apply(this,arguments);if(src&&src.type==='catapult'&&G.projs.length>n)G.projs[G.projs.length-1].big=1;return r};
+  const _dp=drawParts;drawParts=function(c){try{if(GFX.mode==='V23D'){const V=G.vis&&G.vis[0];for(const p of G.projs){if(!p.big||(V&&!V[ti(tl(p.x),tl(p.y))]))continue;
+    const f=Math.min(1,p.trav/p.d0),lift=Math.sin(f*Math.PI)*Math.min(20,p.d0*.18),bx=p.x,by=p.y-lift,R=4.2;
+    c.fillStyle='rgba(0,0,0,.28)';ell(c,p.x,p.y+4,3.6,1.5);c.fill();
+    c.strokeStyle='rgba(120,110,95,.25)';c.lineWidth=3;c.beginPath();c.moveTo(bx-p.vx*9,by-p.vy*9+2);c.lineTo(bx,by);c.stroke();
+    const g=c.createRadialGradient(bx-1.4,by-1.6,.4,bx,by,R);g.addColorStop(0,'#d4cfc2');g.addColorStop(.55,'#8f8a7e');g.addColorStop(1,'#4a463e');
+    c.fillStyle=g;circ(c,bx,by,R);c.fill();c.strokeStyle='rgba(40,36,30,.8)';c.lineWidth=.7;c.stroke();
+    c.fillStyle='rgba(60,55,48,.55)';const a=p.trav*.12;for(let i=0;i<3;i++){const aa=a+i*2.1;circ(c,bx+Math.cos(aa)*R*.5,by+Math.sin(aa)*R*.45,.8);c.fill()}}}}catch(err){}return _dp.apply(this,arguments)};
 })()}catch(err){}
 /* ===== END art chat 1: pkvet ===== */
 function buildSprites(){
@@ -6634,6 +6710,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
