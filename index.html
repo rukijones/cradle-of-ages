@@ -4955,6 +4955,54 @@ try{(function(){
   bldSpr0=(function(prev){return function(e){if(e&&A[e.type]&&!(e.type==='tower'&&!lone(e))){const s=pick(e.type,e.owner,e.lvl,e.size);if(s)return s}return prev(e)}})(bldSpr0);
   sprFor=(function(prev){return function(type,o){const s=A[type]&&pick(type,o,0);return s||prev(type,o)}})(sprFor);
 })()}catch(err){}
+/* ===== V23D Renaissance units (art chat 2, Oct 14 2026): Josh's picks, Tripo 3D models.
+   Bombard: 8 directions; rolls with a small bounce, recoils back and kicks up when it fires (synced to its cooldown), muzzle flash and a
+   smoke puff drawn in code. Trade cart: covered cart model with its wheels turning, pulled by the 3D donkey (drawn between the shafts,
+   in front of or behind the cart by facing); the canopy stripes take the team colour. Explorer: own Tripo figure (feathered hat, cape,
+   map scroll) on the villager motions (walk, idle, die; other villager poses fall back to these), key ex3d in GFX.IRON3D + GFX.IRONMAP.
+   Files: art/c/bomb3d.webp, art/c/cart3d.webp, art/c/ex3d_p1.webp (walk+idle+die packed, cut by the seg3 pack wrapper). ===== */
+try{(function(){
+  const BM={"file":"bomb3d","fw":210,"fh":200,"upx":166.67,"foot":127.3,"seg":{"walk":[0,4],"attack":[4,8],"idle":[12,1]},"rows5":1,"nc":13,"v":2,"mz":[[105.0,127.9],[166.3,113.3],[191.7,78.2],[166.3,43.0],[105.0,28.4]],"pack":{"walk":{"f":"bomb3d","x":0,"n":4},"attack":{"f":"bomb3d","x":4,"n":8},"idle":{"f":"bomb3d","x":12,"n":1}},"size":46},CT={"file":"cart3d","fw":210,"fh":210,"upx":166.67,"foot":143.2,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"cart3d","x":0,"n":8},"idle":{"f":"cart3d","x":8,"n":1}},"size":40};
+  const V=GFX.VIL3D&&GFX.VIL3D.mm3d;
+  if(V&&GFX.IRON3D&&GFX.IRONMAP){const m=Object.assign({},V);m.file='ex3d';const sg=V.seg;
+    m.pack={walk:{f:'ex3d_p1',x:0,n:12},idle:{f:'ex3d_p1',x:12,n:8},die:{f:'ex3d_p1',x:20,n:6}};
+    m.alias={};for(const s in sg)if(!m.pack[s])m.alias[s]=s.indexOf('carry')===0||s==='run'?'walk':'idle';
+    GFX.IRON3D.ex3d=m;GFX.IRONMAP.explorer='ex3d';
+    GFX.sheetFor=(function(prev){return function(rn,u){if(u&&u._v==='explorer'&&u.owner<2&&GFX.mode==='V23D')return m;return prev(rn,u)}})(GFX.sheetFor)}
+  const RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]];
+  const dirOf=u=>((Math.round((u.face||0)/(Math.PI/4))%8)+8)%8;
+  const ST=new WeakMap();
+  function track(u,x,y){let q=ST.get(u);if(!q){q={d:0};ST.set(u,q)}if(q.px!=null){const dd=Math.hypot(x-q.px,y-q.py);if(dd<14)q.d+=dd}q.px=x;q.py=y;return q}
+  function seg(S,s){let L=GFX.seg3(S,s);if(!L&&s!=='idle'){L=GFX.seg3(S,'idle');if(L)s='idle'}return L?[L,s]:null}
+  function blit(c,S,L,f,row,mir,x,y,u){const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return false;const sc=S.size/S.upx,w=S.fw*sc,h=S.fh*sc,dy=y-S.foot*sc;
+    c.save();if(mir){c.translate(x,0);c.scale(-1,1);x=0}c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h);
+    if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h)}c.restore();return true}
+  function bombard(c,u,x,y,now){const S=BM,q=track(u,x,y),D=(DEF.bombard&&DEF.bombard.cd)||6.5,t=D-(u.cd||0);
+    let s=u.moving?'walk':(u.cd>0&&t<.9?'attack':'idle');const r=seg(S,s);if(!r)return false;const [L,s2]=r;s=s2;GFX.seg3(S,'attack');GFX.seg3(S,'walk');
+    const n=S.seg[s][1];let f=0;if(s==='walk')f+=Math.floor(q.d/6)%n;else if(s==='attack')f+=Math.min(n-1,Math.floor(t/.9*n));
+    const d=dirOf(u),row=RM[d][0],mir=RM[d][1];
+    c.save();c.fillStyle='rgba(15,20,8,.3)';ell(c,x,y+3,19,6);c.fill();c.restore();
+    if(!blit(c,S,L,f,row,mir,x,y+4,u))return false;
+    if(s==='attack'&&t<.7){const sc=S.size/S.upx,m=S.mz[row],mx=x+(mir?-1:1)*(m[0]-S.fw/2)*sc,my=y+4+(m[1]-S.foot)*sc,k=t/.7;
+      c.save();if(t<.12){c.globalCompositeOperation='lighter';c.fillStyle='rgba(255,210,90,.9)';circ(c,mx,my,5*(1-t/.12)+2);c.fill();c.fillStyle='rgba(255,255,220,.9)';circ(c,mx,my,2.4);c.fill()}
+      c.globalCompositeOperation='source-over';c.globalAlpha=.55*(1-k);c.fillStyle='#d8d4cc';for(let i=0;i<3;i++){circ(c,mx+(i-1)*3*k*2,my-3-k*9-i*2,3+k*6);c.fill()}c.restore()}
+    return true}
+  const DK=new WeakMap();
+  function cart(c,u,x,y,now){const S=CT,q=track(u,x,y);const r=seg(S,u.moving?'walk':'idle');if(!r)return false;const [L,s]=r;GFX.seg3(S,'walk');
+    if(!GFX_BEAST3D||!GFX_BEAST3D.donkey||!GFX.seg3(GFX_BEAST3D.donkey,'walk'))return false;
+    const n=S.seg[s][1],f=(s==='walk'?Math.floor(q.d/2.2)%n:0),d=dirOf(u),row=RM[d][0],mir=RM[d][1];
+    let p=DK.get(u);if(!p){p=Object.create(u);DK.set(u,p)}
+    const a=d*Math.PI/4,dx=Math.cos(a)*S.size*.36,dy=Math.sin(a)*S.size*.36*.62;
+    const dk=()=>GFX.drawBeast(c,p,x+dx,y+3+dy,now,'donkey',1);
+    c.save();c.fillStyle='rgba(15,20,8,.28)';ell(c,x,y+3,15,5);c.fill();c.restore();
+    if(Math.sin(a)<-.1)dk();
+    if(!blit(c,S,L,f,row,mir,x,y+3,u))return false;
+    if(Math.sin(a)>=-.1)dk();
+    return true}
+  GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){
+    if(GFX.mode==='V23D'&&u.owner<2&&!u.dead){try{if(u.type==='bombard'&&bombard(c,u,x,y,now))return true;if(u.type==='tradecart'&&cart(c,u,x,y,now))return true}catch(err){}}
+    return prev(c,u,x,y,now)}})(GFX.drawUnitSpr);
+})()}catch(err){}
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
    Every flame painted into a Stone/Bronze/Iron building (braziers, fire pits, forge and kiln mouths) now flickers with live flames,
    lanterns glow and flicker, and every chimney smokes. Points are in source-image pixels per painted art (GFX.FX), scaled onto the sprite.
