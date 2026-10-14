@@ -57,6 +57,7 @@ button{font:inherit;color:inherit;touch-action:manipulation}
 @media (prefers-reduced-motion:reduce){#ageUp .rays{animation:none}.aup-title{animation:aupRise .6s both}}
 #toast{position:absolute;left:50%;top:38px;transform:translateX(-50%);background:var(--shade);border:1px solid var(--edge);border-radius:6px;padding:6px 12px;z-index:4;opacity:0;transition:opacity .2s;pointer-events:none;font-size:13px}
 #toast.show{opacity:1}
+#sickBar{position:absolute;left:50%;top:calc(36px + var(--st));transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:8px;padding:5px 6px 5px 8px;background:linear-gradient(#a3301f,#6e1c12);border:2px solid #ffd25a;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.6),0 0 14px rgba(255,90,60,.55);color:#fff;max-width:calc(100% - 210px)}#sickBar[hidden]{display:none}#sickBar>img{width:30px;height:30px;object-fit:contain}#sickBar .sbt{display:flex;flex-direction:column;min-width:0}#sickBar .sbt b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#sickBar .sbt span{font-size:11px;color:#ffe0a0;font-variant-numeric:tabular-nums}#sickBar .b{min-width:54px;height:34px;flex-direction:column;font-weight:700;font-size:11px}#sickBar .sbc{border-color:#ffd25a}#sickBar.late{animation:sbPulse .7s ease-in-out infinite}#sickBar.flash{animation:sbIn .5s ease-out 3}@keyframes sbPulse{50%{box-shadow:0 4px 16px rgba(0,0,0,.6),0 0 26px rgba(255,60,40,.95)}}@keyframes sbIn{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.12)}100%{transform:translateX(-50%) scale(1)}}
 #panel{position:absolute;left:var(--sl);right:var(--sr);bottom:var(--sb);display:flex;align-items:flex-end;gap:6px;padding:0 58px 6px 6px;z-index:3;pointer-events:none}
 #panel>*{pointer-events:auto}
 #info{position:relative;width:160px;flex:none;display:flex;gap:6px;align-items:center;min-width:0;height:54px;padding:4px 8px 4px 4px;background:rgba(42,32,23,.9);border:1px solid rgba(107,82,54,.9);border-radius:10px}
@@ -1575,8 +1576,8 @@ function dairyTick(b,dt){const P=G.players[b.owner],herd=G.ents.filter(e=>e.type
   b.flock=herd.length;b.sickN=herd.filter(e=>e.sick).length;b.cowsA=adults.length;
   const hay=BON(b.owner).hay;if(healthy.length>=2&&herd.length<8){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.08*dt);b.breedT=(b.breedT||0)+dt*(hay?1.3:1);b.hayless=false;}else b.hayless=true;}
   if(b.breedT>=60){b.breedT=0;if(healthy.length>=2&&herd.length<8){const ex=exitTile(b,tl(b.x),tl(b.y)+3,(Math.random()*8)|0);const cf=mkUnit('cow',b.owner,(ex.x+.5)*TILE,(ex.y+.5)*TILE);cf.born=G.t;cf.dairyId=b.id;if(b.owner===0&&G.t-(G.lastCalfMsg||-99)>30){G.lastCalfMsg=G.t;toast('A calf was born at your dairy');}}}
-  b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(herd.length>=4&&!b.sickN&&Math.random()<(.06+herd.length*.01)*(G.players[b.owner].tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;if(b.owner===0){toast('A cow is sick! Tap it, then tap Give medicine (25 gold) within 90 seconds or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
-  for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>45&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h)h.sick=G.t;if(b.owner===0){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>90){for(const e of herd){e.diseased=1;kill(e);}if(b.owner===0)toast('Disease wiped out your herd');break;}}
+  b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(herd.length>=4&&!b.sickN&&sickOK(b.owner)&&Math.random()<.3*(.06+herd.length*.01)*(G.players[b.owner].tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;sc.sickB=b.id;G.players[b.owner].sickT=G.t;if(b.owner===0){sickAlarm();toast('A cow is sick! Tap it, then tap Give medicine (25 gold) within 2 minutes or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
+  for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>SICK_SPREAD&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if(b.owner===0){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>SICK_DIE){for(const e of herd){e.diseased=1;kill(e);}if(b.owner===0)toast('Disease wiped out your herd');break;}}
   const n=b.gar?b.gar.length:0,milked=Math.min(n*3,healthy.length);b.milked=milked;b.stall=n&&!healthy.length?'No healthy adult cows to milk':'';
   const du=useOf(b);b.working=milked>0;if(b.useT>0){b.useT-=dt;return;}if(milked){const m=(P.tech.guilds?1.25:1)*(b.owner===1?G.aiMult:1);if(du==='cheese'){if(!expAt(b,'cheese',.1*milked*dt*m/8))addWare(b,'cheese',.1*milked*m/10,dt,10);}else if(du==='milk'){const bk=P.tech.bakeworks&&G.ents.find(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(e.milk||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk){bk.milk=(bk.milk||0)+.03*milked*dt*m;b.toBakery=true;}else{b.toBakery=false;P.f+=.25*milked*dt*m;inc(b.owner,'f',.25*milked*dt*m,'milk');}}}}
 /* ===== BUILDING ACTIVITY SIGNAL (read-only for art code) =====
@@ -1631,9 +1632,9 @@ function updBld(b,dt){
     b.hens=h;b.chicks=ch;b.eggs=eg;if(b.useT>0)b.useT-=dt;else if(useOf(b)==='eggs'){const pm=G.players[b.owner].age>=6?3:1;const bk=G.players[b.owner].tech.grandbake&&G.ents.find(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(e.eggs||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk&&h){bk.eggs=(bk.eggs||0)+.025*h*dt*pm;b.toBakery=true;}else{b.toBakery=false;G.players[b.owner].f+=.05*h*dt*pm;inc(b.owner,'f',.05*h*dt*pm,'coop');}}}
   if(b.type==='pen'&&penLead(b)!==b){b.flock=0;b.sickN=0;}
   if(b.type==='pen'&&penLead(b)===b){const pnN=penN(b),pIds=b.mgrp?b.mgrp.ids:[b.id],fl=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&inPenArea(b,e,.8)),n=fl.filter(e=>!e.sick&&!(e.born&&G.t-e.born<60)).length;b.flock=fl.length;b.sickN=fl.filter(e=>e.sick).length;const P=G.players[b.owner];
-    b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(fl.length>=4&&!b.sickN&&Math.random()<(.08+fl.length*.012)*(G.players[b.owner].tech.medicine?.5:1)){const s=fl[(Math.random()*fl.length)|0];s.sick=G.t;if(b.owner===0){toast('A sheep is sick! Tap it, then tap Give medicine (25 gold) within 90 seconds or the flock dies');G.ping={x:b.x,y:b.y,t:5};}}}
-    for(const s of fl)if(s.sick){const age=G.t-s.sick;if(age>45&&!s.spread){s.spread=1;const h=fl.find(e=>!e.sick);if(h)h.sick=G.t;if(b.owner===0){toast('The sickness is spreading through your flock!');G.ping={x:b.x,y:b.y,t:5};}}
-      if(age>90){for(const e of fl){e.diseased=1;kill(e);}if(b.owner===0)toast('Disease wiped out your flock');break;}}
+    b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(fl.length>=4&&!b.sickN&&sickOK(b.owner)&&Math.random()<.3*(.08+fl.length*.012)*(G.players[b.owner].tech.medicine?.5:1)){const s=fl[(Math.random()*fl.length)|0];s.sick=G.t;s.sickB=b.id;G.players[b.owner].sickT=G.t;if(b.owner===0){sickAlarm();toast('A sheep is sick! Tap it, then tap Give medicine (25 gold) within 2 minutes or the flock dies');G.ping={x:b.x,y:b.y,t:5};}}}
+    for(const s of fl)if(s.sick){const age=G.t-s.sick;if(age>SICK_SPREAD&&!s.spread){s.spread=1;const h=fl.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if(b.owner===0){toast('The sickness is spreading through your flock!');G.ping={x:b.x,y:b.y,t:5};}}
+      if(age>SICK_DIE){for(const e of fl){e.diseased=1;kill(e);}if(b.owner===0)toast('Disease wiped out your flock');break;}}
     if(b.useT>0)b.useT-=dt;const hay=BON(b.owner).hay;if(useOf(b)==='wool'&&!(b.useT>0)&&G.ents.some(e=>pIds.includes(e.shep))){const wv=G.ents.find(e=>e.type==='weaver'&&e.owner===b.owner&&e.built&&!e.dead),fac=G.ents.find(e=>e.type==='factory'&&e.owner===b.owner&&e.built&&!e.dead&&(e.wool||0)<200);if(fac)fac.wool=(fac.wool||0)+.06*n*dt/3;else if(wv)wv.wool=Math.min(600,(wv.wool||0)+.06*n*dt);else if(!expAt(b,'cloth',.06*n*dt*1.6/8))addWare(b,'wool',.06*n/6,dt,6);}
     if(n>=2&&fl.length<10*pnN){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.1*dt*pnN);b.breedT=(b.breedT||0)+dt*(hay?1.3:1)*pnN;b.hayless=false;}else b.hayless=true;}
     if(b.breedT>=50){b.breedT=0;
@@ -5799,7 +5800,7 @@ function draw(){
   for(const f of G.fx)if((f.type==='puff'||f.type==='float'||f.type==='zap'||f.type==='treefall')&&V[ti(Math.max(0,Math.min(MW-1,tl(f.x))),Math.max(0,Math.min(MH-1,tl(f.y))))])drawFx(c,f,now);
   for(const it of list){const e=it[1];if(e.kind==='unit'&&(selSet.has(e.id)||e.hp<e.maxHp-.5))hpBar(c,it[2]-11,it[3]-26,22,e.hp/e.maxHp,e.owner);}
   for(const it of list){const e=it[1];if(e.type==='villager'&&e.owner===0&&e.carry&&e.carry.amt>0)carryBar(c,it[2]-11,it[3]-((selSet.has(e.id)||e.hp<e.maxHp-.5)?31:26),22,e.carry.amt/(capOf(e)||CARRY),RCOL[e.carry.r]||'#e6c34a');}
-  try{drawHints(c,now);}catch(err){}
+  try{drawHints(c,now);}catch(err){}try{drawNeedWork(c,now);}catch(err){}try{if(!G._sbT||now-G._sbT>250){G._sbT=now;sickBarTick();}}catch(err){}
   for(const it of list){const e=it[1];if(e.kind==='bld'&&(selSet.has(e.id)||e.hp<e.maxHp-.5||!e.built)&&(e.owner===0||V[ti(tl(e.x),tl(e.y))])){const S=e.size*TILE,sp=bldSpr(e);hpBar(c,e.tx*TILE+8,e.ty*TILE-sp.ov*(e.built?1:e.progress)-2,S-16,e.hp/e.maxHp,e.owner);}}
   drawParts(c);drawSky(c,now);
   c.imageSmoothingEnabled=true;{const fx0=Math.max(0,Math.floor(cam.x/TILE)-2),fy0=Math.max(0,Math.floor(cam.y/TILE)-2),fx1=Math.min(MW,Math.ceil((cam.x+W/cam.z)/TILE)+2),fy1=Math.min(MH,Math.ceil((cam.y+H/cam.z)/TILE)+2);
@@ -6350,7 +6351,42 @@ const VTOOL={"axe0":"data:image/webp;base64,UklGRnoPAABXRUJQVlA4WAoAAAAQAAAAbwAA
 const ROCKR=new Set(['s','g','cu','tin']);
 function zOverOf(e){const o=e.order;if(e.type!=='villager'||!o||o.type!=='gather')return 0;const t=G.byId.get(o.id);if(!t||t.dead||t.kind!=='res'||!RES[t.type]||!ROCKR.has(RES[t.type].r))return 0;return Math.abs(t.x-e.x)<1.6*TILE&&Math.abs(t.y-e.y)<1.6*TILE?t.y+12:0;}
 // ===== visual cues (gameplay chat): show, don't tell =====
-const HINTIMG=new Map();function hintImg(src){if(!src)return null;let im=HINTIMG.get(src);if(!im){im=new Image();im.src=src;HINTIMG.set(src,im);}return im.complete&&im.naturalWidth?im:null;}
+const HINTIMG=new Map();/* Josh: animal sickness is rarer (at most one outbreak every 5 minutes, 30% of the old chance) and much louder: a red alert bar
+   under the top bar with a countdown, a Show button and a one-tap Cure button, until the animals are cured or lost. */
+const SICK_SPREAD=60,SICK_DIE=120,SICK_GAP=300;
+function sickOK(o){const P=G.players[o];return !(P.sickT&&G.t-P.sickT<SICK_GAP);}
+function sickAlarm(){try{sfx('done');}catch(e){}const el=document.getElementById('sickBar');if(el){el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');}}
+function sickHome(a){let b=a.sickB&&G.byId.get(a.sickB);if(alive(b)&&b.owner===a.owner)return b.type==='pen'?penLead(b):b;
+  const want=a.type==='cow'?'dairy':'pen';let best=null,bd=1e9;for(const e of G.ents)if(e.type===want&&e.owner===a.owner&&e.built&&!e.dead){const d=Math.hypot(e.x-a.x,e.y-a.y);if(d<bd){bd=d;best=e;}}return best&&want==='pen'?penLead(best):best;}
+function cureAt(b){const P=G.players[0],at=b.type==='dairy'?'cow':'sheep',sk=G.ents.filter(e=>e.type===at&&e.owner===0&&e.sick&&!e.dead&&sickHome(e)===b);const c={g:25*sk.length};
+  if(!sk.length)return;if(!canAfford(P,c)){toast('Not enough gold for medicine ('+c.g+' gold)');return;}pay(P,c);for(const e of sk){e.sick=0;e.spread=0;}b.sickN=0;toast(at==='cow'?'Your herd is healthy again':'Your flock is healthy again');panelKeyLast='';}
+function sickBarTick(){if(!G)return;let el=document.getElementById('sickBar');const sk=G.ents.filter(e=>(e.type==='sheep'||e.type==='cow')&&e.owner===0&&e.sick&&!e.dead);
+  if(!sk.length){if(el)el.hidden=true;return;}
+  if(!el){el=document.createElement('div');el.id='sickBar';el.innerHTML='<img alt=""><div class="sbt"><b></b><span></span></div><button class="b sbg">Show</button><button class="b sbc">Cure</button>';document.getElementById('app').appendChild(el);
+    el.querySelector('.sbg').onclick=()=>{const b=el._b;if(alive(b)){centerOn(b.x,b.y);setSel([b]);panelKeyLast='';}};
+    el.querySelector('.sbc').onclick=()=>{const b=el._b;if(alive(b))cureAt(b);};}
+  el.hidden=false;const a=sk.reduce((m,e)=>e.sick<m.sick?e:m,sk[0]),b=sickHome(a);el._b=b;const age=G.t-a.sick,cow=a.type==='cow',n=sk.filter(e=>sickHome(e)===b).length;
+  el.querySelector('img').src=(cow?THUMB.cow:THUMB.sheep)||'';
+  el.querySelector('b').textContent=(n>1?n+' sick '+(cow?'cows':'sheep'):'A sick '+(cow?'cow':'sheep'))+(b?' at your '+(cow?'dairy':'pen'):'');
+  el.querySelector('span').textContent=(age<SICK_SPREAD?'Spreads in '+fmtTime(SICK_SPREAD-age):'Whole '+(cow?'herd':'flock')+' dies in '+fmtTime(Math.max(0,SICK_DIE-age)));
+  const cb=el.querySelector('.sbc');cb.innerHTML='Cure<span class="cost"><img class="ci" alt="" src="'+ICON.g+'"> '+(25*n)+'</span>';cb.classList.toggle('dis',!b||G.players[0].g<25*n);el.classList.toggle('late',age>=SICK_SPREAD);}
+/* Josh: make it clear which buildings need workers. A bobbing badge (villager + 0/N) floats over your built pens, dairies, bakeries,
+   pubs, weavers, mine shafts, forester's lodges and unworked farms until at least one worker is there. */
+function needWork(b){if(b.owner!==0||b.kind!=='bld'||!b.built||b.dead)return null;const P=G.players[0];
+  if(b.type==='pen'){if(penLead(b)!==b)return null;let n=0;for(const u of G.ents)if(u.shep===b.id&&!u.dead)n++;return n?null:1;}
+  if(b.type==='forester')return foresterN(b)?null:FORESTERS;
+  if(b.type==='farm'){if(P.tech.harvesters||!(b.amt>0))return null;for(const u of G.ents){if(u.type!=='villager'||u.dead||u.owner!==0||!u.order||u.order.type!=='gather')continue;if(u.order.id===b.id)return null;const g=G.byId.get(u.order.id);if(g&&g.type==='farm'&&b.ox&&rowMate(g,b))return null;}return 1;}
+  const W=WORK[b.type];if(!W||b.type==='factory'||(b.type==='bakery'&&P.tech.bakeworks))return null;
+  if((b.gar||[]).length)return null;for(const u of G.ents)if(u.owner===0&&!u.dead&&u.order&&u.order.type==='work'&&u.order.id===b.id)return null;return W.max;}
+function drawNeedWork(c,now){if(!G)return;if(!G._nwT||G.t-G._nwT>.5){G._nwT=G.t;G._nw=[];for(const b of G.ents){const m=needWork(b);if(m)G._nw.push([b.id,m]);}}
+  const im=hintImg(unitIcon('villager')),z=cam.z;c.save();c.font='bold 10px system-ui,sans-serif';c.textBaseline='middle';
+  for(const [id,m] of G._nw){const b=G.byId.get(id);if(!b||b.dead)continue;let top=b.ty*TILE;try{const sp=bldSpr0(b);if(sp&&sp.ov)top-=sp.ov*.85;}catch(e){}
+    const x=b.x,y=Math.max(b.ty*TILE-60,top)-8+Math.sin(now/300+id)*2.5,s=1/Math.max(.8,Math.min(1.6,z));c.save();c.translate(x,y);c.scale(s,s);
+    c.fillStyle='rgba(122,36,24,.92)';c.strokeStyle='#ffd25a';c.lineWidth=1.6;c.beginPath();if(c.roundRect)c.roundRect(-24,-11,48,22,11);else c.rect(-24,-11,48,22);c.fill();c.stroke();
+    c.beginPath();c.moveTo(-4,11);c.lineTo(0,16);c.lineTo(4,11);c.closePath();c.fillStyle='#ffd25a';c.fill();
+    if(im)c.drawImage(im,-21,-10,20,20);c.fillStyle='#fff';c.fillText('0/'+m,1,0.5);c.restore();}
+  c.restore();}
+function hintImg(src){if(!src)return null;let im=HINTIMG.get(src);if(!im){im=new Image();im.src=src;HINTIMG.set(src,im);}return im.complete&&im.naturalWidth?im:null;}
 function starPath(g,x,y,R){g.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?R*.45:R;g.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}g.closePath();}
 // three stars along the bottom of the portrait: gold = earned; a thin bar fills with kills toward the next star
 function drawRankStars(g,u){const rk=u.rank||0,k=u.kills||0,nx=RANKS[rk],pv=rk?RANKS[rk-1]:0;
