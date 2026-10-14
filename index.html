@@ -5124,7 +5124,7 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
    Flour sacks / carry marks sit on top of the load (GFX.beastBackY('donkey') returns the load top).
    Veteran slingers (Josh: "a small change"): once Veteran slingers is researched, slingers wear two pale eagle feathers in the
    headband, in every armour look (files art/c/slv<0-3>_p<1-3>.webp, packed: p1 walk+idle, p2 run+ready+die, p3 attack+whirl).
-   Also (Josh, Oct 14): owned donkeys and young animals in 3D, stone tools until Bronze tools, catapult wheels/throw/recoil/bigger stone, settler in 3D. ===== */
+   Also (Josh, Oct 14): owned donkeys and young animals in 3D, stone tools until Bronze tools, catapult wheels/throw/recoil/bigger stone, settler in 3D, owned oxen in 3D with a yoke and plough. ===== */
 try{(function(){
   if(typeof GFX_BEAST3D!=='undefined'&&GFX_BEAST3D.donkey)GFX_BEAST3D.donkeypk=Object.assign({},GFX_BEAST3D.donkey,{"seg": {"walk": [0, 12], "idle": [12, 12]}, "fw": 136, "fh": 144, "foot": 123.5, "nc": 24, "back": 44},{file:'donkeypk'});
   const bb=GFX.beastBackY;GFX.beastBackY=function(k,y){return bb(k==='donkey'&&GFX_BEAST3D.donkeypk?'donkeypk':k,y)};
@@ -5228,6 +5228,30 @@ try{(function(){
   GFX.rigFor=(function(prev){return function(u){const r=prev(u);if(r||!u||u._v!=='settler'||GFX.mode!=='V23D'||u.owner==null||u.owner>1)return r;return GFX.rigs&&GFX.rigs.i_man?'i_man':r}})(GFX.rigFor);
   GFX.sheetFor=(function(prev){return function(rn,u){if(u&&(u._v==='settler'||u.type==='settler')&&u.owner!=null&&u.owner<2&&GFX.mode==='V23D'){
     const E=GFX.S3[S.file];if(E&&Object.values(E).some(q=>q.ok))return S;GFX.seg3(S,'idle');GFX.seg3(S,'walk')}return prev(rn,u)}})(GFX.sheetFor);
+})()}catch(err){}
+/* Owned oxen in 3D (Josh: "the ox are still pictures"): a grown owned ox is the 3D ox wearing a wooden neck yoke with an oxbow,
+   a red-and-cream blanket and girth straps; it walks and grazes like the wild ox. While ploughing it walks in 3D too, dragging a
+   small wooden plough that kicks up dust. Young oxen stay plain. One file art/c/oxyk_p1.webp (walk 12, idle 12). */
+try{(function(){
+  if(typeof GFX_BEAST3D==='undefined'||!GFX_BEAST3D.ox)return;
+  const Y=Object.assign({},GFX_BEAST3D.ox,{file:'oxyk'});
+  Object.defineProperty(Y,'pack',{value:{walk:{f:'oxyk_p1',x:0,n:12},idle:{f:'oxyk_p1',x:12,n:12}},enumerable:false,configurable:true,writable:true});
+  GFX_BEAST3D.oxyk=Y;
+  const prevS=GFX.drawUnitSpr;GFX.drawUnitSpr=function(c,u){if(u&&u.type==='ox'&&GFX.mode==='V23D'&&u.owner!=null&&u.owner<2)return false;return prevS.apply(this,arguments)};
+  function plough(c,u,x,y,now){const f=u.face||0,fx=Math.cos(f),fy=Math.sin(f),L=17,px=x-fx*L,py=y-fy*L*.6+2;
+    c.save();c.strokeStyle='#5a3a1c';c.lineWidth=1.6;c.beginPath();c.moveTo(x-fx*7,y-fy*4-3);c.lineTo(px,py-2);c.stroke();
+    c.fillStyle='#2b2118';c.beginPath();c.moveTo(px-fx*3,py+1.5);c.lineTo(px+fx*2-fy*2,py-2.5);c.lineTo(px+fx*2+fy*2,py-1);c.closePath();c.fill();
+    c.fillStyle='#8d939a';c.beginPath();c.moveTo(px-fx*3.2,py+1.2);c.lineTo(px-fx*1-fy*1.2,py-.8);c.lineTo(px-fx*1+fy*1.2,py+.6);c.closePath();c.fill();
+    c.strokeStyle='#6b4524';c.lineWidth=1.2;c.beginPath();c.moveTo(px,py-1.5);c.lineTo(px-fx*5,py-8);c.moveTo(px-fy*1.5,py-1);c.lineTo(px-fx*5-fy*2.5,py-7);c.stroke();
+    c.restore();if(u.moving&&Math.random()<.25)try{emit('dust',px,py+1,1)}catch(e){}}
+  const _ox=drawOx;drawOx=function(c,u,x,y,now){
+    if(GFX.mode!=='V23D'||!u||u.owner==null||u.owner>1||u.raise)return _ox(c,u,x,y,now);
+    const back=Math.sin(u.face||0)>0;
+    if(u.plowing&&back)plough(c,u,x,y,now);
+    const E=GFX.S3[Y.file],rdy=E&&Object.values(E).some(q=>q.ok);if(!rdy){GFX.seg3(Y,'idle');GFX.seg3(Y,'walk')}
+    const ok=GFX.drawBeast(c,u,x,y,now,rdy?'oxyk':'ox',1);
+    if(ok)GFX.beastRing(c,u,x,y,(Y.W||24)*1.25);else return _ox(c,u,x,y,now);
+    if(u.plowing&&!back)plough(c,u,x,y,now)};
 })()}catch(err){}
 /* ===== END art chat 1: pkvet ===== */
 function buildSprites(){
@@ -6798,6 +6822,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
