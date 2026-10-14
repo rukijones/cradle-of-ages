@@ -5128,7 +5128,7 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
 try{(function(){
   if(typeof GFX_BEAST3D!=='undefined'&&GFX_BEAST3D.donkey)GFX_BEAST3D.donkeypk=Object.assign({},GFX_BEAST3D.donkey,{"seg": {"walk": [0, 12], "idle": [12, 12]}, "fw": 136, "fh": 144, "foot": 123.5, "nc": 24, "back": 44},{file:'donkeypk'});
   const bb=GFX.beastBackY;GFX.beastBackY=function(k,y){return bb(k==='donkey'&&GFX_BEAST3D.donkeypk?'donkeypk':k,y)};
-  const pkOn=u=>u&&u.type==='donkey'&&u.owner<2&&!u.raise&&GFX.mode==='V23D'&&GFX_BEAST3D.donkeypk;
+  const pkOn=u=>u&&(u.type==='donkey'||u.type==='caravan')&&u.owner<2&&!u.raise&&GFX.mode==='V23D'&&GFX_BEAST3D.donkeypk;
   const _dk=drawDonkey;drawDonkey=function(c,u,x,y,now){if(!pkOn(u))return _dk(c,u,x,y,now);
     const D=GFX_BEAST3D.donkey;GFX_BEAST3D.donkey=GFX_BEAST3D.donkeypk;try{return _dk(c,u,x,y,now)}finally{GFX_BEAST3D.donkey=D}};
 })()}catch(err){}
@@ -5145,16 +5145,16 @@ try{(function(){
 })()}catch(err){}
 /* Owned donkeys and young oxen: draw the 3D animal, not the old painted harness sprite. A grown pack donkey shows its pack (load A);
    a young donkey, ox or caravan donkey still being raised (u.raise) is a plain animal with no blanket, saddle, baskets or harness.
-   Grown oxen keep the harnessed working look; grown caravans are unchanged. */
+   Grown donkey caravans are the 3D pack donkey too (Josh: some pack donkeys still looked old). */
 try{(function(){
   const prev=GFX.drawUnitSpr;
   GFX.drawUnitSpr=function(c,u,x,y,now){
     if(u&&GFX.mode==='V23D'&&u.owner!=null&&u.owner<2){
       const pr=Object.getPrototypeOf(u),cv=pr&&pr.type==='caravan';
-      if(u.type==='donkey'&&GFX_BEAST3D.donkey&&(!cv||u.raise))return false;
+      if(u.type==='donkey'&&GFX_BEAST3D.donkey)return false;
       if(u.type==='ox'&&u.raise&&GFX_BEAST3D.ox)return false}
     return prev.apply(this,arguments)};
-  const _dk=drawDonkey;drawDonkey=function(c,u,x,y,now){const r=_dk.apply(this,arguments);if(u&&u.type==='caravan'&&u.raise&&GFX.mode==='V23D')GFX._dkSpr=1;return r};
+  const _dk=drawDonkey;drawDonkey=function(c,u,x,y,now){const r=_dk.apply(this,arguments);if(u&&u.type==='caravan'&&GFX.mode==='V23D'&&u.owner<2)GFX._dkSpr=1;return r};
 })()}catch(err){}
 /* Stone tools until Bronze tools: Bronze and Iron villagers hold the stone axe, pick and hammer (chop, mine, build, attack)
    until their player researches Bronze tools; then the bronze tools. Files art/c/<bm3ds|bw3ds|im3ds|iw3ds>_p1.webp
