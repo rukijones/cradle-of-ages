@@ -4929,7 +4929,7 @@ GFX.FX={
   in_bld:{l:[[388,206,.7]]},
   pb_bld:{s:[[412.5,81.2]]}
 };
-GFX.TCK=GFX.TCK||{};
+GFX.TCK=Object.assign({1:1.25},GFX.TCK||{}); // Josh: Bronze town center drawn 25% bigger (same 3x3 footprint)
 (function(){
   const sc=(L,q)=>L?L.map(p=>[p[0]*q,p[1]*q,p[2]]):null;
   const ps=GFX.spr;GFX.spr=function(name,o,S,wf,down){const c=ps.apply(this,arguments);try{const F=GFX.FX[name],im=GFX.imgs[name];
