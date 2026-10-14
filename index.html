@@ -4983,6 +4983,31 @@ GFX.TCK=GFX.TCK||{};
   try{const _p=drawBuilding;drawBuilding=function(c,e,now){_p(c,e,now);try{GFX.fxDraw(c,e,now)}catch(err){}}}catch(err){}
 })();
 /* ===== END art chat 1: fx ===== */
+/* ===== V23D Industrial core buildings (art chat 3, Josh Oct 14 2026): painted town center (wide clock-tower hall), house and
+   storage warehouse (Tripo image tool, Josh picked TC1 widened, H1, S3). One packed file art/c/nb_core.webp holds each picture with its
+   team mask beside it. Replaces the code-drawn Industrial ('n') sprites made by genTier(o,5); house floors nL1/nL2 show the same house
+   for now. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks). ===== */
+(function(){try{
+  const LAY={tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]};
+  const TY={towncenter:['nb_tc','tc',1.15,.04],house:['nb_house','house',.98,.05],storage:['nb_storage','storage',1.1,.04]};
+  const SMK={nb_tc:[[379,47],[153,154]],nb_house:[[124,7]]};
+  const im=new Image();let cut=false;const OLD={};
+  function ready(){if(cut)return true;if(!(im.complete&&im.naturalWidth))return false;
+    for(const t in TY){const nm=TY[t][0],[x,y,w,h]=LAY[TY[t][1]];
+      for(const [suf,dx] of [['',0],['_m',w]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
+      if(!GFX_ART[nm])GFX_ART[nm]={age:5,culture:'both',smoke:SMK[nm]}}
+    return cut=true}
+  GFX.indCore=function(o){if(GFX.mode!=='V23D'||!ready()||!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(5)))return false;let n=0;
+    for(const t in TY){const [nm,,wf,dn]=TY[t],S=DEF[t].size*TILE,keys=t==='house'?['house'+o+'n','house'+o+'nL1','house'+o+'nL2']:[t+o+'n'];
+      for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=GFX.spr(nm,o,S,wf,dn);sp._nb=1;SPR.bld[k]=sp;n++}}
+    if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
+  const _g=genTier;genTier=function(o,t){const r=_g(o,t);if(t===5){try{GFX.indCore(o)}catch(e){}}return r};
+  const _d=dropTier;dropTier=function(o,t){if(t===5)for(const k in OLD)if(tierOfKey(k,o)===5)delete OLD[k];return _d(o,t)};
+  const _a=GFX.apply;GFX.apply=function(){const r=_a.apply(this,arguments);try{if(GFX.mode==='V23D'){GFX.indCore(0);GFX.indCore(1)}else for(const k in OLD){if(SPR.bld[k]&&SPR.bld[k]._nb)SPR.bld[k]=OLD[k]}}catch(e){}return r};
+  im.onload=function(){try{const a=GFX.indCore(0),b=GFX.indCore(1);if((a||b)&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};
+  im.src=GFX.ART+'nb_core.webp?v='+GFX.ARTV;
+}catch(err){}})();
+
 function buildSprites(){
   SPR.ruin=ruinSprite();
   for(let i=0;i<5;i++)SPR.trees.push(treeSprite(11+i*17,i===4));
