@@ -1216,7 +1216,7 @@ function corralRaiseTick(b,dt){if(!isCor(b)||!b.queue||!b.queue.length||!RAISE[b
 function raiseTick(u,dt){const R=u.raise,hm=G.byId.get(u.home);R.t+=dt*(hm&&ranchPen(hm)?1.1:1);
   if(u.order&&!u.order.wander){u.order=null;u.path=null;}
   if(R.t>=R.dur){delete u.raise;u.penned=0;if(u.owner===0&&G.t-(G.lastGrownMsg||-99)>20){G.lastGrownMsg=G.t;toast('A young '+DEF[u.type].name.toLowerCase()+' has grown up and is ready to work');}}}
-function raiseK(u){return (u&&u.type==='cow'?.85:u&&u.type==='ox'?.8:1)*(u&&u.raise?.5+.5*Math.min(1,u.raise.t/u.raise.dur):1);}
+function raiseK(u){return (u&&u.type==='cow'?.85:1)*(u&&u.raise?.5+.5*Math.min(1,u.raise.t/u.raise.dur):1);}
 function drawUnitR(c,e,x,y,now){const k=raiseK(e);if(k===1)return drawUnit(c,e,x,y,now);c.save();c.translate(x,y);c.scale(k,k);c.translate(-x,-y);try{drawUnit(c,e,x,y,now);}finally{c.restore();}}
 function corralHome(u,dt){const o=u.order;
   if(u.home===undefined&&!o&&CORRAL_AN.has(u.type)&&!corralBusy(u)){u.adT=(u.adT||0)+dt;if(u.adT>8){u.adT=0;let best=null,bd=40*TILE;for(const e of G.ents)if(isCor(e)&&e.owner===u.owner&&e.built&&!e.dead){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;best=e;}}if(best)u.home=penLead(best).id;}}
