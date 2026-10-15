@@ -4936,7 +4936,7 @@ GFX.gpSpr=function(s){let c=GFX._gp[s];if(c)return c;const rx=(s*.69+1.05)*TILE,
   g.save();g.translate(rx,ry);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,'rgba(255,255,255,.88)');gr.addColorStop(.58,'rgba(255,255,255,.72)');gr.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle=gr;g.fillRect(-rx,-rx,2*rx,2*rx);g.restore();c.rx=rx;c.ry=ry;GFX._gp[s]=c;return c};
 try{shadowLayer=(function(prev){return function(c){try{if(GFX.mode==='V23D'&&GFX.texReady){const B=(G.bases||[]);
-  for(const e of G.ents){if(e.kind!=='bld'||e.dead||GFX.GPSKIP.has(e.type))continue;const s=e.size||(DEF[e.type]&&DEF[e.type].size)||2;
+  for(const e of G.ents){if(e.kind!=='bld'||e.dead||GFX.GPSKIP.has(e.type))continue;if(e.yard&&GFX.yardPic&&GFX.yardPic())continue;const s=e.size||(DEF[e.type]&&DEF[e.type].size)||2;
     const x=(e.tx+s/2)*TILE,y=(e.ty+s/2)*TILE+TILE*.25;
     const sp=GFX.gpSpr(s);if(x+sp.rx<cam.x-50||y+sp.ry<cam.y-50)continue;c.drawImage(sp,x-sp.rx,y-sp.ry)}}}catch(err){}return prev(c)}})(shadowLayer)}catch(err){}
 /* ===== V23D Medieval pub and roadside inn (Josh, Oct 14): painted at the 45-degree angle (Tripo image tool), pub 2 / inn 3 picked.
@@ -5770,16 +5770,16 @@ try{(function(){
   const YA={"yard":[0,0,700,537],"yard_m":[702,0,700,537]};let YL=null,yat=null;
   function yload(){if(yat)return;yat=new Image();yat.onload=()=>{try{const m={};for(const k in YA){const [x,y,w,h]=YA[k],c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(yat,x,y,w,h,0,0,w,h);m[k]=c}YL=m}catch(err){}yat.onload=yat.onerror=null;yat.src=''};
     yat.onerror=()=>{setTimeout(()=>{yat=null},5000)};yat.src=GFX.ART+'a1_yard.webp?v='+GFX.ARTV}
-  const ytint={};const yardPic=o=>{if(!YL){yload();return null}o=o>1?0:o;if(ytint[o])return ytint[o];return ytint[o]=GFX.tint(YL.yard,YL.yard_m,o)};
+  const ytint={};const yardPic=o=>{if(!YL){yload();return null}o=o>1?0:o;if(ytint[o])return ytint[o];return ytint[o]=GFX.tint(YL.yard,YL.yard_m,o)};GFX.yardPic=()=>!!YL;
   const WP=[[70,425],[200,452],[330,432],[470,398],[560,362],[640,322],[700,290],[860,395],[415,585]],
     FS=[[0,385],[410,598],[912,362],[912,482],[415,700],[0,488]],RAMP=[[[212,440],[245,372]],[[565,360],[512,302]]];
   const inPoly=(P,x,y)=>{let ins=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const [xi,yi]=P[i],[xj,yj]=P[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins}return ins};
   const FCV={};const frontFence=o=>{if(FCV[o])return FCV[o];const P=yardPic(o);if(!P)return null;const c=document.createElement('canvas');c.width=P.width;c.height=P.height;const g=c.getContext('2d'),k=P.width/912;
     g.beginPath();FS.forEach(([x,y],i)=>i?g.lineTo(x*k,y*k):g.moveTo(x*k,y*k));g.closePath();g.clip();g.drawImage(P,0,0);return FCV[o]=c};
-  GFX.yardArt=1;
+  GFX.yardArt=1;GFX.YARDK=.92;
   const YQ=new Map();GFX._yq=YQ;
   try{const _dpy=drawPoultryYard;drawPoultryYard=function(c,e,now){const P=GFX.mode==='V23D'&&yardPic(e.owner);if(!P||!GFX.cpDraw||!GFX.cpImg('hen'))return _dpy(c,e,now);
-    const g=e.yard,X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,k=W*1.06/912,OX=X0+W/2-456*k,OY=Y0+H+4-700*k,pw=(x,y)=>[OX+x*k,OY+y*k];
+    const g=e.yard,X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,k=W*(GFX.YARDK||1.06)/912,OX=X0+W/2-456*k,OY=Y0+H+4-700*k,pw=(x,y)=>[OX+x*k,OY+y*k];
     const mem=g.ids.map(id=>G.byId.get(id)).filter(x=>x&&!x.dead),birds=[];for(const m of mem)for(const t0 of(m.birds||[]))birds.push(t0);const gt=G.t;
     let q=YQ.get(g.anchor);if(!q){q={B:[],t:now,fill:0};YQ.set(g.anchor,q)}const dt=Math.min(.1,Math.max(0,(now-q.t)/1000));q.t=now;
     const pick=()=>{for(let n=0;n<30;n++){const x=60+Math.random()*800,y=290+Math.random()*300;if(inPoly(WP,x,y))return pw(x,y)}return pw(415,500)};
