@@ -3150,8 +3150,8 @@ function townDecor(c,now,E,V,list,inView){
   if(G.pw)for(let o=0;o<2;o++){const pw=G.pw[o];if(!pw||!pw.edges)continue;c.save();c.lineWidth=1;c.strokeStyle='rgba(30,30,34,.85)';for(const[a1,b1]of pw.edges){const a=G.byId.get(a1),b=G.byId.get(b1);if(!a||!b)continue;if(o!==0&&!(V[ti(tl(a.x),tl(a.y))]||V[ti(tl(b.x),tl(b.y))]))continue;if(o===0&&!E[ti(tl(a.x),tl(a.y))])continue;
     const ay=a.y+(a.type==='pylon'?-34:-40),by=b.y-34,mx=(a.x+b.x)/2,my=(ay+by)/2+10;for(const off of[-5,5]){c.beginPath();c.moveTo(a.x+off,ay);c.quadraticCurveTo(mx+off,my,b.x+off,by);c.stroke();}}c.restore();}
   for(const f of G.ents){if(f.type!=='farm'||f.dead||!f.built||f.fallow||f.noFuel)continue;const P=G.players[f.owner];if(!P||!P.tech.harvesters)continue;if(f.owner!==0&&!V[ti(tl(f.x),tl(f.y))])continue;if(!inView(f.x,f.y,60))continue;const S=f.size*TILE,ph=((now/1000*.07+f.id*.37)%1)*4,row=Math.floor(ph),k=ph-row,dir=row%2,x=f.tx*TILE+8+(dir?1-k:k)*(S-16),y=f.ty*TILE+10+row*(S-20)/3;list.push([y+140,{kind:'decor',d:'tractor',x,y,o:f.owner,dir:dir?-1:1}]);}
-  for(const b of G.ents){if(b.type==='bakery'&&b.dtrip&&!b.dead){const t=b.dtrip,k=Math.min(1,t.t/t.dur),x=b.x+(t.tx-b.x)*k,y=b.y+20+(t.ty-b.y-20)*k;if(b.owner===0||V[ti(tl(x),tl(y))])if(inView(x,y,40))list.push([y+4,{kind:'decor',d:'flourcart',x,y,o:b.owner,face:Math.atan2(t.ty-b.y,t.tx-b.x),cargo:t.cargo,truck:G.players[b.owner].age>=6}]);}}
-  for(const b of G.ents){if((b.type!=='bakery'&&b.type!=='pub'&&b.type!=='inn')||!b.trip||b.dead)continue;const t=b.trip,k=Math.min(1,t.t/t.dur),x=t.fx+(b.x-t.fx)*k,y=t.fy+(b.y+10-t.fy)*k;if(b.owner!==0&&!V[ti(tl(x),tl(y))])continue;if(!inView(x,y,40))continue;list.push([y+4,{kind:'decor',d:'flourcart',x,y,o:b.owner,face:Math.atan2(b.y-t.fy,b.x-t.fx),cargo:t.cargo||'flour'}]);}
+  for(const b of G.ents){if(b.type==='bakery'&&b.dtrip&&!b.dead){const t=b.dtrip,k=Math.min(1,t.t/t.dur),x=b.x+(t.tx-b.x)*k,y=b.y+20+(t.ty-b.y-20)*k;if(b.owner===0||V[ti(tl(x),tl(y))])if(inView(x,y,40))list.push([y+4,{kind:'decor',d:'flourcart',x,y,o:b.owner,face:Math.atan2(t.ty-b.y,t.tx-b.x),cargo:t.cargo,truck:G.players[b.owner].age>=6,bid:b.id}]);}}
+  for(const b of G.ents){if((b.type!=='bakery'&&b.type!=='pub'&&b.type!=='inn')||!b.trip||b.dead)continue;const t=b.trip,k=Math.min(1,t.t/t.dur),x=t.fx+(b.x-t.fx)*k,y=t.fy+(b.y+10-t.fy)*k;if(b.owner!==0&&!V[ti(tl(x),tl(y))])continue;if(!inView(x,y,40))continue;list.push([y+4,{kind:'decor',d:'flourcart',x,y,o:b.owner,face:Math.atan2(b.y-t.fy,b.x-t.fx),cargo:t.cargo||'flour',bid:b.id}]);}
   drawPits(c,E);try{drawWallMarks(c,E);}catch(err){}try{drawYards(c,E,inView);}catch(err){console.warn(err)}
   for(const d of G.ents){if(d.type!=='depot'||!d.rail||d.dead)continue;if(d.owner!==0&&!E[ti(tl(d.x),tl(d.y))])continue;drawRails(c,d.rail);const tr=d.tr;if(!tr)continue;const L=d.rail.length-1,i=Math.max(0,Math.min(L-1,Math.floor(tr.pos))),f=tr.pos-i,a=d.rail[i],b=d.rail[Math.min(L,i+1)];const x=a[0]+(b[0]-a[0])*f,y=a[1]+(b[1]-a[1])*f;if(d.owner!==0&&!V[ti(tl(x),tl(y))])continue;if(!inView(x,y,80))continue;let ang=Math.atan2(b[1]-a[1],b[0]-a[0]);if(tr.dir<0)ang+=Math.PI;const ld=tr.dir>0?Object.values(tr.cargo||{}).some(v=>v>0):false;list.push([y+6,{kind:'decor',d:'train',x,y,a:ang,o:d.owner,loaded:ld}]);}
   if(!G.road)return;
@@ -3178,7 +3178,7 @@ function drawDecor(c,d,now){
   if(d.d==='tractor'){c.save();c.translate(d.x,d.y);c.scale(d.dir,1);c.fillStyle='rgba(15,20,8,.3)';ell(c,2,4,10,2.6);c.fill();c.fillStyle=OL;circ(c,-4,1,4.6);c.fill();c.fillStyle='#2a2a2e';circ(c,-4,1,3.8);c.fill();c.fillStyle='#8a8478';circ(c,-4,1,1.2);c.fill();c.fillStyle=OL;circ(c,6,2.6,2.8);c.fill();c.fillStyle='#2a2a2e';circ(c,6,2.6,2.2);c.fill();
     c.fillStyle=OL;c.fillRect(-6,-5,14,6);c.fillStyle=PCOL[d.o];c.fillRect(-5.4,-4.4,12.8,4.8);c.fillStyle='#3a3c40';c.fillRect(4,-11,2.4,7);c.fillStyle='#d4a548';c.fillRect(-1,-3.4,5,1);c.restore();if(Math.random()<.06)G.fx.push({type:'puff',x:d.x+5*d.dir,y:d.y-12,t:.5});return;}
   if(d.d==='flourcart'&&d.truck){drawTruck(c,{owner:d.o,face:d.face,moving:true,walk:now/1000,load:{f:1},flash:0},d.x,d.y,now);c.fillStyle='#f4efe2';c.font='bold 8px system-ui';c.textAlign='center';c.fillText(d.cargo||'',d.x,d.y-22);c.textAlign='left';return;}
-  if(d.d==='flourcart'){drawCart(c,{owner:d.o,face:d.face,moving:true,walk:now/1000,cargo:1,flash:0},d.x,d.y,now);c.fillStyle='#f4efe2';c.font='bold 8px system-ui';c.textAlign='center';c.fillText(d.cargo||'flour',d.x,d.y-20);c.textAlign='left';return;}
+  if(d.d==='flourcart'){try{if(cart3D(c,d,now))return;}catch(err){}drawCart(c,{owner:d.o,face:d.face,moving:true,walk:now/1000,cargo:1,flash:0},d.x,d.y,now);c.fillStyle='#f4efe2';c.font='bold 8px system-ui';c.textAlign='center';c.fillText(d.cargo||'flour',d.x,d.y-20);c.textAlign='left';return;}
   if(d.d==='gaslamp')return drawGasLamp(c,d.x,d.y,now);
   if(d.d==='train')return drawTrain(c,d.x,d.y,d.a,d.o,now,d.loaded);
   if(d.d==='fountain')return drawFountain(c,d.x,d.y,now);
@@ -8032,6 +8032,16 @@ function grpLive(g,o){const L=[];for(const id of g.ids){const x=G.byId.get(id);i
 try{damage=(function(prev){return function(t,amt,src,ranged){const g=grpOf(t);if(!g||t._gsp)return prev.apply(this,arguments);const L=grpLive(g,t.owner);if(L.length<2)return prev.apply(this,arguments);
   const k=amt/L.length;for(const x of L){if(x.dead)continue;x._gsp=1;try{prev.call(this,x,k,src,ranged);}finally{x._gsp=0;}}}})(damage)}catch(err){}
 try{updBld=(function(prev){return function(b,dt){const r=prev.apply(this,arguments);try{const g=grpOf(b);if(g&&(g.anchor===b.id||(!G.byId.get(g.anchor)&&g.ids[0]===b.id))){const L=grpLive(g,b.owner);if(L.length>1){let h=0,m=0;for(const x of L){h+=x.hp/x.maxHp;}const f=h/L.length;for(const x of L)x.hp=Math.max(.5,f*x.maxHp);}}}catch(err){}return r}})(updBld)}catch(err){}
+/* ===== Grain / flour / bread carts (Josh, Oct 15: "the grain cart is a 2D donkey in the Renaissance age"): the pub's grain trip (and any old
+   free cart still on the road) is drawn as the 3D pack donkey carrying sacks, like the flour and bread donkeys, instead of the old 2D cart. ===== */
+const CARTU=new Map();
+function cart3D(c,d,now){if(typeof GFX==='undefined'||GFX.mode!=='V23D'||typeof GFX_BEAST3D==='undefined'||!GFX_BEAST3D.donkeypk)return false;
+  let u=CARTU.get(d.bid);if(!u){u={id:900000+(d.bid||0),owner:d.o,face:d.face,moving:true,walk:0,flash:0,anim:null,_lx:d.x,_ly:d.y};CARTU.set(d.bid,u);}
+  u.owner=d.o;u.face=d.face;u.walk+=Math.hypot(d.x-u._lx,d.y-u._ly)/TILE*1.4;u._lx=d.x;u._ly=d.y;u.moving=true;
+  if(!GFX.drawBeast(c,u,d.x,d.y,now,'donkeypk',1))return false;
+  const sk=GFX._flourSack;if(sk&&sk.complete&&sk.naturalWidth){let by=d.y-13;try{if(GFX.beastBackY)by=GFX.beastBackY('donkey',d.y);}catch(err){}const w=9,h=w*sk.height/sk.width;
+    c.drawImage(sk,d.x-w-1,by-h+2,w,h);c.drawImage(sk,d.x+1,by-h+2,w,h);}
+  return true;}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
