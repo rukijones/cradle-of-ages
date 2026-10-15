@@ -246,7 +246,7 @@ const DEF={
   goldmine:{kind:'bld',name:'Gold mine',hp:300,size:2,sight:3,drop:1,dropOnly:'g',cost:{w:150},time:30,age:2},
   stonemine:{kind:'bld',name:'Stone mine',hp:300,size:2,sight:3,drop:1,dropOnly:'s',cost:{w:150},time:30,age:2},
   coop:{kind:'bld',name:'Chicken coop',hp:100,size:2,sight:2,techs:[],cost:{w:75},time:15,age:2},
-  pen:{kind:'bld',name:'Livestock pen',hp:150,size:3,sight:3,techs:[],cost:{w:100},time:20,age:3,walkable:1},
+  pen:{kind:'bld',name:'Sheep wing',hp:200,size:3,sight:3,techs:[],cost:{w:150},time:25,age:4,walkable:1},
   butcher:{kind:'bld',name:'Butcher',hp:200,size:2,sight:3,drop:1,dropOnly:'f',cost:{w:120},time:25,age:2},
   dock:{kind:'bld',name:'Dock',hp:250,size:2,sight:5,drop:1,dropOnly:'f',trains:['fishboat'],cost:{w:120},time:25,age:1},
   outpost:{kind:'bld',name:'Outpost',hp:150,size:1,sight:9,cost:{w:40,s:25},time:15,age:2},
@@ -443,7 +443,8 @@ function mkBld(type,owner,tx,ty,built){
     /* Josh (Oct 15): building over tree stumps clears them (dead stumps, and the stump marks of trees just cleared) */
     const inF=(px,py)=>px>=tx*TILE-2&&px<(tx+s0)*TILE+2&&py>=ty*TILE-2&&py<(ty+s0)*TILE+2;
     for(const r of G.ents)if(r.type==='tree'&&!r.dead&&r.deadStump&&r.tx>=tx-((r.size||1)-1)&&r.tx<tx+s0&&r.ty>=ty-((r.size||1)-1)&&r.ty<ty+s0){r.dead=true;emit('dust',r.x,r.y,3);for(let yy=r.ty;yy<r.ty+(r.size||1);yy++)for(let xx=r.tx;xx<r.tx+(r.size||1);xx++)if(inB(xx,yy)&&G.occ[ti(xx,yy)]===r.id)G.occ[ti(xx,yy)]=0;}
-    if(G.fx)G.fx=G.fx.filter(f=>!(f.type==='stump'&&inF(f.x,f.y)));}
+    if(G.fx)G.fx=G.fx.filter(f=>!(f.type==='stump'&&inF(f.x,f.y)));
+    for(const r of G.ents)if(r.type==='carcass'&&!r.dead&&inF(r.x,r.y)){r.dead=true;emit('dust',r.x,r.y,3);for(const h of G.ents)if(h.order&&h.order.id===r.id)h.order=null;}}
   const d=DEF[type];
   const mh=d.hp+(type==='tower'&&G.players[owner].tech.sentry?100:0)+(type==='tower'&&G.players[owner].tech.guardtower?150:0)+(type==='tower'&&G.players[owner].tech.keeps?250:0);
   const e=addEnt({kind:'bld',type,owner,tx,ty,size:d.size,x:(tx+d.size/2)*TILE,y:(ty+d.size/2)*TILE,hp:built?mh:Math.max(1,mh*.1),maxHp:mh,built,progress:built?1:0,queue:[],trainT:0,cd:0,rally:null});
@@ -480,7 +481,7 @@ function kill(e){
     for(const id of ids){const x=G.byId.get(id);if(x&&!x.dead&&x.kind==='bld'&&x.owner===e.owner)kill(x);}}catch(err){}
   if(e.type==='gate'&&G.gate)G.gate[ti(e.tx,e.ty)]=0;if(e.type==='gate'&&e.gpair&&!e._fallTw){const pg=G.byId.get(e.gpair);if(pg&&!pg.dead&&pg.type==='gate')kill(pg);}if(e.type==='tower')try{towerFell(e);}catch(err){}
   if(e.gar&&e.gar.length){const g=e.gar;e.gar=[];for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++)if(G.occ[ti(x,y)]===e.id)G.occ[ti(x,y)]=0;for(const u of g)release(e,u);}
-  if(e.type==='deer'||LIVE[e.type]||e.type==='donkey'||e.type==='ox'){if(e.diseased){G.fx.push({type:'puff',x:e.x,y:e.y-4,t:.35});return;}const c=addEnt({kind:'res',type:'carcass',owner:-1,tx:tl(e.x),ty:tl(e.y),size:1,x:e.x,y:e.y,amt:LIVE[e.type]?(youngOf(e)?LIVE[e.type].ymeat:LIVE[e.type].meat):RES.carcass.amt,v:Math.random(),noOcc:1});
+  if(e.type==='deer'||LIVE[e.type]||e.type==='donkey'||e.type==='ox'){if(e.diseased){G.fx.push({type:'puff',x:e.x,y:e.y-4,t:.35});return;}const c=addEnt({kind:'res',type:'carcass',owner:-1,tx:tl(e.x),ty:tl(e.y),size:1,x:e.x,y:e.y,amt:LIVE[e.type]?(youngOf(e)?LIVE[e.type].ymeat:LIVE[e.type].meat):RES.carcass.amt,v:Math.random(),noOcc:1,of:e.type,young:youngOf(e)?1:0,face:e.face||0});
     for(const h of G.ents)if(h.type==='villager'&&h.order&&(h.order.type==='attack'||h.order.type==='slaughter')&&h.order.id===e.id)orderGather(h,c);return;}
   if(e.kind==='unit'&&e.owner<2){G.fx.push({type:'fall',x:e.x,y:e.y,o:e.owner,utype:e.type,face:e.face,dir:Math.cos(e.face)<-.1?1:-1,t:8,dur:8,id:e.id});emit('dust',e.x,e.y+2,4);sfx('fall',e.x,e.y);}
   else if(e.kind==='bld'&&e.type!=='farm'){const S=e.size*TILE;for(let k=0;k<e.size*2;k++)emit('dust',e.tx*TILE+S*(.2+.6*Math.random()),e.ty*TILE+S*(.2+.6*Math.random()),5);}
@@ -704,7 +705,7 @@ function startKit(tc,age){
   let mill=null,bak=null;
   if(age>=3){mill=place('mill',7);if(mill&&age>=4)bak=near('bakery',mill,0);if(mill)for(let i=0;i<nf;i++){const f=near('farm',mill,0);if(f)farms.push(f);}}
   for(let i=farms.length;i<nf;i++){const f=place('farm',3);if(f)farms.push(f);}
-  if(age>=2){place('forge',5);place('range',6);{const rc=place('ranch',7);if(rc&&age>=3)try{aiWing(rc,true);}catch(err){}}place('tower',8);place('tower',8);}
+  if(age>=2){place('forge',5);place('range',6);{const rc=place('ranch',7);if(rc&&age>=3)try{aiWing(rc,true);}catch(err){}if(rc&&age>=4)try{aiSWing(rc,true);}catch(err){}}place('tower',8);place('tower',8);}
   if(age>=3){place('stable',6);place('workshop',7);place('coop',6);}
   if(age>=4){if(!bak)bak=place('bakery',7);place('pub',7);}
   if(age>=5){place('market',7);place('university',8);}
@@ -727,6 +728,7 @@ function startKit(tc,age){
   let need=Math.min(POPMAX,popUsed(o)+8);while(popCap(o)<need){if(!place('house',3))break;}
   try{aiForest(o);}catch(err){}
   if(age>=3)for(const rc of G.ents.filter(e=>e.type==='ranch'&&e.owner===o&&!e.dead&&!e.wing))try{aiWing(rc,true);}catch(err){}
+  if(age>=4)for(const rc of G.ents.filter(e=>e.type==='ranch'&&e.owner===o&&!e.dead&&!e.swing))try{aiSWing(rc,true);}catch(err){}
   if(G.ais[o])G.ais[o].bronzeT=1;
 }
 
@@ -885,14 +887,15 @@ function ranchActs(one,P){
   const anySheep=G.ents.some(e=>e.type==='sheep'&&own(e)),cows=one.cFlock||0,dairy=ranchDairy(one);
   const sickS=one.sickN||0,sickC=G.ents.some(e=>e.type==='cow'&&own(e)&&e.sick&&Math.hypot(e.x-one.x,e.y-one.y)<5*TILE);
   const qTab=one.queue.length?(one.queue[0]==='dairyfarm'?'c':'a'):'';
-  const warn={s:sickS>0||(anySheep&&!sh),c:sickC,a:false};
-  let tab=G.rtab;if(!['s','c','a'].includes(tab))tab=G.rtab='s';
-  const TL=[['s','Sheep',sheep.length],['c','Cows',dairy?cows:''],['a','Work animals','']];
+  const warn={s:sickS>0||(ranchSheep(one)&&anySheep&&!sh),c:sickC,a:false};
+  let tab=G.rtab;if(!['s','c','a'].includes(tab))tab=G.rtab='a';
+  const TL=[['a','Work animals',''],['c','Cows',dairy?cows:''],['s','Sheep',ranchSheep(one)?sheep.length:'']];
   let h='';for(const[k,lab,n]of TL)h+=btn('rtab:'+k,lab+(n!==''?'<span class="tc">'+n+'</span>':''),'','',false,0,'g tabb'+(k===tab?' on':'')+(k!==tab&&warn[k]?' warn':''));
   const line=(b,t)=>'<div class="hint"><b>'+b+'</b>'+(t?'<br>'+t:'')+'</div>';
   const queueUI=()=>'<div class="hint" style="min-width:130px"><span id="qtxt"></span><div class="bar q"><i id="qbar"></i></div></div>'+btn('cancel','Cancel','<span class="cost">last in queue</span>','',false);
-  if(tab==='s'){
-    h+=line(sheep.length+' sheep'+(lambs?' · '+lambs+' lamb'+(lambs>1?'s':''):'')+' · room for '+10*penN(one),(sh?(sh>1?sh+' shepherds':'1 shepherd')+' working':'No shepherd yet')+(PL.hayless?' · out of wood: no lambs':''));
+  if(tab==='s'&&!ranchSheep(one)){h+=sheepWingUI(one,P);}
+  else if(tab==='s'){
+    h+=line(sheep.length+' sheep'+(lambs?' · '+lambs+' lamb'+(lambs>1?'s':''):'')+' · room for '+sheepCap(one),(sh?(sh>1?sh+' shepherds':'1 shepherd')+' working':'No shepherd yet')+(PL.hayless?' · out of wood: no lambs':''));
     if(G.prevSelFor===one.id){const pv=(G.prevSel||[]).filter(id=>{const u=G.byId.get(id);return u&&!u.dead&&u.type==='villager';});if(pv.length)h+=btn('sendsel','Make shepherds','<span class="cost">Send '+pv.length+' selected villager'+(pv.length>1?'s':'')+'</span>',THUMB.villager,false,0,'wide');}
     if(sickS)h+=btn('medicine','Give medicine',costHtml({g:25*sickS}),THUMB.sheep,!canAfford(P,{g:25*sickS}),sickS,'wide danger',PILL('up','Sick'));
     h+=btn('shepherds',sh?(sh>1?sh+' shepherds':'1 shepherd'):'No shepherd','<span class="cost">'+(sh?'Tap to select':'Not assigned')+'</span>',THUMB.villager,false,0,'wide',sh?PILL('res','Working'):'');
@@ -904,10 +907,10 @@ function ranchActs(one,P){
   }else if(tab==='c'){
     if(!dairy){const W=one.wing&&G.byId.get(one.wing);
       if(W&&!W.dead&&!W.built){const nb=G.ents.filter(u=>u.order&&u.order.type==='build'&&u.order.id===W.id&&!u.dead).length;h+=line('Dairy wing: being built',Math.round((W.progress||0)*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('wingb','Send builders','','',false,0,'wide'));}
-      else if(P.age<3)h+=line('No cows yet','The dairy wing comes in the Medieval Age: it joins the ranch at a gate, with 2 cows for milk or cheese');
+      else if(P.age<3)h+=line('No cows yet','The dairy wing comes in the Medieval Age: it joins the ranch at a gate, with 2 cows for milk or cheese. Sheep follow in the Renaissance');
       else h+=btn('mkwing','Dairy wing',costHtml(DEF.dairy.cost),bldIcon('dairy',THUMB.dairy||THUMB.ranch),!canAfford(P,DEF.dairy.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds the dairy onto the ranch at one of its gates. 2 cows join; the shepherds milk them for food or cheese</div>';
     }else{
-      h+=line(cows+' cow'+(cows===1?'':'s')+' · '+(one.milked||0)+' milked',(sh?'The shepherd milks them':'Needs a shepherd to milk them (Sheep tab)'));
+      h+=line(cows+' cow'+(cows===1?'':'s')+' (room for '+COW_CAP+') · '+(one.milked||0)+' milked',(sh?'The shepherd milks them':'Needs a shepherd to milk them'));h+=shepBtns(one,sh);
       if(sickC)h+=btn('medicine','Give medicine',costHtml({g:25}),THUMB.cow,!canAfford(P,{g:25}),0,'wide danger',PILL('up','Sick'));
       h+=btn('cuse','Make: '+(one.cuse==='cheese'?'Cheese':'Milk'),'<span class="cost">'+(one.cuse==='cheese'?'Gold':'Food')+'. Tap to switch</span>',THUMB.cow,false,0,'wide');
       h+=btn('herdc','Call cows','<span class="cost">Bring your cows in</span>',THUMB.cow,false,0,'wide');
@@ -920,15 +923,15 @@ function ranchActs(one,P){
   }
   return h;
 }
-function penLead(b){if(b&&b.mgrp){const a=G.byId.get(b.mgrp.anchor);if(a&&!a.dead)return a;}return b;}
+function penLead(b){if(b&&b.sranch){const R=G.byId.get(b.sranch);if(R&&!R.dead)return R;}if(b&&b.mgrp){const a=G.byId.get(b.mgrp.anchor);if(a&&!a.dead)return a;}return b;}
 function penN(b){const L=penLead(b);return L&&L.mgrp?L.mgrp.ids.length:1;}
-function penBox(b,k){const L=penLead(b),g=L.mgrp;if(L.type==='ranch')return rZone(L,k||'s');return g?[g.x0,g.y0,g.x1,g.y1]:[L.tx,L.ty,L.tx+L.size,L.ty+L.size];}
+function penBox(b,k){const L=penLead(b),g=L.mgrp;if(L.type==='ranch')return ranchZone(L,k||'s');return g?[g.x0,g.y0,g.x1,g.y1]:[L.tx,L.ty,L.tx+L.size,L.ty+L.size];}
 function inPenArea(b,e,m,zk){const B=penBox(b,zk||(b&&b.type==='ranch'?rKind(e):0)),x=e.x/TILE,y=e.y/TILE,k=m==null?1.2:m;return x>B[0]-k&&x<B[2]+k&&y>B[1]-k&&y<B[3]+k;}
-function penSpot(b,k){if(b&&b.type==='ranch'){const Z=rZone(b,k||'s');return[Math.floor(Z[0]+Math.random()*(Z[2]-Z[0])),Math.floor(Z[1]+Math.random()*(Z[3]-Z[1]))];}const B=penBox(b),cx=(B[0]+B[2])/2,cy=(B[1]+B[3])/2,hw=(B[2]-B[0])/2,hh=(B[3]-B[1])/2;for(let k=0;k<8;k++){const dx=(Math.random()*2-1)*hw*.9,dy=(Math.random()*2-1)*hh*.8;if(Math.abs(dx)/hw+Math.abs(dy)/(hh*.85)<=1)return[Math.floor(cx+dx),Math.floor(cy+dy)];}return[Math.floor(cx),Math.floor(cy)];}
+function penSpot(b,k){if(b&&b.type==='ranch'){const Z=ranchZone(b,k||'s');if(Z[0]<0)return[b.tx+2,b.ty+5];if(Z.w){const q=[[1,1],[1,0],[0,1],[2,1],[1,2],[1,1]][(Math.random()*6)|0];return[Z.w.tx+q[0],Z.w.ty+q[1]];}return[Math.floor(Z[0]+Math.random()*(Z[2]-Z[0])),Math.floor(Z[1]+Math.random()*(Z[3]-Z[1]))];}const B=penBox(b),cx=(B[0]+B[2])/2,cy=(B[1]+B[3])/2,hw=(B[2]-B[0])/2,hh=(B[3]-B[1])/2;for(let k=0;k<8;k++){const dx=(Math.random()*2-1)*hw*.9,dy=(Math.random()*2-1)*hh*.8;if(Math.abs(dx)/hw+Math.abs(dy)/(hh*.85)<=1)return[Math.floor(cx+dx),Math.floor(cy+dy)];}return[Math.floor(cx),Math.floor(cy)];}
 function penSnap(p){if(p.type!=='pen'&&p.type!=='corral')return;let best=null,bd=9;for(const e of G.ents){if(e.type!==p.type||e.owner!==0||e.dead||(e.size||3)!==3)continue;
     for(const[dx,dy]of(e.mgrp&&e.mgrp.k==='pair'?[[3,0],[-3,0],[0,3],[0,-3]]:[[3,0],[-3,0]])){const x=e.tx+dx,y=e.ty+dy,d=Math.max(Math.abs(x-p.tx),Math.abs(y-p.ty));if(d>=1&&d<=2&&d<bd&&placeOK(p.type,x,y,0,true,0)){bd=d;best=[x,y];}}}
   if(best){p.tx=best[0];p.ty=best[1];}}
-function sheepHome(u){let best=null,bd=1e9;for(const e of G.ents)if(isPen(e)&&e.owner===u.owner&&e.built&&!e.dead){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;best=e;}}
+function sheepHome(u){let best=null,bd=1e9;for(const e of G.ents)if(isPen(e)&&e.owner===u.owner&&e.built&&!e.dead&&!(e.type==='ranch'&&!ranchSheep(e))){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;best=e;}}
   if(best)return best.type==='ranch'?penSpot(best,'s'):[best.tx+(Math.random()*3|0),best.ty+(Math.random()*3|0)];const tc=G.ents.find(e=>e.type==='towncenter'&&e.owner===u.owner&&!e.dead);if(!tc||Math.hypot(tc.x-u.x,tc.y-u.y)<5*TILE)return null;const ex=exitTile(tc,tl(u.x),tl(u.y),(Math.random()*6)|0);return[ex.x,ex.y];}
 const EARTAG3D=[[44,60],[64,63],[86,53],[93,34],[46,29]];
 function drawCollar(c,u,x,y,now){const lamb=u.born&&G.t-u.born<60,gs=lamb?(.55+.45*Math.min(1,(G.t-u.born)/60)):1;
@@ -1067,8 +1070,33 @@ function bakeryRun(b,dt,P,n){const T=P.tech,ne=T.bakeworks?(n+2)*1.5:n;b.stall='
       const m=(P.tech.guilds?1.25:1)*(b.powered?1.5:1),food=need*L.v*m,ex=b.exp===undefined?(b.export?1:0):b.exp/100;
       const toEx=food*ex;if(toEx>0&&!expAt(b,L.k,toEx/20))b.fstock+=toEx;b.fstock+=food-toEx;}}
   if(b.dtrip){const t=b.dtrip;t.t+=dt;if(t.t>=t.dur){const Q=G.players[b.owner],a=t.amt*(b.owner===1?G.aiMult:1);Q.f+=a;inc(b.owner,'f',t.amt,'bakery');const d=G.byId.get(t.to);if(b.owner===0&&d&&V0(d))G.fx.push({type:'float',x:d.x,y:d.y-34,t:1.6,text:'+'+Math.round(a)+' food',col:'#9fd07a'});b.dtrip=null;}}
-  else if(b.fstock>=30||(b.fstock>1&&G.t-(b.dT||0)>20)){const dst=G.ents.filter(e=>e.owner===b.owner&&e.built&&!e.dead&&(e.type==='towncenter'||e.type==='storage')).sort((x,y)=>Math.hypot(x.x-b.x,x.y-b.y)-Math.hypot(y.x-b.x,y.y-b.y))[0];
-    if(dst){const age=G.players[b.owner].age,d=Math.hypot(dst.x-b.x,dst.y-b.y);b.dtrip={to:dst.id,tx:dst.x,ty:dst.y+20,amt:b.fstock,t:0,dur:Math.max(2,d/(age>=6?110:age>=4?75:60)),cargo:bakeLine(b,P).k==='bread'?'bread':'baked goods'};b.fstock=0;b.dT=G.t;bEv(b,'trip');}}}
+  else if(b.fstock>=30||(b.fstock>1&&G.t-(b.dT||0)>20))breadSend(b);}
+/* Josh (Oct 15): bread is carried by a real pack donkey (nearest free one, or the bakery's own flour donkey when it is home),
+   or by one of the bakers if there is no donkey. No more free cart. The load is lost if the carrier is killed. */
+function breadDst(b){let best=null,bd=1e9;for(const e of G.ents){if(e.owner!==b.owner||!e.built||e.dead||(e.type!=='towncenter'&&e.type!=='storage'))continue;const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<bd){bd=d;best=e;}}return best;}
+function breadCarrier(b){const c=b.bcar&&G.byId.get(b.bcar);return c&&!c.dead&&c.owner===b.owner&&(c.breadB===b.id||(c.order&&c.order.type==='bread'&&c.order.bk===b.id))?c:null;}
+function breadDrop(o,amt,at){const Q=G.players[o],a=amt*(o===1?G.aiMult:1);Q.f+=a;inc(o,'f',amt,'bakery');if(o===0&&at&&V0(at))G.fx.push({type:'float',x:at.x,y:at.y-34,t:1.6,text:'+'+Math.round(a)+' food',col:'#9fd07a'});}
+function breadSend(b){if(breadCarrier(b))return;b.bcar=0;const dst=breadDst(b);if(!dst)return;b.dT=G.t;
+  let d=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.innD||u.penned||u.breadB||u.flourC||(u.order&&!u.order.auto))continue;
+    if(u.bake&&(u.bake!==b.id||u.leg!=='home'))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q-(u.bake===b.id?1e6:0)+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;d=u;}}
+  if(d){if(d.bake!==b.id){const v=d.buddy&&G.byId.get(d.buddy);if(v&&v.donkey===d.id)v.donkey=0;d.buddy=0;d.home=0;}d.order=null;d.path=null;d.breadB=b.id;d.breadC=0;d.bto=dst.id;d.bleg='load';d.bnf=0;b.bcar=d.id;return;}
+  if(b.gar&&b.gar.length){const u=b.gar.shift();release(b,u);u.sheltered=false;u.breadC=b.fstock;b.fstock=0;bEv(b,'trip');u.order={type:'bread',bk:b.id,to:dst.id};u.path=null;b.bcar=u.id;return;}
+  breadDrop(b.owner,b.fstock,b);b.fstock=0;bEv(b,'trip');}
+function donkeyBread(u,dt){const b=G.byId.get(u.breadB);
+  const quit=()=>{if(u.breadC){const bb=alive(b)&&b.owner===u.owner?b:null;if(bb)bb.fstock=(bb.fstock||0)+u.breadC;}u.breadB=0;u.breadC=0;u.bleg=0;if(b&&b.bcar===u.id)b.bcar=0;return false;};
+  if(u.order&&!u.order.auto)return quit();
+  u.order=null;if(u.fz>G.t)return true;
+  if(u.bleg==='load'){if(!alive(b)||!b.built||b.owner!==u.owner)return quit();const r=approach(u,b,TILE*1.1);if(r==='fail'){u.fz=G.t+3;if(++u.bnf>=5)return quit();return true;}if(r!==true)return true;
+    u.breadC=b.fstock||0;b.fstock=0;bEv(b,'trip');if(u.breadC<=0)return quit();u.bleg='go';u.bnf=0;return true;}
+  let t=G.byId.get(u.bto);if(!alive(t)||!t.built||t.owner!==u.owner){t=alive(b)?breadDst(b):null;if(!t)return quit();u.bto=t.id;}
+  const r=approach(u,t,TILE*1.1);if(r==='fail'){u.fz=G.t+3;if(++u.bnf>=5){breadDrop(u.owner,u.breadC,t);u.breadC=0;return quit();}return true;}if(r!==true)return true;
+  breadDrop(u.owner,u.breadC,t);u.breadC=0;return quit();}
+function breadRun(u,o){const t0=G.byId.get(o.to);let t=alive(t0)&&t0.built&&t0.owner===u.owner?t0:null;const b=G.byId.get(o.bk);
+  if(!t){t=alive(b)?breadDst(b):null;if(!t){u.breadC=0;u.order=null;return;}o.to=t.id;}
+  if(!u.breadC){u.order=alive(b)&&b.built?{type:'work',id:b.id}:null;u.path=null;return;}
+  const r=approach(u,t,TILE*.9);if(r==='fail'){breadDrop(u.owner,u.breadC,t);u.breadC=0;return;}if(r!==true)return;
+  breadDrop(u.owner,u.breadC,t);u.breadC=0;if(b&&b.bcar===u.id)b.bcar=0;u.order=alive(b)&&b.built?{type:'work',id:b.id}:null;u.path=null;}
+function breadNote(one){const c=breadCarrier(one);if(c)return '. '+(c.type==='donkey'?'A pack donkey':'A baker')+(c.breadC?' is carrying '+Math.round(c.breadC)+' food to storage':' is coming for the bread');if(one.dtrip)return '. A cart is delivering '+Math.round(one.dtrip.amt)+' food';return '';}
 function breadStatus(bk){const mills=G.ents.filter(e=>e.type==='mill'&&e.owner===0&&e.built&&!e.dead),farms=G.ents.filter(e=>e.type==='farm'&&e.owner===0&&e.built&&!e.dead);
   const ok=x=>'<span style="color:#9fd07a">✓</span> '+x,no=x=>'<span style="color:#e8603a">✗</span> '+x;
   const near=farms.filter(f=>millOf(f)).length,wheat=mills.some(m=>useOf(m)!=='flax'),grain=mills.reduce((a,m)=>a+(m.grain||0)+(m.flour||0),0);
@@ -1136,7 +1164,7 @@ function bakeryHaul(b,dt){b.flour=b.flour||0;if(b.trip){const t=b.trip;t.t+=dt;i
   if(d){b.runner=0;return;}
   if(!bakeRunner(b))b.runner=0;
   if(!b.runner&&b.flour<12&&b.gar&&b.gar.length){const m=flourMill(b,4);if(m){const u=b.gar.shift();release(b,u);u.sheltered=false;u.flourC=0;u.order={type:'flour',bk:b.id,mill:m.id};u.path=null;b.runner=u.id;}}}
-function donkeyBake(u,dt){const b=G.byId.get(u.bake);
+function donkeyBake(u,dt){const b=G.byId.get(u.bake);if(u.breadB)return false;
   if(!b||b.dead||!b.built||b.owner!==u.owner||b.donk!==u.id){if(u.flourC&&b&&!b.dead&&b.owner===u.owner)b.flour=(b.flour||0)+u.flourC;u.bake=0;u.flourC=0;u.leg=0;return false;}
   if(u.order&&!u.order.auto){b.donk=0;u.bake=0;if(u.flourC){b.flour=(b.flour||0)+u.flourC;u.flourC=0;}return false;}
   u.order=null;if(u.fz>G.t)return true;
@@ -1188,7 +1216,7 @@ function corralRaiseTick(b,dt){if(!isCor(b)||!b.queue||!b.queue.length||!RAISE[b
 function raiseTick(u,dt){const R=u.raise,hm=G.byId.get(u.home);R.t+=dt*(hm&&ranchPen(hm)?1.1:1);
   if(u.order&&!u.order.wander){u.order=null;u.path=null;}
   if(R.t>=R.dur){delete u.raise;u.penned=0;if(u.owner===0&&G.t-(G.lastGrownMsg||-99)>20){G.lastGrownMsg=G.t;toast('A young '+DEF[u.type].name.toLowerCase()+' has grown up and is ready to work');}}}
-function raiseK(u){return (u&&u.type==='ox'?.75:1)*(u&&u.raise?.5+.5*Math.min(1,u.raise.t/u.raise.dur):1);}
+function raiseK(u){return (u&&u.type==='cow'?.85:u&&u.type==='ox'?.8:1)*(u&&u.raise?.5+.5*Math.min(1,u.raise.t/u.raise.dur):1);}
 function drawUnitR(c,e,x,y,now){const k=raiseK(e);if(k===1)return drawUnit(c,e,x,y,now);c.save();c.translate(x,y);c.scale(k,k);c.translate(-x,-y);try{drawUnit(c,e,x,y,now);}finally{c.restore();}}
 function corralHome(u,dt){const o=u.order;
   if(u.home===undefined&&!o&&CORRAL_AN.has(u.type)&&!corralBusy(u)){u.adT=(u.adT||0)+dt;if(u.adT>8){u.adT=0;let best=null,bd=40*TILE;for(const e of G.ents)if(isCor(e)&&e.owner===u.owner&&e.built&&!e.dead){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;best=e;}}if(best)u.home=penLead(best).id;}}
@@ -1506,6 +1534,7 @@ function updUnit(u,dt){
       for(const e of G.ents){if(e.owner!==u.owner||e.kind!=='bld'||!e.built||e.dead)continue;let v=e.ware?Object.values(e.ware).reduce((a,x)=>a+x,0):0;if(e.type==='pub')v+=Math.max(0,(e.beer||0)-15);
         if(v>bv&&!G.ents.some(c=>c!==u&&(c.type==='caravan'||c.type==='tradecart')&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
       if(best){u.cv={leg:'load',id:best.id};u.path=null;return;}}if(!TCv)return;}}
+  if(u.type==='donkey'&&u.owner<2&&u.breadB&&donkeyBread(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&u.innD&&donkeyInn(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&u.bake&&donkeyBake(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&!u.raise){u.scan=(u.scan||0)-dt;let v=u.buddy&&G.byId.get(u.buddy);
@@ -1524,6 +1553,7 @@ function updUnit(u,dt){
     if(u.order&&u.order.type==='move'){}else return;}
   const o=u.order;
   if(o&&o.type==='flour'){flourRun(u,o);return;}
+  if(o&&o.type==='bread'){breadRun(u,o);return;}
   if(o&&o.type==='work'){const b=G.byId.get(o.id),W=b&&WORK[b.type];if(!alive(b)||!b.built||!W||(b.gar&&b.gar.length>=W.max)){u.order=null;return;}
     const r=approach(u,b,TILE*.8);if(r==='fail'){u.order=null;return;}if(r===true){u.prevOrder=null;u.garIn=b.id;}return;}
   if(o&&o.type==='garrison'){const b=G.byId.get(o.id);if(!alive(b)||!b.built||(b.gar&&b.gar.length>=garCap(b))){const nb=o.bell&&shelterFor(u,u.owner,shelterLoad(),b);if(nb){o.id=nb.id;u.path=null;return;}u.order=u.prevOrder||null;u.prevOrder=null;return;}
@@ -1804,10 +1834,11 @@ function updBld(b,dt){
     for(const s of fl)if(s.sick){const age=G.t-s.sick;if(age>SICK_SPREAD&&!s.spread){s.spread=1;const h=fl.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if(b.owner===0){toast('The sickness is spreading through your flock!');G.ping={x:b.x,y:b.y,t:5};}}
       if(age>SICK_DIE){for(const e of fl){e.diseased=1;kill(e);}if(b.owner===0)toast('Disease wiped out your flock');break;}}
     if(b.useT>0)b.useT-=dt;const hay=BON(b.owner).hay;if(useOf(b)==='wool'&&!(b.useT>0)&&G.ents.some(e=>pIds.includes(e.shep))){const wv=G.ents.find(e=>e.type==='weaver'&&e.owner===b.owner&&e.built&&!e.dead),fac=G.ents.find(e=>e.type==='factory'&&e.owner===b.owner&&e.built&&!e.dead&&(e.wool||0)<200);if(fac)fac.wool=(fac.wool||0)+.06*n*dt/3;else if(wv)wv.wool=Math.min(600,(wv.wool||0)+.06*n*dt);else if(!expAt(b,'cloth',.06*n*dt*1.6/8))addWare(b,'wool',.06*n/6,dt,6);}
-    if(n>=2&&fl.length<10*pnN){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.1*dt*pnN);b.breedT=(b.breedT||0)+dt*(hay?1.3:1)*pnN;b.hayless=false;}else b.hayless=true;}
+    if(n>=2&&fl.length<sheepCap(b)){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.1*dt*pnN);b.breedT=(b.breedT||0)+dt*(hay?1.3:1)*pnN;b.hayless=false;}else b.hayless=true;}
     if(b.breedT>=50){b.breedT=0;
-    if(n>=2&&n<10*pnN){const ps=penSpot(b),sh=mkUnit('sheep',b.owner,(ps[0]+.5)*TILE,(ps[1]+.5)*TILE);sh.hx=ps[0];sh.hy=ps[1];sh.born=G.t;sh.penId=b.id;if(b.owner===0&&G.t-(G.lastLambMsg||-99)>30){G.lastLambMsg=G.t;toast('A lamb was born');}}}}
-  if(b.type==='ranch'){try{ranchCowTick(b,dt);}catch(err){}}
+    if(n>=2&&n<sheepCap(b)){const ps=penSpot(b),sh=mkUnit('sheep',b.owner,(ps[0]+.5)*TILE,(ps[1]+.5)*TILE);sh.hx=ps[0];sh.hy=ps[1];sh.born=G.t;sh.penId=b.id;if(b.owner===0&&G.t-(G.lastLambMsg||-99)>30){G.lastLambMsg=G.t;toast('A lamb was born');}}}}
+  if(b.type==='ranch'){try{ranchSheepTick(b);}catch(err){}}
+  if(b.type==='pen'&&b.sranch){try{swingTick(b);}catch(err){}}
   if(b.queue.length){
     const ty=b.queue[0],isT=!!TECH[ty];
     if(!isT&&b.trainT===0&&popUsed(b.owner)>=popCap(b.owner)){
@@ -2190,7 +2221,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   for(const pb of blds)if(WORK[pb.type]&&pb.built){const n=(pb.gar||[]).length+vills.filter(v=>v.order&&v.order.type==='work'&&v.order.id===pb.id).length;if(n<2){const v=vills.find(v=>!v.order)||vills.find(v=>v.order&&v.order.type==='gather'&&v.order.rtype==='tree');if(v)assignWorkers(pb,[v]);}}
   {const sp=bld('storage');if(age>=2&&sp&&sp.queue.length===0&&!P.tech.coppicing&&P.f>220&&P.w>220)enqueue(sp,'coppicing');}
   {const fg1=bld('forge');if(fg1&&fg1.queue.length===0&&!P.tech.bronzework&&P.w>200&&P.s>120)enqueue(fg1,'bronzework');const st1=bld('storage');if(st1&&st1.queue.length===0&&P.tech.bronzework&&!P.tech.bronzetools&&P.g>120&&P.w>200)void 0;const fg2=bld('forge');if(fg2&&fg2.queue.length===0&&P.tech.bronzework&&!P.tech.bronzearmor&&P.g>140&&P.f>200)enqueue(fg2,'bronzearmor');}
-  {const rc=bld('ranch');if(rc&&age>=3&&rc.built&&!rc.wing&&P.w>350)aiWing(rc);const st=bld('storage');if(st&&age>=3&&st.queue.length===0&&!P.tech.forestry&&vills.length>24&&P.w>300&&P.g>120)enqueue(st,'forestry');const pb=bld('pub');if(pb&&!hasInn(pb)&&!(pb.innUpT>0)&&P.g>260&&canAfford(P,INNUP_COST)){pay(P,INNUP_COST);pb.innUpT=30;}}
+  {const rc=bld('ranch');if(rc&&age>=3&&rc.built&&!rc.wing&&P.w>350)aiWing(rc);if(rc&&age>=4&&rc.built&&!rc.swing&&P.w>300)try{aiSWing(rc);}catch(err){}const st=bld('storage');if(st&&age>=3&&st.queue.length===0&&!P.tech.forestry&&vills.length>24&&P.w>300&&P.g>120)enqueue(st,'forestry');const pb=bld('pub');if(pb&&!hasInn(pb)&&!(pb.innUpT>0)&&P.g>260&&canAfford(P,INNUP_COST)){pay(P,INNUP_COST);pb.innUpT=30;}}
   {const cor=bld('ranch')||bld('corral');if(cor&&cor.queue.length===0){const nf=G.ents.filter(e=>e.type==='farm'&&e.owner===o&&!e.dead).length,no=mine.filter(u=>u.type==='ox').length,nd=mine.filter(u=>u.type==='donkey').length;if(no<Math.min(4,nf))enqueue(cor,'ox');else if(nd<Math.min(5,vills.length>>2)+G.ents.filter(e=>(e.type==='bakery'||e.type==='inn')&&e.owner===o&&e.built&&!e.dead).length)enqueue(cor,'donkey');}}
   for(const f of G.ents)if(f.type==='farm'&&f.owner===o&&f.fallow&&!f.dead&&P.w>=60)replantFarm(f);
   {const bk=bld('bakery');if(bk){if(bk.queue.length===0&&age>=4&&!P.tech.grandbake&&P.g>300&&P.w>300)enqueue(bk,'grandbake');else if(bk.queue.length===0&&age>=5&&!P.tech.bakeworks&&P.g>400&&P.s>350)enqueue(bk,'bakeworks');if(bld('market'))bk.exp=50;}}
@@ -4202,7 +4233,7 @@ GFX.drawBeast=(function(prev){return function(c,u,x,y,now,k,gs){
   else f=Math.floor(((now/(S.idleMs||6400)+((u.id||0)*.37))%1)*n);
   const im=L.T[0];if(!im||!im.width)return prev(c,u,x,y,now,k,gs);
   const Wd=(S.W||(k==='sheep'?22:k==='wolf'?27:24))*gs*1.25,H=Wd*S.fh/S.fw;const sc=H/S.fh;
-  c.save();c.fillStyle='rgba(15,20,8,.28)';c.beginPath();c.ellipse(x,y+4,Wd*.32,Wd*.1,0,0,Math.PI*2);c.fill();
+  c.save();if(!GFX._noBSh){c.fillStyle='rgba(15,20,8,.28)';c.beginPath();c.ellipse(x,y+4,Wd*.32,Wd*.1,0,0,Math.PI*2);c.fill();}
   const dx=-Wd/2,dy=y+4-S.foot*sc;
   if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,dx,dy,Wd,H)}else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x+dx,dy,Wd,H);
   if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.4;if(mir)c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,dx,dy,Wd,H);else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x+dx,dy,Wd,H)}
@@ -5474,6 +5505,14 @@ try{(function(){
       c.clip();
       return prev.apply(this,arguments)}finally{c.restore()}}}return prev.apply(this,arguments)}})(drawUnitR)}catch(err){}
 })()}catch(err){}
+/* live fire (Oct 15): painted flames, furnace mouths and lanterns in my Medieval and Renaissance buildings flicker, using art chat 1's GFX.FX
+   (points in picture pixels; forge chimney smoke kept). Added to GFX.FX when the sprite is first built, since GFX.FX is set up after this block. */
+try{(function(){const MY={
+  m_tc:{l:[[407,602,1.5],[266,670,1.5]]},
+  m_tower:{f:[[139,397,1.5],[211,398,1.5]]},
+  m_forge:{m:[[256,431,2.2]],s:[[85.5,72.5,1]]},
+  r_forge:{m:[[363,674,2.4]],s:[[590.4,73.8,1]]}};
+  const p=GFX.spr;GFX.spr=function(n){try{if(MY[n]&&GFX.FX&&!GFX.FX[n])GFX.FX[n]=MY[n]}catch(err){}return p.apply(this,arguments)}})()}catch(err){}
 /* ===== END art chat 2: renunits ===== */
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
    Every flame painted into a Stone/Bronze/Iron building (braziers, fire pits, forge and kiln mouths) now flickers with live flames,
@@ -6155,6 +6194,53 @@ try{(function(){
       const c=document.createElement('canvas');c.width=s.width;c.height=s.height;const g=c.getContext('2d');g.drawImage(s,0,0);const f=s.width/933,b=RGB[k],X=b[0]*f,Y=b[1]*f,Wd=(b[2]-b[0])*f,Hd=(b[3]-b[1])*f;
       g.globalCompositeOperation='destination-out';g.drawImage(YL['rg'+k+'_e'],X,Y,Wd,Hd);g.globalCompositeOperation='source-over';g.drawImage(YL['rg'+k],X,Y,Wd,Hd);
       for(const key of Object.keys(s))c[key]=s[key];return m[k]=c}}}catch(err){}return s}})(bldSpr0)}catch(err){}
+
+  /* ---- quick fixes (Josh 8d1c / fb41 / 71df, Oct 15): (cows: gameplay's raiseK .85 in 4919), caravan donkey = pack donkey size, caravan ground shadow,
+     beer barrels on the inn's pack donkey, feather burst when a wolf raids a coop ---- */
+  try{if(GFX_BEAST3D.cvn3d)GFX_BEAST3D.cvn3d.W=40;}catch(err){}
+  // caravan: ground shadow under the donkey's hooves and under the cart's wheels for each direction (contact points measured on the sheet),
+  // nudged toward the same sun as the buildings, instead of one round blob between them
+  const CVSH=[[103,137,104,89,28],[99,135,45,108,16],[92,135,35,146,18],[105,143,48,165,24],[106,109,105,177,28]];
+  GFX.cvnShadow=function(c,u,x,y){const S=GFX_BEAST3D.cvn3d,Wd=S.W*1.25,sc=Wd/S.fw,d=((Math.round((u.face||0)/(Math.PI/4))%8)+8)%8,[row,mir]=RMAP[d],m=mir?-1:1,R=CVSH[row];
+    const P=(fx,fy)=>[x+m*(-Wd/2+fx*sc)+1.5,y+4-S.foot*sc+fy*sc+1];const [dx,dy]=P(R[0],R[1]),[cx,cy]=P(R[2],R[3]);
+    c.save();c.fillStyle='rgba(15,20,8,.32)';c.beginPath();c.ellipse(dx,dy,15*sc,6*sc,0,0,Math.PI*2);c.ellipse(cx,cy,R[4]*sc+3*sc,9*sc,0,0,Math.PI*2);c.fill();
+    c.strokeStyle='rgba(15,20,8,.2)';c.lineWidth=5*sc;c.lineCap='round';c.beginPath();c.moveTo(dx,dy);c.lineTo(cx,cy);c.stroke();c.restore()};
+  try{const _dk2=drawDonkey;drawDonkey=function(c,u,x,y,now){if(u.type==='caravan'&&u.owner<2&&!u.raise&&GFX.mode==='V23D'&&GFX_BEAST3D.cvn3d&&ageOf(u.owner)<4&&cvReady()){
+      try{GFX.cvnShadow(c,u,x,y)}catch(e){}GFX._noBSh=1;try{return _dk2(c,u,x,y,now)}finally{GFX._noBSh=0}}
+    return _dk2(c,u,x,y,now)}}catch(err){}
+  // beer barrels on the pack donkey while it carries beer to the roadside inn (u.beerC)
+  let BRL=null;const barrel=()=>{if(BRL)return BRL;const c=document.createElement('canvas');c.width=44;c.height=30;const g=c.getContext('2d');
+    const gr=g.createLinearGradient(0,3,0,27);gr.addColorStop(0,'#5a3418');gr.addColorStop(.35,'#b07a40');gr.addColorStop(.6,'#8a5a2c');gr.addColorStop(1,'#3e230f');
+    g.fillStyle=gr;g.beginPath();g.moveTo(5,6);g.quadraticCurveTo(20,1,34,6);g.lineTo(34,24);g.quadraticCurveTo(20,29,5,24);g.closePath();g.fill();
+    g.strokeStyle='rgba(50,28,10,.55)';g.lineWidth=1;for(const yy of [10,15,20]){g.beginPath();g.moveTo(6,yy);g.quadraticCurveTo(20,yy+(yy-15)*.25,33,yy);g.stroke()}
+    g.fillStyle='#3a3b3e';for(const xx of [10,26]){g.beginPath();g.moveTo(xx,4.2);g.lineTo(xx+3,4);g.lineTo(xx+3,26);g.lineTo(xx,25.8);g.closePath();g.fill()}
+    g.fillStyle='rgba(220,220,225,.45)';for(const xx of [10,26])g.fillRect(xx+.6,8,1,5);
+    g.fillStyle='#c48d4e';g.beginPath();g.ellipse(35,15,5,10,0,0,Math.PI*2);g.fill();g.strokeStyle='#3a3b3e';g.lineWidth=1.6;g.stroke();
+    g.strokeStyle='rgba(90,55,25,.6)';g.lineWidth=.8;for(const yy of [10,15,20]){g.beginPath();g.moveTo(31,yy);g.lineTo(39,yy);g.stroke()}
+    g.fillStyle='#4a2a12';g.beginPath();g.arc(36,15,1.3,0,7);g.fill();return BRL=c};
+  try{drawUnit=(function(prev){return function(c,u,x,y,now){prev(c,u,x,y,now);if(!u||!u.beerC||u.dead||u.type!=='donkey'||GFX.mode!=='V23D')return;
+    try{let by=y-13;try{by=GFX.beastBackY('donkey',y)}catch(e){}const b=barrel(),sw=8.4,sh=sw*b.height/b.width,dir=Math.cos(u.face||0)<-.1?-1:1;
+      c.save();c.translate(x,0);c.scale(dir,1);c.drawImage(b,-sw-.5,by-sh+5.5,sw,sh);c.drawImage(b,.5,by-sh+4.8,sw,sh);if(u.beerC>6)c.drawImage(b,-sw/2,by-sh*1.75+5.5,sw,sh);c.restore()}catch(err){}}})(drawUnit)}catch(err){}
+  // wolf raid on a coop / Poultry yard: a burst of feathers where the birds were taken
+  const FB=[],BW=new WeakMap(),FK=new Map();let fsT=0;
+  const fScan=now=>{if(now-fsT<150)return;fsT=now;let V=null;try{V=G.vis[0]}catch(e){}
+    for(const e of G.ents){if(e.type!=='coop'||e.dead||!e.built)continue;const n=(e.birds||[]).length,p=BW.get(e);BW.set(e,n);if(p==null||p-n<2)continue;
+      if(!G.ents.some(w=>w.type==='wolf'&&!w.dead&&Math.hypot(w.x-e.x,w.y-e.y)<4.5*TILE))continue;
+      let cx=e.x,cy=e.y,key=e.id;const Y=e.yard;if(Y){cx=(Y.x0+Y.x1)/2*TILE;cy=(Y.y0+Y.y1)/2*TILE+TILE*.6;key='y'+Y.anchor}
+      if(e.owner!==0&&V){try{if(!V[ti(tl(cx),tl(cy))])continue}catch(err){}}
+      if(FK.get(key)>now-1500)continue;FK.set(key,now);
+      const N=Y?34:22;for(let i=0;i<N;i++){const a=Math.random()*Math.PI*2,sp=20+Math.random()*55;FB.push({x:cx+(Math.random()-.5)*(Y?60:18),y:cy-6+(Math.random()-.5)*(Y?24:8),z:4+Math.random()*6,
+        vx:Math.cos(a)*sp,vz:30+Math.random()*60,vy:Math.sin(a)*sp*.45,r:Math.random()*6,vr:(Math.random()-.5)*8,ph:Math.random()*6,
+        col:Math.random()<.55?'#f4efe4':Math.random()<.6?'#b06d34':'#6b4022',t0:now,life:2200+Math.random()*1300,s:2.2+Math.random()*1.6})}
+      try{emit('dust',cx,cy,6)}catch(err){}}};
+  const fDraw=(c,now)=>{let lt=GFX._fbT||now;const dt=Math.min(.05,(now-lt)/1000);GFX._fbT=now;
+    for(let i=FB.length-1;i>=0;i--){const f=FB[i],age=now-f.t0;if(age>f.life){FB.splice(i,1);continue}
+      f.vz-=110*dt;if(f.vz<-14)f.vz=-14;f.z=Math.max(0,f.z+f.vz*dt);const dr=f.z>0?.985:.8;f.vx*=Math.pow(dr,dt*60);f.vy*=Math.pow(dr,dt*60);f.x+=f.vx*dt;f.y+=f.vy*dt;
+      if(f.z>0)f.r+=f.vr*dt;const sw=f.z>0?Math.sin(now/260+f.ph)*3:0,a=Math.min(1,(f.life-age)/600);
+      c.save();c.globalAlpha=a;c.translate(f.x+sw,f.y-f.z);c.rotate(f.r+(f.z>0?Math.sin(now/200+f.ph)*.6:0));c.fillStyle=f.col;c.beginPath();c.ellipse(0,0,f.s,f.s*.38,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(60,40,25,.45)';c.lineWidth=.35;c.beginPath();c.moveTo(-f.s*1.15,0);c.lineTo(f.s,0);c.stroke();c.restore()}};
+  GFX.featherBurst=FB;
+  try{const _dp=drawParts;drawParts=function(c){_dp(c);if(GFX.mode!=='V23D')return;try{const now=performance.now();fScan(now);if(FB.length)fDraw(c,now)}catch(err){}}}catch(err){}
 })()}catch(err){}
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
@@ -6785,7 +6871,7 @@ function draw(){
   const sel=selEnts();
   
   if(G.place){
-    c.save();c.beginPath();for(const e of G.ents)if(e.owner===0&&e.kind==='bld'&&e.built&&!e.dead&&e.type!=='farm'){const r=(TERR+e.size/2)*TILE;c.moveTo(e.x+r,e.y);c.arc(e.x,e.y,r,0,Math.PI*2);}
+    c.save();c.beginPath();for(const e of G.ents)if(e.owner===0&&e.kind==='bld'&&e.built&&!e.dead&&e.type!=='farm'&&e.type!=='wall'&&e.type!=='gate'){const r=(terrR(e)+e.size/2)*TILE;c.moveTo(e.x+r,e.y);c.arc(e.x,e.y,r,0,Math.PI*2);}
     c.fillStyle='rgba(255,232,150,.09)';c.fill();c.setLineDash([8,6]);c.lineDashOffset=-now/60;c.strokeStyle='rgba(255,226,140,.45)';c.lineWidth=2/z;c.stroke();c.restore();
     const p=G.place;
     if(p.type==='wall'){for(const t of wallTiles()){c.fillStyle=t.ok?'rgba(120,220,90,.28)':'rgba(230,70,60,.32)';c.fillRect(t.x*TILE,t.y*TILE,TILE,TILE);if(t.ok)drawBld(c,'wall',0,t.x*TILE,t.y*TILE,1,.7);}}
@@ -7122,7 +7208,7 @@ function pick(wx,wy){
   for(const e of G.ents)if(e.type==='coop'&&e.yard&&e.yard.anchor===e.id&&!e.dead){const g=e.yard;if(e.owner!==0&&!G.exp[0][ti(tl(e.x),tl(e.y))])continue;if(wx>=g.x0*TILE&&wx<g.x1*TILE&&wy>=g.y0*TILE&&wy<g.y1*TILE)return e;}
   for(const e of G.ents)if(e.kind==='bld'){
     if(e.owner!==0&&!G.exp[0][ti(tl(e.x),tl(e.y))])continue;if(!innSeen(e,0))continue;
-    if(wx>=e.tx*TILE&&wx<(e.tx+e.size)*TILE&&wy>=e.ty*TILE&&wy<(e.ty+e.size)*TILE){const R=e.type==='dairy'&&e.ranch&&e.built&&G.byId.get(e.ranch);if(R&&!R.dead){G.rtab='c';return R;}return e;}
+    if(wx>=e.tx*TILE&&wx<(e.tx+e.size)*TILE&&wy>=e.ty*TILE&&wy<(e.ty+e.size)*TILE){const R=e.type==='dairy'&&e.ranch&&e.built&&G.byId.get(e.ranch);if(R&&!R.dead){G.rtab='c';return R;}const R2=e.type==='pen'&&e.sranch&&G.byId.get(e.sranch);if(R2&&!R2.dead&&e.built){G.rtab='s';return R2;}return e;}
   }
   for(const e of G.ents)if((e.kind==='poi'||e.noOcc)&&G.exp[0][ti(e.tx,e.ty)]&&Math.hypot(e.x-wx,e.y-wy+(e.kind==='poi'?8:0))<Math.max(20,26/cam.z))return e;
   const tx=tl(wx),ty=tl(wy);if(!inB(tx,ty)||!G.exp[0][ti(tx,ty)])return null;
@@ -7134,7 +7220,7 @@ function cmdToBuilding(mine,hit){
       if(!hit.built&&v.length){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(canRepair(hit,0)&&v.length&&!WORK[hit.type]&&!isPen(hit)&&!(hit.type==='house'&&hit.upT>0)){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.type==='ranch'&&hit.built&&isDairy(hit)){const cw=mine.filter(u=>u.type==='cow');if(cw.length){for(const q of cw)q.dairyId=hit.id;const z=penSpot(hit,'c');orderMove(cw,(z[0]+.5)*TILE,(z[1]+.5)*TILE);mark(hit.x,hit.y,'#ffd25a');toast(cw.length>1?cw.length+' cows heading into the ranch':'Cow heading into the ranch');return true;}}
-      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){vv.forEach(u=>{u.order=null;u.path=null;u.shep=penLead(hit).id;});mark(hit.x,hit.y,'#ffd25a');toast(vv.length>1?vv.length+' shepherds assigned':'Shepherd assigned');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
+      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){vv.forEach(u=>{u.order=null;u.path=null;u.shep=penLead(hit).id;});mark(hit.x,hit.y,'#ffd25a');toast(vv.length>1?vv.length+' shepherds assigned':'Shepherd assigned');return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<4?'Sheep join the ranch in the Renaissance Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
       if((hit.type==='house'||hit.type==='coop')&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&isLodge(hit)&&hit.owner===0&&v.length){let n=foresterN(hit),k=0;for(const u of v){if(n>=FORESTERS)break;if(u.forester===hit.id)continue;u.forester=hit.id;u.order=null;u.path=null;u.shep=0;n++;k++;}toast(k?k+' forester'+(k>1?'s':'')+' at work':'The lodge already has '+FORESTERS+' foresters');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&WORK[hit.type]&&v.length){const n=assignWorkers(hit,v);toast(n?n+' assigned to the '+DEF[hit.type].name.toLowerCase():'The '+DEF[hit.type].name.toLowerCase()+' is full');mark(hit.x,hit.y,'#ffd25a');return true;}
@@ -7205,6 +7291,39 @@ try{(function(){
   GFX.chuteGeo=geo;
 })()}catch(err){}
 /* END flour chute v2 */
+/* bread carriers: painted bread crate (art chat 1's GFX.bkProp 'bcrate') on the pack donkey's back or in the baker's arms */
+try{drawUnit=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);try{if(u&&u.breadC>0&&!u.dead&&typeof GFX!=='undefined'&&GFX.bkProp&&GFX.bkImg&&GFX.bkImg('bcrate')){
+  if(u.type==='donkey'){let by=y-13;try{by=GFX.beastBackY('donkey',y)}catch(e){}GFX.bkProp(c,'bcrate',x,by+3,11);}
+  else{const dir=Math.cos(u.face||0)<-.1?-1:1;GFX.bkProp(c,'bcrate',x+dir*3,y-10,9);}}}catch(e){}return r}})(drawUnit)}catch(e){}
+/* ===== Ranch stages (Josh, Oct 15): the ranch (Iron Age) starts with work animals only. Medieval: the dairy wing adds cows.
+   Renaissance: the sheep wing (3x3 fold, b.sranch = ranch id, ranch.swing = wing id) joins the ranch on any side; 3 sheep come with it,
+   and the ranch's sheep live and breed in it (up to 8). ===== */
+function swingOf(R){const W=R&&R.swing&&G.byId.get(R.swing);return W&&!W.dead?W:null;}
+function ranchSheep(R){const W=swingOf(R);return !!(W&&W.built);}
+function sheepCap(b){return b&&b.type==='ranch'?8:10*penN(b);}
+function ranchZone(b,k){if(k==='a')return rZone(b,'a');
+  if(k==='c'){const Z=rZone(b,'c'),S=rZone(b,'s');return [Math.min(Z[0],S[0]),Math.min(Z[1],S[1]),Math.max(Z[2],S[2]),Math.max(Z[3],S[3])];}
+  const W=swingOf(b);if(W&&W.built){const Z=[W.tx+.45,W.ty+.45,W.tx+2.55,W.ty+2.55];Z.w=W;return Z;}return [-60,-60,-60,-60];}
+const SW_OFF=(()=>{const L=[];for(let d=-2;d<=4;d++)L.push([5,d],[d,5],[-3,d],[d,-3]);return L;})();
+function swingWhy(R,tx,ty,o,needExp){if(!R||R.dead||!R.built)return 'Build it at a finished ranch';if(!SW_OFF.some(q=>R.tx+q[0]===tx&&R.ty+q[1]===ty))return 'The sheep wing joins the ranch on one of its sides';
+  const D=R.wing&&G.byId.get(R.wing);if(D&&!D.dead&&tx<D.tx+4&&tx+3>D.tx&&ty<D.ty+4&&ty+3>D.ty)return 'The dairy wing is in the way';
+  for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){const x=tx+dx,y=ty+dy;if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);
+    if(G.terrain[i])return 'Water or cliffs in the way';if(G.occ[i]&&!clearableTree(G.occ[i])){const e=G.byId.get(G.occ[i]);return e&&e.kind==='bld'&&DEF[e.type]?(e.owner===o?'Your ':'A ')+DEF[e.type].name.toLowerCase()+' is in the way':'Blocked. Clear the ground beside the ranch';}
+    if(G.wocc[i])return 'Blocked. Clear the ground beside the ranch';if(needExp&&!G.exp[0][i])return 'Pick explored ground';}
+  return null;}
+function swingSnap(p){const R=G.byId.get(p.swing);if(!R)return;const cx=p.tx+1.5,cy=p.ty+1.5;let best=null,bd=1e9;for(const q of SW_OFF){const x=R.tx+q[0],y=R.ty+q[1],d=Math.hypot(x+1.5-cx,y+1.5-cy)+(swingWhy(R,x,y,0,true)?50:0)+(wingTight(R,x,y)?3:0);if(d<bd){bd=d;best=[x,y];}}if(best){p.tx=best[0];p.ty=best[1];}}
+function swingInit(bl,rid){const R=G.byId.get(rid);bl.sranch=rid;if(R)R.swing=bl.id;if(!bl.built&&!G.ents.some(u=>u.order&&u.order.type==='build'&&u.order.id===bl.id))wingBuilders(bl,2);}
+function aiSWing(R,built){const P=G.players[R.owner];if(!built&&!canAfford(P,DEF.pen.cost))return false;const qs=SW_OFF.slice().sort((a,b)=>wingTight(R,R.tx+a[0],R.ty+a[1])-wingTight(R,R.tx+b[0],R.ty+b[1]));for(const q of qs){const x=R.tx+q[0],y=R.ty+q[1];if(swingWhy(R,x,y,R.owner,false))continue;if(!built)pay(P,DEF.pen.cost);const bl=mkBld('pen',R.owner,x,y,!!built);displaceUnits(bl);swingInit(bl,R.id);return true;}return false;}
+function swingTick(b){const R=G.byId.get(b.sranch);if(!R||R.dead){b.sranch=0;kill(b);return;}if(R.swing!==b.id)R.swing=b.id;
+  if(b.built&&!R.sheepGiven){R.sheepGiven=1;for(let i=0;i<3;i++){const ps=penSpot(R,'s'),sh=mkUnit('sheep',R.owner,(ps[0]+.5)*TILE,(ps[1]+.5)*TILE);sh.hx=ps[0];sh.hy=ps[1];sh.penId=R.id;}if(R.owner===0)toast('The sheep wing is ready: 3 sheep joined the ranch. Make a shepherd to keep them');}}
+function ranchSheepTick(b){if(b.swing&&!swingOf(b)){b.swing=0;for(const e of G.ents)if(e.type==='sheep'&&e.penId===b.id)e.penId=0;}}
+function shepBtns(one,sh){let h='';if(G.prevSelFor===one.id){const pv=(G.prevSel||[]).filter(id=>{const u=G.byId.get(id);return u&&!u.dead&&u.type==='villager';});if(pv.length)h+=btn('sendsel','Make shepherds','<span class="cost">Send '+pv.length+' selected villager'+(pv.length>1?'s':'')+'</span>',THUMB.villager,false,0,'wide');}
+  h+=btn('shepherds',sh?(sh>1?sh+' shepherds':'1 shepherd'):'No shepherd','<span class="cost">'+(sh?'Tap to select':'Not assigned')+'</span>',THUMB.villager,false,0,'wide',sh?PILL('res','Working'):'');
+  if(!sh)h+='<div class="hint" style="max-width:220px">Select villagers, tap the ranch, then tap Make shepherds.</div>';return h;}
+function sheepWingUI(one,P){const line=(b,t)=>'<div class="hint"><b>'+b+'</b>'+(t?'<br>'+t:'')+'</div>';const W=swingOf(one);
+  if(W&&!W.built){const nb=G.ents.filter(u=>u.order&&u.order.type==='build'&&u.order.id===W.id&&!u.dead).length;return line('Sheep wing: being built',Math.round((W.progress||0)*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('swingb','Send builders','','',false,0,'wide'));}
+  if(P.age<4)return line('No sheep yet','The sheep wing comes in the Renaissance Age: a fold on the side of the ranch, with 3 sheep for wool or mutton');
+  return btn('mkswing','Sheep wing',costHtml(DEF.pen.cost),bldIcon('pen',THUMB.pen||THUMB.ranch),!canAfford(P,DEF.pen.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds a sheep fold onto a side of the ranch. 3 sheep join; a shepherd keeps them for wool or mutton (up to 8)</div>';}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -7318,10 +7437,12 @@ function wallTilesOld(){const p=G.place;if(!p||!p.a)return[];const a=p.a,b=p.b||
   const push=(x,y)=>{if(out.length<24)out.push({x,y,ok:fits(x,y,1,0,true,true)&&inTerritory(0,x,y,1)});};push(x,y);
   while((x!==b.x||y!==b.y)&&out.length<24){const dx=Math.sign(b.x-x),dy=Math.sign(b.y-y);const ex=Math.abs(b.x-x),ey=Math.abs(b.y-y);if(ex>=ey)x+=dx;else y+=dy;push(x,y);}
   return out;}
-function setPlace(wx,wy){if(G.place.type==='wall'){const tw=towerAt(0,wx,wy),p=G.place;if(!tw){toast('Tap one of your watchtowers: walls run from tower to tower');return;}if(!p.ta||(!p.tb&&tw.id===p.ta)){p.ta=tw.id;p.tb=0;}else if(tw.id!==p.ta)p.tb=tw.id;return;}const s=DEF[G.place.type].size;G.place.tx=Math.round(wx/TILE-s/2);G.place.ty=Math.round(wy/TILE-s/2);try{penSnap(G.place);}catch(e){}if(G.place.wing)wingSnap(G.place);}
+function setPlace(wx,wy){if(G.place.type==='wall'){const tw=towerAt(0,wx,wy),p=G.place;if(!tw){toast('Tap one of your watchtowers: walls run from tower to tower');return;}if(!p.ta||(!p.tb&&tw.id===p.ta)){p.ta=tw.id;p.tb=0;}else if(tw.id!==p.ta)p.tb=tw.id;return;}const s=DEF[G.place.type].size;G.place.tx=Math.round(wx/TILE-s/2);G.place.ty=Math.round(wy/TILE-s/2);try{penSnap(G.place);}catch(e){}if(G.place.wing)wingSnap(G.place);if(G.place.swing)swingSnap(G.place);}
 const TERR=12;
-function inTerritory(o,tx,ty,size){const cx=tx+size/2,cy=ty+size/2;for(const e of G.ents){if(e.owner!==o||e.kind!=='bld'||e.dead||!e.built||e.type==='farm'||e.type==='wall'||e.type==='gate')continue;if(Math.hypot(cx-(e.tx+e.size/2),cy-(e.ty+e.size/2))<=(e.type==='outpost'?7:e.type==='castle'?18:TERR)+e.size/2)return true;}return false;}
+function terrR(e){return e.type==='outpost'?7:e.type==='castle'?18:TERR;}
+function inTerritory(o,tx,ty,size){const cx=tx+size/2,cy=ty+size/2;for(const e of G.ents){if(e.owner!==o||e.kind!=='bld'||e.dead||!e.built||e.type==='farm'||e.type==='wall'||e.type==='gate')continue;if(Math.hypot(cx-(e.tx+e.size/2),cy-(e.ty+e.size/2))<=terrR(e)+e.size/2)return true;}return false;}
 function placeWhy(type,tx,ty,o,needExp,m){const s=DEF[type].size;
+  if(type==='pen'&&o===0&&G.place&&G.place.swing&&G.place.type==='pen')return swingWhy(G.byId.get(G.place.swing),tx,ty,o,needExp);
   if(type==='dairy'&&o===0&&G.place&&G.place.wing&&G.place.type==='dairy')return wingWhy(G.byId.get(G.place.wing),tx,ty,o,needExp);
   if(type==='inn'){if(inTerritory(o,tx,ty,s))return 'Build it outside your territory, along routes enemies travel';if(inTerritory(1-o,tx,ty,s))return 'Inside enemy territory';if(G.ents.filter(e=>e.type==='inn'&&e.owner===o&&!e.dead).length>=2)return 'You can only run 2 roadside inns';}
   if((type==='factory'||type==='power'||type==='station'||type==='airfield')&&!fits(tx,ty,s,1,false,true))return 'Big industry needs 1 tile of open space around it';
@@ -7380,8 +7501,8 @@ mini.addEventListener('pointerup',()=>miniDrag=false);mini.addEventListener('poi
 let toastT=0;
 const AGECARD={1:['Bronze Age','Builder','Farms, chicken coops, fishing boats, gold mining, walls','Hens lay eggs and boats fish on their own'],
   2:['Iron Age','Herder','Ranch (oxen, pack donkeys, donkey caravans), cavalry, scouts and outposts, settlers','One farmer with oxen tends 3 fields side by side, oxen replant'],
-  3:['Medieval Age','Craftsman','Windmill and bakery (bread), sheep and dairy cows at the ranch, pub with an inn, castle','Caravans sell wool, the pub gathers idle villagers'],
-  4:['Renaissance Age','Merchant and explorer','Market and trade carts, grand bakery (cakes), university, explorers, prospecting','Goods sell as crates by trade cart, no caravans needed'],
+  3:['Medieval Age','Craftsman','Windmill and bakery (bread), dairy wing with cows at the ranch, pub with an inn, castle','Caravans sell wool, the pub gathers idle villagers'],
+  4:['Renaissance Age','Merchant and explorer','Market and trade carts, sheep wing at the ranch, grand bakery (cakes), university, explorers, prospecting','Goods sell as crates by trade cart, no caravans needed'],
   5:['Industrial Age','Industrialist','Steam harvesters, bakery works, textile mill, railways, troop trains','Machines farm and bake, trains haul ore and goods'],
   6:['Modern Age','Commander','Electricity, trucks, tanks, aircraft, Tesla coils','Trucks collect and deliver everything, power speeds production, old buildings modernize']};
 function ageCard(a){const d=AGECARD[a];if(!d)return;let el=document.getElementById('ageCard');if(!el){el=document.createElement('div');el.id='ageCard';el.style.cssText='position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top,0px));transform:translateX(-50%);max-width:min(92vw,520px);background:rgba(28,22,14,.94);color:#f4ead2;border:1px solid #c9a45c;border-radius:14px;padding:12px 16px;z-index:40;font-size:14px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.4);cursor:pointer';el.addEventListener('click',()=>el.remove());(document.getElementById('app')||document.body).appendChild(el);}
@@ -7454,12 +7575,13 @@ function drawNeedWork(c,now){if(!G)return;if(!G._nwT||G.t-G._nwT>.5){G._nwT=G.t;
   c.restore();}
 /* ===== gameplay chat (Josh, Oct 14): ranch cows, "Next" build badge, army meter (you vs the enemy you have seen), animals that eat crops ===== */
 try{if(typeof GFX!=='undefined'&&GFX.GPSKIP)GFX.GPSKIP.add('ranch');}catch(e){}
+const COW_CAP=4;
 function ranchCowTick(b,dt){const P=G.players[b.owner];if(!b.built||!ranchDairy(b)){b.cFlock=0;b.milked=0;return;}
   if(!b.cowsGiven){b.cowsGiven=1;for(let i=0;i<2;i++){const z=penSpot(b,'c');const cw=mkUnit('cow',b.owner,(z[0]+.5)*TILE,(z[1]+.5)*TILE);cw.dairyId=b.id;}}
-  const herd=G.ents.filter(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&inPenArea(b,e,.8,'c')),adults=herd.filter(e=>!youngOf(e)),healthy=adults.filter(e=>!e.sick),cs=herd.filter(e=>e.sick).length;
+  const herd=G.ents.filter(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&(e.dairyId===b.id||inPenArea(b,e,.8,'c'))),adults=herd.filter(e=>!youngOf(e)),healthy=adults.filter(e=>!e.sick),cs=herd.filter(e=>e.sick).length;
   b.cFlock=herd.length;b.cowsA=adults.length;b.sickN=(b.sickN||0)+cs;
-  const hay=BON(b.owner).hay;if(healthy.length>=2&&herd.length<8&&(hay||P.w>0)){if(!hay)P.w=Math.max(0,P.w-.08*dt);b.cBreedT=(b.cBreedT||0)+dt*(hay?1.3:1);}
-  if(b.cBreedT>=60){b.cBreedT=0;if(healthy.length>=2&&herd.length<8){const z=penSpot(b,'c'),cf=mkUnit('cow',b.owner,(z[0]+.5)*TILE,(z[1]+.5)*TILE);cf.born=G.t;cf.dairyId=b.id;if(b.owner===0&&G.t-(G.lastCalfMsg||-99)>30){G.lastCalfMsg=G.t;toast('A calf was born at your ranch');}}}
+  const hay=BON(b.owner).hay;if(healthy.length>=2&&herd.length<COW_CAP&&(hay||P.w>0)){if(!hay)P.w=Math.max(0,P.w-.08*dt);b.cBreedT=(b.cBreedT||0)+dt*(hay?1.3:1);}
+  if(b.cBreedT>=60){b.cBreedT=0;if(healthy.length>=2&&herd.length<COW_CAP){const z=penSpot(b,'c'),cf=mkUnit('cow',b.owner,(z[0]+.5)*TILE,(z[1]+.5)*TILE);cf.born=G.t;cf.dairyId=b.id;if(b.owner===0&&G.t-(G.lastCalfMsg||-99)>30){G.lastCalfMsg=G.t;toast('A calf was born at your ranch');}}}
   b.cSickT=(b.cSickT||0)+dt;if(b.cSickT>=30){b.cSickT=0;if(herd.length>=4&&!cs&&sickOK(b.owner)&&Math.random()<.3*(.06+herd.length*.01)*(P.tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;sc.sickB=b.id;P.sickT=G.t;if(b.owner===0){sickAlarm();toast('A cow is sick! Tap Cure on the red bar within 2 minutes or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
   for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>SICK_SPREAD&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if(b.owner===0){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>SICK_DIE){for(const e of herd){e.diseased=1;kill(e);}if(b.owner===0)toast('Disease wiped out your herd');break;}}
   let hands=0;for(const u of G.ents)if(u.shep===b.id&&!u.dead)hands++;const milked=hands?Math.min(healthy.length,6*hands):0;b.milked=milked;
@@ -7735,7 +7857,7 @@ function renderPanel(sel){
       if(one.type==='farm'&&one.built&&one.fallow)acts=btn('replant','Replant',costHtml({w:farmReplantW(one)}),THUMB.farm,!canAfford(P,{w:farmReplantW(one)}),0,'wide',PILL('up','Needed'))+'<div class="hint">This field is harvested out. Replanting puts its farmers back to work</div>'+acts;
       if(one.built&&one.owner===0&&isPen(one)&&!G.ents.some(e=>e.type==='sheep'&&e.owner===0&&!e.dead)){const wild=G.ents.filter(e=>e.type==='sheep'&&e.owner>1&&!e.dead&&G.exp[0][ti(tl(e.x),tl(e.y))]).sort((a,b)=>Math.hypot(a.x-one.x,a.y-one.y)-Math.hypot(b.x-one.x,b.y-one.y))[0];acts+='<div class="hint"><b>Empty pen: find wild sheep.</b> Send a villager next to wild sheep: they get your collar and stay where they are. Then give the pen a shepherd (select a villager, tap the pen, tap Make shepherds) and tap Call sheep. '+(wild?'Nearest flock you have seen: '+Math.round(Math.hypot(wild.x-one.x,wild.y-one.y)/TILE)+' tiles '+dirName(wild.x-one.x,wild.y-one.y)+'.':'You have not seen any yet. Explore with a scout or soldier.')+'</div>';}
       if(one.built&&one.owner===0&&(one.type==='bakery')){const hasM=G.ents.some(e=>e.type==='market'&&e.owner===0&&e.built&&!e.dead),ex=one.exp===undefined?(one.export?100:0):one.exp;
-        acts+='<div class="hint"><b>'+(one.line||bakeLine(one,P).name)+'.</b> Flour '+Math.floor(one.flour||0)+(P.tech.grandbake?', eggs '+Math.floor(one.eggs||0):'')+(P.tech.bakeworks?', milk '+Math.floor(one.milk||0):'')+'. '+(hasM?'Feed '+(100-ex)+'% / Export '+ex+'%':'Build a market to export crates')+(one.dtrip?'. A '+(P.age>=6?'truck':'cart')+' is delivering '+Math.round(one.dtrip.amt)+' food':'')+'</div>';
+        acts+='<div class="hint"><b>'+(one.line||bakeLine(one,P).name)+'.</b> Flour '+Math.floor(one.flour||0)+(P.tech.grandbake?', eggs '+Math.floor(one.eggs||0):'')+(P.tech.bakeworks?', milk '+Math.floor(one.milk||0):'')+'. '+(hasM?'Feed '+(100-ex)+'% / Export '+ex+'%':'Build a market to export crates')+breadNote(one)+'</div>';
         if(hasM)for(const v of[0,25,50,75,100])acts+=btn('bexp:'+v,v===0?'All feed':v===100?'All export':v+'% export','','',false,0,'',ex===v?PILL('up','On'):'');}
       if(one.built&&one.owner===0&&one.type==='market'){const g=one.goods||{};let tot=0,worth=0;for(const k in g){tot+=Math.floor(g[k]||0);worth+=Math.floor(g[k]||0)*(GOODV[k]||0);}const carts=G.ents.filter(e=>e.type==='tradecart'&&e.owner===0&&!e.dead).length,pst=G.ents.filter(e=>e.type==='tradepost'),sat=pst.length?Math.round(100*(1-pst.reduce((a,e)=>a+(e.sat||0),0)/pst.length)):100;acts+='<div class="hint"><b>'+tot+' crates waiting, worth about '+worth+' gold.</b> '+carts+' trade cart'+(carts===1?'':'s')+(tot>carts*6&&carts?'. Crates are piling up: train another cart':'')+'. Trading posts paying '+sat+'% (they pay less when flooded, and recover over time)</div>';if(false)acts+='<div class="hint">Export crates waiting: '+Math.floor(g.bread||0)+' bread, '+Math.floor(g.cheese||0)+' cheese, '+Math.floor(g.cloth||0)+' cloth, '+Math.floor(g.beer||0)+' beer, '+Math.floor((g.cake||0)+(g.pastry||0))+' cakes and pastries'+(tot?'. Trade carts take up to 6 crates a trip and sell them at the trading post':'. Turn on Export at a bakery, weaver or cheese dairy to fill your carts with goods worth far more than raw resources')+'</div>';}
       if(one.built&&one.owner===0&&G.players[0].age>=6&&POWERED.has(one.type)&&one.type!=='tesla')acts+='<div class="hint">'+(one.powered?'<span style="color:#ffd34a">⚡ Powered:</span> works 50% faster':'<span style="color:#e8603a">Not powered.</span> Build a power plant or pylon nearby to make it 50% faster')+'</div>';
@@ -7855,6 +7977,8 @@ $('panel').addEventListener('click',e=>{
   if(act==='savegrp'){let i=-1;for(let k=0;k<5;k++)if(!grpUnits(k).length){i=k;break;}if(i<0)toast('All 5 groups are in use. Hold a group number to replace it');else assignGroup(i);return;}
   if(act==='rtab'){G.rtab=arg;panelKeyLast='';return;}
   if(act==='mir'){const Pm=G.players[0];if(!Pm.mirReady){toast('The Miracle is not ready yet');return;}if(arg==='storm'){G.mirAim='storm';toast('Tap where the storm should strike');return;}castMiracle(0,arg);panelKeyLast='';return;}
+  if(act==='mkswing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.pen.cost)){toast(shortMsg?shortMsg(DEF.pen.cost):'Not enough wood');return;}const p={type:'pen',tx:one.tx+5,ty:one.ty+1,swing:one.id};G.place=p;swingSnap(p);if(swingWhy(one,p.tx,p.ty,0,true))toast('No room beside the ranch: clear the trees, rocks or buildings next to it');panelKeyLast='';return;}
+  if(act==='swingb'&&one&&one.type==='ranch'){const W=one.swing&&G.byId.get(one.swing);if(W&&!W.built){const n=wingBuilders(W,2);toast(n?n+' villagers sent to build the sheep wing':'No free villagers');}panelKeyLast='';return;}
   if(act==='mkwing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.dairy.cost)){toast(shortMsg?shortMsg(DEF.dairy.cost):'Not enough wood');return;}const p={type:'dairy',tx:one.tx+3,ty:one.ty+3,wing:one.id};G.place=p;wingSnap(p);if(wingWhy(one,p.tx,p.ty,0,true))toast('No room at the ranch gates: clear the trees, rocks or buildings beside a gate');panelKeyLast='';return;}
   if(act==='wingb'&&one&&one.type==='ranch'){const W=one.wing&&G.byId.get(one.wing);if(W&&!W.built){const n=wingBuilders(W,2);toast(n?n+' villagers sent to build the dairy wing':'No free villagers');}panelKeyLast='';return;}
   if(act==='shepherds'&&one){const s=G.ents.filter(e=>e.shep===penLead(one).id&&!e.dead);if(s.length)setSel(s);else toast('Select villagers, then tap the pen to make them shepherds');panelKeyLast='';return;}
@@ -7886,7 +8010,7 @@ $('panel').addEventListener('click',e=>{
     const p=G.place,d=DEF[p.type];
     if(p.type==='wall'){const ok=wallTiles().filter(t=>t.ok),n=Math.min(ok.length,Math.floor(P.s/DEF.wall.cost.s));{const A=G.byId.get(p.ta),B=G.byId.get(p.tb);if(alive(A)&&alive(B)){const sp=wallSpan(A,B);for(const t of sp){const w=ownWallAt(t.x,t.y,0);if(w)w.span=[p.ta,p.tb];}if(G.rubble)G.rubble=G.rubble.filter(r=>!sp.some(t=>t.x===r.x&&t.y===r.y));}}if(!n&&!wallTiles().length){G.place=null;toast('This wall is already complete');return;}if(n){const bs=[];for(const t of ok.slice(0,n)){pay(P,d.cost);const bl=mkBld('wall',0,t.x,t.y,false);bl.span=[p.ta,p.tb];displaceUnits(bl);bs.push(bl);}
       const vs=sel.filter(u=>u.type==='villager'&&u.owner===0);vs.forEach((u,i)=>{u.afterWall=u.order&&u.order.type==='gather'?u.order:(u.afterWall||null);orderBuild(u,bs[Math.floor(i*bs.length/vs.length)]);});G.place=null;G.sel=[];toast(vs.length?'Wall started: '+bs.length+' sections. Builders go back to work when it is done':'Wall marked out: '+bs.length+' sections. Send villagers to build it');}}
-    else if(placeValid()&&canAfford(P,d.cost)){pay(P,d.cost);let bt=p.type;if(bt==='mine'){const cx=(p.tx+1)*TILE,cy=(p.ty+1)*TILE,dd=w=>{let m=1e9;for(const e of G.ents)if(e.type===w&&!e.dead)m=Math.min(m,Math.hypot(e.x-cx,e.y-cy));return m;};bt=P.tech.picks&&dd('gold')<3.6*TILE&&dd('gold')<=dd('stone')?'goldmine':'stonemine';}const bl=mkBld(bt,0,p.tx,p.ty,false);displaceUnits(bl);for(const u of sel)if((u.type==='villager'||u.type==='settler')&&u.owner===0)orderBuild(u,bl);if(p.wing){wingInit(bl,p.wing);G.sel=[p.wing];G.rtab='c';panelKeyLast='';}G.place=null;}
+    else if(placeValid()&&canAfford(P,d.cost)){pay(P,d.cost);let bt=p.type;if(bt==='mine'){const cx=(p.tx+1)*TILE,cy=(p.ty+1)*TILE,dd=w=>{let m=1e9;for(const e of G.ents)if(e.type===w&&!e.dead)m=Math.min(m,Math.hypot(e.x-cx,e.y-cy));return m;};bt=P.tech.picks&&dd('gold')<3.6*TILE&&dd('gold')<=dd('stone')?'goldmine':'stonemine';}const bl=mkBld(bt,0,p.tx,p.ty,false);displaceUnits(bl);for(const u of sel)if((u.type==='villager'||u.type==='settler')&&u.owner===0)orderBuild(u,bl);if(p.wing){wingInit(bl,p.wing);G.sel=[p.wing];G.rtab='c';panelKeyLast='';}if(p.swing){swingInit(bl,p.swing);G.sel=[p.swing];G.rtab='s';panelKeyLast='';}G.place=null;}
   }
   else if(act==='train'&&one){if(b.closest('#upop'))closeUpPop();if(!enqueue(one,arg)){const it=itemOf(arg),P0=G.players[0];let msg;
     if(one.queue.length>=5)msg='Queue is full';
@@ -8007,6 +8131,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
