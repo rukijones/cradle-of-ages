@@ -5739,6 +5739,17 @@ try{(function(){
     if(P.tag==='pole'&&(ow===0||ow===1)){const px=X0+828*q,py=Y0+150*q,w2=Math.sin(t*2.4+e.tx)*.8;c.save();c.fillStyle=PCOL[ow];c.beginPath();c.moveTo(px-5,py);c.lineTo(px+5,py);
       c.quadraticCurveTo(px+5+w2,py+8,px+4+w2*1.5,py+15);c.lineTo(px+w2*1.5,py+12);c.lineTo(px-4+w2*1.5,py+15);c.quadraticCurveTo(px-5+w2,py+8,px-5,py);c.closePath();c.fill();
       c.fillStyle=PDARK[ow];c.globalAlpha=.5;c.fillRect(px-5,py,10,1.6);c.restore()}};
+  // units standing behind an upright piece show through it, like walls (Josh, Oct 14): redrawn on top, masked to the piece's own pixels (55% copy + team edge)
+  {const _sp=GFX.sacPiece;GFX.sacPiece=function(c,e,i,now){_sp(c,e,i,now);try{if(!GFX.SEE_ON||!GFX.seeUnitImg)return;const P=pieces()[i];if(!P||!P.c)return;
+    const {q,X0,Y0}=geo(e),im=GFX.a1img('a1_sac'),f=im.width/872,x=X0+P.x0*q,y=Y0+P.y0*q,dw=P.c.width*q/f,dh=P.c.height*q/f,base=Y0+SP[i][1]*q,V=G.vis[0],sel=new Set(G.sel||[]),L=[];
+    for(const u of G.ents){if(u.dead||u.kind!=='unit'||u.air)continue;const ux=u.px!=null?u.px+(u.x-u.px)*alpha:u.x,uy=u.py!=null?u.py+(u.y-u.py)*alpha:u.y;
+      if(uy+4>=base||ux+9<x||ux-9>x+dw||uy+3<y||uy-28>y+dh)continue;if(u.owner!==0&&!V[ti(tl(u.x),tl(u.y))])continue;
+      const cov=(Math.min(ux+9,x+dw)-Math.max(ux-9,x))*(Math.min(uy+3,y+dh)-Math.max(uy-28,y))/(18*31);if(cov<.2&&!sel.has(u.id))continue;u._sx=ux;u._sy=uy;L.push(u)}
+    if(!L.length)return;const s=P.c.width/dw,C=GFX._sacC||(GFX._sacC=document.createElement('canvas'));if(C.width<P.c.width||C.height<P.c.height){C.width=Math.max(C.width,P.c.width);C.height=Math.max(C.height,P.c.height)}
+    const g=C.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,C.width,C.height);g.setTransform(s,0,0,s,-x*s,-y*s);
+    for(const u of L){const k=GFX.seeUnitImg(u,now,s);if(!k)continue;g.globalAlpha=GFX.SEE_COPY||.55;g.drawImage(k.img,k.x,k.y,k.w,k.h);const p=2/s;g.globalAlpha=1;g.drawImage(k.edge,k.x-p,k.y-p,k.w+2*p,k.h+2*p)}
+    g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='destination-in';g.drawImage(P.c,0,0);g.globalCompositeOperation='source-over';
+    c.drawImage(C,0,0,P.c.width,P.c.height,x,y,dw,dh)}catch(err){}}}
   const sacSeen=e=>{try{return G.exp[0][ti(e.tx,e.ty)]}catch(err){return true}};
   try{const _ds=drawSacred;drawSacred=function(c,e,now){if(e&&e.id!=null&&GFX.sacArt())return;return _ds(c,e,now)}}catch(err){}
   try{const _sl=shadowLayer;shadowLayer=function(c){_sl(c);try{if(!GFX.sacArt())return;const now=performance.now();
