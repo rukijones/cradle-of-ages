@@ -7026,7 +7026,7 @@ function draw(){
     if(e.kind==='decor'){drawDecor(c,e,now);continue;}
     if(e.kind==='res')drawRes(c,e);
     else if(e.kind==='poi'){if(e.type==='ruin')drawRuin(c,e,now);else if(e.type==='tradepost')drawTradepost(c,e,now);else drawSacred(c,e,now);}
-    else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&e.yard);c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.dOpen!==undefined){try{drawDoorAnim(c,e);}catch(err){}}if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
+    else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&(e.yard||yardJobBox(e)));c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.dOpen!==undefined){try{drawDoorAnim(c,e);}catch(err){}}if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
     else{const ux=it[2],uy=it[3];
       if(selSet.has(e.id)){c.save();c.strokeStyle=e.owner===0?'#ffffff':'#ff8a7a';c.lineWidth=1.6;c.setLineDash([5,3]);c.lineDashOffset=-now/50;c.beginPath();c.ellipse(ux,uy+5,10.5,4.6,0,0,7);c.stroke();c.restore();}
       else if(e.owner<2&&!(GFX.noRing&&GFX.noRing(e))){c.strokeStyle=e.owner===0?'rgba(90,150,240,.55)':'rgba(230,80,64,.55)';c.lineWidth=1.1;c.beginPath();c.ellipse(ux,uy+5,8,3.3,0,0,7);c.stroke();}
@@ -7507,6 +7507,33 @@ function sheepWingUI(one,P){const line=(b,t)=>'<div class="hint"><b>'+b+'</b>'+(
   return btn('mkswing','Sheep wing',costHtml(DEF.pen.cost),bldIcon('pen',THUMB.pen||THUMB.ranch),!canAfford(P,DEF.pen.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds a sheep fold onto a side of the ranch. 3 sheep join; a shepherd keeps them for wool or mutton (up to 8)</div>';}
 /* health check (Oct 15): the computer treats sick animals (25 gold each, like you), 10-40 seconds after they fall ill */
 function aiCure(o){const P=G.players[o];for(const e of G.ents){if(e.owner!==o||e.dead||!e.sick||(e.type!=='cow'&&e.type!=='sheep'))continue;if(G.t-e.sick<(e.aiCureAt||(e.aiCureAt=10+Math.random()*30)))continue;if(P.g<25)return;P.g-=25;e.sick=0;e.spread=0;e.aiCureAt=0;}}
+/* ===== Poultry yard upgrade (Josh, Oct 15): while the 6 coops are being joined, the finished yard shows faded in the background,
+   a dashed box marks its whole edge, and a progress bar sits over it. Selecting any of the 6 coops rings the whole box.
+   Finished yards (and yards being built) get the brown dirt patch other buildings stand on. ===== */
+function yardJobAnchor(c){if(!c||c.type!=='coop'||c.dead)return null;const a=c.mergeJob?c:c.mergeWait?G.byId.get(c.mergeWait):null;return a&&!a.dead&&a.mergeJob&&a.mergeJob.k==='yard'?a:null;}
+function yardJobBox(c){const a=yardJobAnchor(c);if(!a)return null;if(a._yjb&&a._yjb.t===G.t)return a._yjb;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const id of a.mergeJob.ids){const m=G.byId.get(id);if(!m||m.dead)continue;x0=Math.min(x0,m.tx);y0=Math.min(y0,m.ty);x1=Math.max(x1,m.tx+m.size);y1=Math.max(y1,m.ty+m.size);}
+  if(x0>x1)return null;return a._yjb={t:G.t,k:'yard',ids:[],anchor:-a.id,x0,y0,x1,y1};}
+function yardSeen(b){return b.owner===0||G.cheat.reveal||G.vis[0][ti(tl(b.x),tl(b.y))];}
+function yardDirt(c,g){try{if(GFX.mode!=='V23D'||!GFX.texReady||!GFX.gpSpr)return;const sp=GFX.gpSpr(3),W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,cx=g.x0*TILE+W/2,cy=g.y0*TILE+H/2+TILE*.3,rx=W*.62,ry=H*.66;
+  c.drawImage(sp,cx-rx,cy-ry,rx*2,ry*2);}catch(err){}}
+try{shadowLayer=(function(prev){return function(c){const r=prev.apply(this,arguments);try{
+  for(const e of G.ents){if(e.type!=='coop'||e.dead||!yardSeen(e))continue;
+    if(e.yard&&e.built&&(e.yard.dr||e.yard.anchor)===e.id)yardDirt(c,e.yard);
+    else if(e.mergeJob&&e.mergeJob.k==='yard'){const g=yardJobBox(e);if(!g)continue;yardDirt(c,g);
+      c.save();c.globalAlpha=.42;try{c.filter='grayscale(.75) brightness(.9)';}catch(err){}try{drawPoultryYard(c,{id:-e.id,type:'coop',owner:e.owner,x:e.x,y:e.y,tx:g.x0,ty:g.y0,size:3,built:true,yard:g},performance.now());}catch(err){}c.restore();}}
+  }catch(err){}return r}})(shadowLayer)}catch(err){}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{
+  for(const e of G.ents){if(e.type!=='coop'||e.dead||!e.mergeJob||e.mergeJob.k!=='yard'||!yardSeen(e))continue;const g=yardJobBox(e);if(!g)continue;
+    const X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,z=cam.z||1,lw=1.6/Math.min(1,z);
+    c.save();c.setLineDash([7/z+3,5/z+2]);c.lineDashOffset=-(now/60)%24;c.strokeStyle=e.owner===0?'rgba(255,214,110,.95)':'rgba(255,140,120,.9)';c.lineWidth=lw;
+    c.beginPath();if(c.roundRect)c.roundRect(X0+2,Y0+2,W-4,H-4,8);else c.rect(X0+2,Y0+2,W-4,H-4);c.stroke();c.setLineDash([]);
+    const p=Math.max(0,Math.min(1,1-(e.upT||0)/YARD_T)),bw=Math.min(W*.6,130),bh=7,bx=X0+W/2-bw/2,by=Y0-14;
+    c.fillStyle='rgba(20,14,8,.8)';c.fillRect(bx-2,by-2,bw+4,bh+4);c.fillStyle='#3a2c1d';c.fillRect(bx,by,bw,bh);c.fillStyle='#e8c26a';c.fillRect(bx,by,bw*p,bh);
+    const nb=G.ents.filter(u=>u.order&&u.order.type==='upgrade'&&u.order.id===e.id&&!u.dead).length;
+    c.font='bold 10px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.75)';const tx='Poultry yard '+Math.round(p*100)+'%'+(e.owner===0&&!nb?' · no builder':'');
+    c.strokeText(tx,X0+W/2,by-4);c.fillStyle=e.owner===0&&!nb?'#ffb4a4':'#fff3d6';c.fillText(tx,X0+W/2,by-4);c.restore();}
+  }catch(err){}return r}})(drawBirds)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
