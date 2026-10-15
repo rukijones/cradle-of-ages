@@ -5783,6 +5783,144 @@ try{(function(){
       c.fillStyle='#4d5530';c.fillRect(-5,-1.4,8,2.8);c.fillStyle='#2e3320';c.beginPath();c.moveTo(3,-1.4);c.lineTo(6,0);c.lineTo(3,1.4);c.closePath();c.fill();c.restore()}}}catch(e){}return _dp.apply(this,arguments)}}catch(e){}
 })()}catch(err){}
 /* ===== END art chat 3: bz ===== */
+/* ===== V23D Industrial/Modern food buildings (art chat 3, Josh Oct 15 2026): Josh's picks from free cutaway concepts (Tripo image tool):
+   Industrial steam bakery (A), steam roller flour mill (A), poultry house (C); Modern bread factory (A), Modern grain mill (C). art/c/nf_food.webp
+   holds the five pictures with their team masks beside them. Front walls are open so the machinery shows; code animates it while the
+   building works (b.anim.active / b.working): dough riding the conveyor into the oven, glowing oven mouths, mixers turning, chimney smoke,
+   flywheel + drive belts, flour dust at the roller mills, sacks on the bagging belt, bucket elevator, eggs on the egg belt, roof fans,
+   cooling spiral; bakers (art chat 1's baker) feed the belt and carry bread. Drawn from e.size, so they grow when gameplay grows the
+   footprint (asked: bakery 6x6, mill 5x5, coop 3x3 from the Industrial Age). Industrial look at age 5, Modern from age 6 (the Modern
+   poultry farm keeps its own look). Windmill sails are not drawn on these; the flour chute to an adjacent bakery is drawn from here. ===== */
+(function(){try{
+  const NF={};window.NF=NF;
+  /* atlas layout [x,y,w,h] of each picture (mask at x+w+2); W = width of the source cut the overlay points below were measured on */
+  NF.LAY={"ibake":[0,0,640,622],"xbake":[0,624,640,488],"imill":[0,1114,560,711],"xmill":[0,1827,560,532],"icoop":[0,2361,420,309]};
+  NF.SRCW={ibake:905,imill:772,icoop:860,xbake:865,xmill:837};
+  /* sprite fit: [width factor, down] (how wide the picture is drawn relative to the lot, how far its bottom hangs below the lot) */
+  NF.FIT={ibake:[1.08,.05],xbake:[1.1,.05],imill:[1.0,.04],xmill:[1.08,.04],icoop:[1.15,.05]};
+  /* animated parts, in source-cut pixels */
+  NF.P={
+    ibake:{belts:[{a:[408,662],b:[612,550],h:[14,10],col:'#2b2b2e',item:'dough',gap:34,v:22,iw:34}],
+      glows:[[598,520,26],[662,562,26]],smoke:[[700,104,1]],steam:[[171,468]],mix:[[250,562,34,15]],
+      men:{knead:[388,690,1],carry:[[650,676],[470,800]],knead2:[300,640,0]}},
+    xbake:{belts:[{a:[205,447],b:[452,318],h:[13,9],col:'#5a4334',item:'dough',gap:40,v:24,iw:34}],
+      glows:[[437,300,28]],blink:[[360,272],[372,272],[360,284]],smoke:[[705,98,.8]],fans:[[480,66,22,11],[540,97,22,11],[600,131,22,11]],
+      spiral:{c:[590,0],tiers:[[268,46,15],[330,46,15],[395,46,15]]},
+      men:{knead:[175,470,1],carry:[[565,480],[700,520]],knead2:[455,525,0]}},
+    imill:{wheel:{c:[386,748],rx:44,ry:78,n:8,col:'#7a2b1d'},straps:[[[298,188],[366,676]],[[348,182],[414,688]],[[226,380],[352,700]]],
+      dust:[[450,322],[520,346],[590,376],[430,470],[500,492]],pour:[[[598,522],[602,548],'#f7f2e6']],
+      smoke:[[140,160,1]],steam:[[215,640]]},
+    xmill:{elev:{a:[545,590],b:[545,240],w:18},dust:[[420,640],[480,660],[540,640],[640,470]],
+      pour:[[[96,488],[80,530],'#d9b45c'],[[658,630],[656,660],'#f7f2e6']],smoke:[]},
+    icoop:{belts:[{a:[468,426],b:[628,506],h:[-6,10],bare:1,item:'egg',gap:18,v:14,iw:8}],wheel:{c:[443,410],rx:21,ry:27,n:6,col:'#5a3a1c',bare:1},smoke:[[750,236,.5]]}
+  };
+  /* flour line ports: where the line leaves the mill / enters the bakery (nearest pair is used) */
+  NF.PORT={imill:[[40,470],[735,385],[300,175]],xmill:[[810,385],[600,230],[260,330]],ibake:[[40,405],[420,215],[870,380]],xbake:[[30,285],[470,30],[850,250]]};
+  const T=(p,q)=>[p[0]*q,p[1]*q];
+  function belt(c,B,t,on){const [ax,ay]=B.a,[bx,by]=B.b,[hx,hy]=B.h,dx=bx-ax,dy=by-ay,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
+    if(!B.bare){c.fillStyle=B.col;c.beginPath();c.moveTo(ax-hx,ay-hy);c.lineTo(bx-hx,by-hy);c.lineTo(bx+hx,by+hy);c.lineTo(ax+hx,ay+hy);c.closePath();c.fill();
+    const off=on?(t*B.v)%10:0;c.strokeStyle='rgba(255,255,255,.10)';c.lineWidth=1.2;c.beginPath();
+    for(let s=off;s<L;s+=10){const x=ax+ux*s,y=ay+uy*s;c.moveTo(x-hx*.92,y-hy*.92);c.lineTo(x+hx*.92,y+hy*.92)}c.stroke();
+    c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=1.5;c.beginPath();c.moveTo(ax+hx,ay+hy);c.lineTo(bx+hx,by+hy);c.stroke()}
+    const o2=on?(t*B.v)%B.gap:B.gap*.4,ang=Math.atan2(hy,hx);
+    for(let s=o2;s<L-2;s+=B.gap){const x=ax+ux*s,y=ay+uy*s,f=s/L;let al=1;if(f>.86)al=Math.max(0,(1-f)/.14);if(f<.06)al=f/.06;if(al<=0)continue;c.globalAlpha=al;item(c,B.item,x,y,B.iw,ang,f)}c.globalAlpha=1}
+  function item(c,k,x,y,w,ang,f){c.save();c.translate(x,y);
+    if(k==='egg'){c.fillStyle='#f6efe0';c.strokeStyle='rgba(90,60,30,.6)';c.lineWidth=.8;c.beginPath();c.ellipse(0,-w*.6,w*.5,w*.62,0,0,7);c.fill();c.stroke()}
+    else if(k==='sack'){c.fillStyle='#e9dcc0';c.strokeStyle='rgba(80,60,30,.7)';c.lineWidth=1;c.beginPath();c.moveTo(-w*.45,0);c.quadraticCurveTo(-w*.6,-w*.9,-w*.2,-w*1.05);c.lineTo(w*.2,-w*1.05);c.quadraticCurveTo(w*.6,-w*.9,w*.45,0);c.closePath();c.fill();c.stroke();
+      c.strokeStyle='rgba(80,60,30,.6)';c.beginPath();c.moveTo(-w*.2,-w*1.05);c.lineTo(0,-w*1.25);c.lineTo(w*.2,-w*1.05);c.stroke()}
+    else{c.rotate(ang);const d=k==='dough';const col=d?(f>.6?'#e2b778':'#efdcae'):'#c27a34';c.fillStyle=col;c.strokeStyle=d?'rgba(120,90,50,.55)':'rgba(80,40,10,.7)';c.lineWidth=1;
+      c.beginPath();c.ellipse(0,-w*.12,w*.5,w*.2,0,0,7);c.fill();c.stroke();c.fillStyle='rgba(255,255,255,'+(d?.35:.25)+')';c.beginPath();c.ellipse(-w*.08,-w*.2,w*.3,w*.07,0,0,7);c.fill();
+      if(!d||f>.6){c.strokeStyle='rgba(120,60,20,.5)';c.beginPath();for(let i=-1;i<=1;i++){c.moveTo(i*w*.14-w*.04,-w*.26);c.lineTo(i*w*.14+w*.04,-w*.02)}c.stroke()}}
+    c.restore()}
+  function glow(c,g,t,on,ph){const [x,y,r]=g;let a=on?.55+.15*Math.sin(t*9+ph)+.1*Math.sin(t*23+ph*2):.12;c.save();c.globalCompositeOperation='lighter';
+    const rg=c.createRadialGradient(x,y,1,x,y,r);rg.addColorStop(0,'rgba(255,214,120,'+Math.min(1,a)+')');rg.addColorStop(.45,'rgba(255,128,40,'+a*.65+')');rg.addColorStop(1,'rgba(200,60,10,0)');c.fillStyle=rg;c.fillRect(x-r,y-r,r*2,r*2);c.restore()}
+  function puffs(c,x,y,t,k,col,n,rise,size,seed){c.save();for(let i=0;i<n;i++){const f=((t*.3+i/n+seed*.137)%1),px=x+Math.sin(t*.8+i*1.9+seed)*4*f+f*rise*.25,py=y-f*rise,r=size*(.35+f);
+    c.globalAlpha=(1-f)*k;c.fillStyle=i%2?col[0]:col[1];c.beginPath();c.arc(px,py,r,0,7);c.fill()}c.restore()}
+  function wheel(c,W,t,on,sp){const {c:[x,y],rx,ry,n}=W,a=sp;c.save();c.translate(x,y);
+    if(!W.bare){c.fillStyle='rgba(30,22,18,.55)';c.beginPath();c.ellipse(0,0,rx*.86,ry*.86,0,0,7);c.fill()}
+    c.strokeStyle=W.col;c.lineWidth=Math.max(2,rx*.09);c.lineCap='round';c.beginPath();for(let i=0;i<n;i++){const q=a+i*Math.PI*2/n;c.moveTo(0,0);c.lineTo(Math.cos(q)*rx*.84,Math.sin(q)*ry*.84)}c.stroke();
+    c.strokeStyle='rgba(255,200,170,.25)';c.lineWidth=1;c.stroke();c.fillStyle='#3a3330';c.beginPath();c.ellipse(0,0,rx*.16,ry*.16,0,0,7);c.fill();c.fillStyle='#8a817a';c.beginPath();c.ellipse(-rx*.04,-ry*.04,rx*.07,ry*.07,0,0,7);c.fill();c.restore()}
+  function strap(c,s,t,on){const [a,b]=s;c.save();c.strokeStyle='rgba(30,18,10,.55)';c.lineWidth=2.4;c.setLineDash([5,9]);c.lineDashOffset=on?-t*60:0;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();
+    c.strokeStyle='rgba(255,220,180,.18)';c.lineWidth=1;c.lineDashOffset=on?-t*60+7:7;c.stroke();c.restore()}
+  function fan(c,f,t,on){const [x,y,rx,ry]=f,a=on?t*7:0;c.save();c.translate(x,y);c.fillStyle='#3a3d42';c.beginPath();c.ellipse(0,0,rx*.8,ry*.8,0,0,7);c.fill();
+    c.fillStyle='#b7bcc2';for(let i=0;i<4;i++){const q=a+i*Math.PI/2;c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(q-.35)*rx*.75,Math.sin(q-.35)*ry*.75);c.lineTo(Math.cos(q+.2)*rx*.75,Math.sin(q+.2)*ry*.75);c.closePath();c.fill()}
+    c.fillStyle='#6d7278';c.beginPath();c.ellipse(0,0,rx*.16,ry*.16,0,0,7);c.fill();c.restore()}
+  function spiral(c,S,t,on){const x=S.c[0];for(const [y,rx,ry] of S.tiers){const n=5,a0=on?t*.7:0;for(let i=0;i<n;i++){let q=(a0+i*Math.PI*2/n)%(Math.PI*2);if(q<0)q+=Math.PI*2;if(q>Math.PI)continue;
+      item(c,'loaf',x+Math.cos(q)*rx*.82,y+Math.sin(q)*ry*.82+2,22,0,1)}}}
+  function elev(c,E,t,on){const [x,y0]=E.a,y1=E.b[1],w=E.w,o=on?(t*30)%22:0;c.save();c.globalAlpha=.9;for(let y=y0-o;y>y1;y-=22){c.fillStyle='#5d6066';c.fillRect(x-w/2,y-6,w,6);c.fillStyle='#c9a35e';c.fillRect(x-w/2+1.5,y-7.5,w-3,2.4)}
+    c.strokeStyle='#2c2e31';c.lineWidth=1.5;c.beginPath();c.moveTo(x-w/2-1,y0);c.lineTo(x-w/2-1,y1);c.moveTo(x+w/2+1,y0);c.lineTo(x+w/2+1,y1);c.stroke();c.restore()}
+  function pour(c,P,t,on){if(!on)return;const [a,b,col]=P;c.save();c.fillStyle=col;for(let i=0;i<14;i++){const f=((t*1.6+i/14)%1),x=a[0]+(b[0]-a[0])*f+Math.sin(i*7.3)*2,y=a[1]+(b[1]-a[1])*f*f;c.globalAlpha=.85;c.fillRect(x-1.2,y-1.2,2.4,2.4)}c.restore()}
+  /* one scene for a building: (X,Y) = top-left of the drawn picture, q = world px per source px */
+  NF.scene=function(c,key,X,Y,q,t,b,act){const P=NF.P[key];if(!P)return;const seed=(b&&b.id||0)%11;c.save();c.translate(X,Y);c.scale(q,q);
+    for(const B of P.belts||[])belt(c,B,t,act);
+    for(let i=0;i<(P.glows||[]).length;i++)glow(c,P.glows[i],t,act,i*1.3+seed);
+    if(P.wheel){b&&(b._nfA=(b._nfA||0)+(act?1:0)*Math.min(.1,Math.max(0,t-(b._nfT||t)))*3.2);if(b)b._nfT=t;wheel(c,P.wheel,t,act,b?b._nfA:t*3.2)}
+    for(const s of P.straps||[])strap(c,s,t,act);
+    for(const f of P.fans||[])fan(c,f,t,act);
+    if(P.spiral)spiral(c,P.spiral,t,act);
+    if(P.elev)elev(c,P.elev,t,act);
+    for(const p of P.pour||[])pour(c,p,t,act);
+    if(P.mix)for(const m of P.mix){const [x,y,rx,ry]=m,a=act?t*4:0;c.save();c.translate(x,y);c.strokeStyle='rgba(225,210,170,.9)';c.lineWidth=4;c.lineCap='round';c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(a)*rx*.8,Math.sin(a)*ry*.8);c.stroke();c.strokeStyle='#5a4a32';c.lineWidth=2;c.stroke();c.restore()}
+    if(P.blink)for(let i=0;i<P.blink.length;i++){const [x,y]=P.blink[i],on=act&&((t*2+i*.37)%1)<.6;c.fillStyle=on?(i%2?'#7dff8a':'#ffd24a'):'#4a4a40';c.beginPath();c.arc(x,y,2.6,0,7);c.fill()}
+    if(act){for(const d of P.dust||[])puffs(c,d[0],d[1],t,.35,['#f4efe4','#e8e0cf'],3,26,6,seed+d[0]);
+      for(const s of P.steam||[])puffs(c,s[0],s[1],t*1.4,.45,['#ffffff','#e9ecef'],3,34,5,seed+s[1]);
+      for(const s of P.smoke||[])puffs(c,s[0],s[1],t,.6*s[2],['#cfcac2','#b4aea5'],6,170,17,seed)}
+    c.restore()};
+  /* bakers (art chat 1's baker sprite, villager scale) */
+  NF.men=function(c,key,X,Y,q,t,b,act){const M=NF.P[key]&&NF.P[key].men;if(!M||!GFX.bkMan||!GFX.bkImg||!GFX.bkImg('baker'))return;const S=GFX_BK3D.baker,SG=S.seg,n=b.gar?b.gar.length:(act?2:0);if(!n)return;
+    const W=p=>[X+p[0]*q,Y+p[1]*q],D=[],tm=t+((b.id||0)%7)*1.3,idle=ph=>Math.floor((tm*.9+ph)%SG.idle.n),stall=!act&&!!b.stall;
+    {const p=W(M.knead),row=act?SG.knead.row+(M.knead[2]?0:1):SG.idle.row+1,col=act?Math.floor((tm%4.958)/4.958*SG.knead.n):idle(0);D.push([p[1],()=>{const H=GFX.bkMan(c,row,col,p[0],p[1]);if(stall&&H&&GFX.bkNeed)GFX.bkNeed(c,p[0],H.top,b,t*1000)}])}
+    if(n>=2){const A=W(M.carry[0]),B=W(M.carry[1]),cyc=(tm*.22)%2,go=cyc<1,k=go?cyc:2-cyc;let x,y,row,col,carry=null;
+      if(act){const f=Math.min(1,Math.max(0,(k-.1)/.8));x=A[0]+(B[0]-A[0])*f;y=A[1]+(B[1]-A[1])*f;const moving=k>.1&&k<.9;
+        if(moving){const dx=(B[0]-A[0])*(go?1:-1),dy=(B[1]-A[1])*(go?1:-1);row=SG.walk.row+GFX.bkDir(dx,dy);col=Math.floor((tm*2.6*4)%SG.walk.n)}else{row=SG.idle.row;col=idle(2)}carry=go?'loaf':null}
+      else{x=A[0];y=A[1];row=SG.idle.row+2;col=idle(3)}
+      D.push([y,()=>{const H=GFX.bkMan(c,row,col,x,y);if(H&&carry&&GFX.bkProp)GFX.bkProp(c,carry,(H.r[0]+H.l[0])/2,(H.r[1]+H.l[1])/2+.5,6)}])}
+    if(n>=3&&M.knead2){const p=W(M.knead2),row=act?SG.knead.row+(M.knead2[2]?0:1):SG.idle.row,col=act?Math.floor(((tm+1.7)%4.958)/4.958*SG.knead.n):idle(5);D.push([p[1],()=>GFX.bkMan(c,row,col,p[0],p[1])])}
+    D.sort((a,b)=>a[0]-b[0]);for(const d of D)d[1]()};
+  if(typeof GFX==='undefined'||typeof bldSpr0==='undefined')return;
+  /* ---- game hooks ---- */
+  const IM=new Image();let cut=false;const C={};
+  function ready(){if(cut)return true;if(!(IM.complete&&IM.naturalWidth))return false;for(const k in NF.LAY){const [x,y,w,h]=NF.LAY[k];
+      for(const [suf,dx] of [['',0],['_m',w+2]]){const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(IM,x+dx,y,w,h,0,0,w,h);GFX.imgs['nf_'+k+suf]=cv}
+      try{if(!GFX_ART['nf_'+k])GFX_ART['nf_'+k]={age:k[0]==='x'?6:5,culture:'both'}}catch(e){}}return cut=true}
+  const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
+  function keyFor(type,o,yard){if(GFX.mode!=='V23D'||o==null||o<0||o>1)return null;const a=ageOf(o);if(a<5)return null;
+    if(type==='bakery')return a>=6?'xbake':'ibake';if(type==='mill')return a>=6?'xmill':'imill';if(type==='coop'&&a===5&&!yard)return 'icoop';return null}
+  function sprK(k,o,sz){if(!ready())return null;const ck=k+o+'_'+sz;if(C[ck])return C[ck];const S=sz*TILE,[wf,dn]=NF.FIT[k];const sp=GFX.spr('nf_'+k,o,S,wf,dn);sp._nf=k;sp.smoke=null;sp.smoke2=null;sp.fire=null;return C[ck]=sp}
+  NF.spr=sprK;NF.keyFor=keyFor;
+  bldSpr0=(function(prev){return function(e){if(e&&(e.type==='bakery'||e.type==='mill'||e.type==='coop')){let s=null;try{const k=keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait);if(k)s=sprK(k,e.owner,e.size||DEF[e.type].size)}catch(err){}if(s)return s}return prev(e)}})(bldSpr0);
+  try{sprFor=(function(prev){return function(type,o){if(type==='bakery'||type==='mill'||type==='coop'){let s=null;try{const k=keyFor(type,o,false);if(k)s=sprK(k,o,DEF[type].size)}catch(err){}if(s)return s}return prev(type,o)}})(sprFor)}catch(err){}
+  const mine=e=>{try{return e&&keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait)&&ready()}catch(err){return false}};
+  try{const bs=GFX.bkScene;if(bs)GFX.bkScene=function(c,b,now){if(mine(b))return;return bs.apply(this,arguments)}}catch(err){}
+  try{const _cc=drawCoopChickens;drawCoopChickens=function(c,e,now){if(mine(e)&&GFX.cpFenceEdges){const f=GFX.cpFenceEdges;GFX.cpFenceEdges=function(){};try{return _cc(c,e,now)}finally{GFX.cpFenceEdges=f}}return _cc(c,e,now)}}catch(err){}
+  function geo(e){const k=keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait);if(!k)return null;const sp=sprK(k,e.owner,e.size||DEF[e.type].size);if(!sp)return null;return {k,X:e.tx*TILE-(sp.dx||0),Y:e.ty*TILE-sp.ov,q:sp.w/NF.SRCW[k]}}
+  function run(c,b,now){const g=geo(b);if(!g)return false;const t=now/1000,act=!!(b.anim&&b.anim.active)||!!b.working;NF.scene(c,g.k,g.X,g.Y,g.q,t,b,act);
+    if(b.type==='bakery')NF.men(c,g.k,g.X,g.Y,g.q,t,b,!!b.working);
+    if(b.type==='mill'){try{for(const bk of G.ents){if(bk.type!=='bakery'||bk.chute!==b.id||bk.dead||!bk.built)continue;const h=geo(bk);if(h)line(c,g,h,t,!!bk.working,b.id)}}catch(err){}}
+    return true}
+  NF.run=run;
+  /* the flour line from a painted mill to its chute bakery: an enclosed iron conveyor (Industrial) or a steel pneumatic pipe (Modern) on trestles */
+  function line(c,g,h,t,on,seed){const A=NF.PORT[g.k],B=NF.PORT[h.k];if(!A||!B)return;let best=null;
+    for(const a of A)for(const b of B){const p=[g.X+a[0]*g.q,g.Y+a[1]*g.q],q=[h.X+b[0]*h.q,h.Y+b[1]*h.q],d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(!best||d<best[2])best=[p,q,d]}
+    const [p,q]=best,mod=g.k[0]==='x',dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,r=mod?2.6:3.2;
+    const gy=Math.max(p[1],q[1])+26;c.save();c.lineCap='round';
+    const n=Math.max(1,Math.round(L/40));for(let i=1;i<=n;i++){const f=i/(n+1),x=p[0]+dx*f,y=p[1]+dy*f,yb=y+Math.max(14,gy-y-10*(1-Math.abs(f-.5)));
+      c.strokeStyle=mod?'#8d9399':'#3b2c20';c.lineWidth=1.6;c.beginPath();c.moveTo(x-3,y+2);c.lineTo(x-4.5,yb);c.moveTo(x+3,y+2);c.lineTo(x+4.5,yb);c.stroke();
+      c.lineWidth=1;c.beginPath();c.moveTo(x-4,(y+yb)/2);c.lineTo(x+4,(y+yb)/2);c.stroke();c.fillStyle='rgba(20,14,8,.25)';c.beginPath();c.ellipse(x,yb,7,1.8,0,0,7);c.fill()}
+    c.strokeStyle='rgba(20,14,8,.22)';c.lineWidth=r*2;c.beginPath();c.moveTo(p[0]+3,gy+2);c.lineTo(q[0]+3,gy+2);c.globalAlpha=0;c.stroke();c.globalAlpha=1;
+    c.strokeStyle=mod?'#9aa1a8':'#4a3a2c';c.lineWidth=r*2+1.4;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.stroke();
+    c.strokeStyle=mod?'#dfe4e8':'#6e5843';c.lineWidth=r*2-1;c.stroke();
+    c.strokeStyle=mod?'rgba(255,255,255,.75)':'rgba(255,220,170,.22)';c.lineWidth=1;c.beginPath();c.moveTo(p[0]-uy*r*.45,p[1]+ux*r*.45-r*.5);c.lineTo(q[0]-uy*r*.45,q[1]+ux*r*.45-r*.5);c.stroke();
+    const nb=Math.max(2,Math.round(L/16));c.strokeStyle=mod?'#7c838a':'#2a2119';c.lineWidth=1.3;for(let i=0;i<=nb;i++){const f=i/nb,x=p[0]+dx*f,y=p[1]+dy*f;c.beginPath();c.moveTo(x-uy*r*1.1,y+ux*r*1.1);c.lineTo(x+uy*r*1.1,y-ux*r*1.1);c.stroke()}
+    if(on){const k=mod?3:2;for(let i=0;i<k;i++){const f=((t*(mod?.9:.45))+i/k+seed*.13)%1,x=p[0]+dx*f,y=p[1]+dy*f;
+        if(mod){c.globalCompositeOperation='lighter';const rg=c.createRadialGradient(x,y,0,x,y,r*2.2);rg.addColorStop(0,'rgba(255,250,235,.9)');rg.addColorStop(1,'rgba(255,250,235,0)');c.fillStyle=rg;c.fillRect(x-r*2.2,y-r*2.2,r*4.4,r*4.4);c.globalCompositeOperation='source-over'}
+        else{c.fillStyle='rgba(245,236,214,.85)';c.beginPath();c.arc(x,y-r-1-Math.abs(Math.sin(f*40))*1.2,1.2,0,7);c.fill()}}}
+    if(L>18)for(const e of [p,q]){c.fillStyle=mod?'#6f767d':'#2e241b';c.beginPath();c.ellipse(e[0],e[1],r*1.5,r*1.7,0,0,7);c.fill();c.fillStyle=mod?'#b9bfc5':'#5c4836';c.beginPath();c.ellipse(e[0],e[1]-.4,r*1.1,r*1.3,0,0,7);c.fill()}
+    c.restore()}
+  for(const ty of ['bakery','mill','coop'])BANIM[ty]=(function(prev){return function(c,b,now){if(GFX.mode==='V23D'&&mine(b)){try{if(run(c,b,now)){if(ty==='bakery'&&prev)prev(c,b,now);return}}catch(err){}}if(prev)prev(c,b,now)}})(BANIM[ty]);
+  IM.onload=function(){try{if(ready()&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};IM.src=GFX.ART+'nf_food.webp?v='+GFX.ARTV;
+}catch(err){}})();
+/* ===== END art chat 3: food ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
    Pack donkey (Josh picked load A): owned pack donkeys are the 3D wild donkey wearing a red striped blanket, a wooden pack saddle,
