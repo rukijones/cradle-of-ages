@@ -5604,24 +5604,53 @@ try{(function(){
       pennant(c,fx,fy,0,u.owner,now/1000+u.id,7,Math.abs(fx-hx)<2?1:(fx>hx?1:-1));
       GFX._dkSpr=1;GFX._dkShift=1e6;return}
     return _dk(c,u,x,y,now)}}catch(err){}
-  /* ---- sacred site ---- */
-  try{const _ds=drawSacred;drawSacred=function(c,e,now){const im=GFX.mode==='V23D'&&GFX.a1img('a1_sac');if(!im)return _ds(c,e,now);
-    const x=e.x,y=e.y,ow=e.owner,t=now/1000,W=134,q=W/872,H=im.height*W/im.width,X0=x-436*q,Y0=y+5-572*q;
-    if(ow===0||ow===1){c.save();c.globalAlpha=.5;c.strokeStyle=PCOL[ow];c.lineWidth=2;c.setLineDash([6,5]);c.lineDashOffset=-now/80;ell(c,x,y+2,3.2*TILE*.66,3.2*TILE*.43);c.stroke();c.restore()}
-    c.drawImage(im,X0,Y0,W,H);
-    const R=GFX.a1img('a1_sacR'),C=GFX.a1img('a1_sacC'),p1=.5+.5*Math.sin(t*1.9+e.tx),p2=.5+.5*Math.sin(t*2.7+e.ty);
-    c.save();c.globalCompositeOperation='lighter';
-    if(R){c.globalAlpha=.35+.45*p1;c.drawImage(R,X0,Y0,W,H)}
-    if(C){c.globalAlpha=.4+.35*p2;c.drawImage(C,X0,Y0,W,H)}
-    const cx=X0+430*q,cy=Y0+318*q,gr=c.createRadialGradient(cx,cy,0,cx,cy,22+p2*8);c.globalAlpha=1;
-    const tint=ow===0?'150,200,255':ow===1?'255,170,150':'255,240,190';gr.addColorStop(0,'rgba('+tint+','+(.55+.25*p2).toFixed(3)+')');gr.addColorStop(1,'rgba('+tint+',0)');
-    c.fillStyle=gr;c.fillRect(cx-32,cy-32,64,64);c.restore();
-    if(GFX.fxFlame){GFX.fxFlame(c,X0+560*q,Y0+436*q,.55,t,e.tx*1.3);GFX.fxFlame(c,X0+406*q,Y0+503*q,.55,t,e.ty*2.1)}
-    if(ow===0||ow===1){const px=X0+828*q,py=Y0+150*q,w=Math.sin(t*2.4+e.tx)*.8;c.save();c.fillStyle=PCOL[ow];c.beginPath();c.moveTo(px-5,py);c.lineTo(px+5,py);
-      c.quadraticCurveTo(px+5+w,py+8,px+4+w*1.5,py+15);c.lineTo(px+w*1.5,py+12);c.lineTo(px-4+w*1.5,py+15);c.quadraticCurveTo(px-5+w,py+8,px-5,py);c.closePath();c.fill();
-      c.fillStyle=PDARK[ow];c.globalAlpha=.5;c.fillRect(px-5,py,10,1.6);c.restore()}
-    for(let i=0;i<2;i++){const lead=e.cap&&e.cap[i];if(lead>0){c.strokeStyle=PCOL[i];c.lineWidth=2.5;c.beginPath();c.arc(cx,cy,12,-Math.PI/2,-Math.PI/2+Math.PI*2*lead/8);c.stroke()}}
-  }}catch(err){}
+  /* ---- sacred site ----
+     Units walk over it: the platform (with everything painted on it) is drawn on the ground before units, then each upright piece
+     (6 rune stones, altar + crystal, 2 braziers, banner pole) is drawn again as its own depth-sorted item at its base line, so a unit
+     in front of a stone stays in front and one behind it goes behind that stone only. */
+  const SP=[ // polygon in 872-px source coords, base y
+    [[[165,330],[170,120],[205,72],[245,80],[270,120],[268,330],[240,345],[190,345]],340],
+    [[[52,460],[60,225],[85,203],[130,210],[142,240],[140,455],[110,475],[70,475]],470],
+    [[[152,590],[160,360],[185,333],[225,340],[248,380],[250,590],[215,615],[170,610]],610],
+    [[[358,275],[370,40],[400,5],[440,10],[468,60],[466,270],[430,290],[380,290]],287],
+    [[[565,310],[575,90],[600,55],[640,55],[665,100],[665,300],[630,335],[590,330]],332],
+    [[[700,425],[712,190],[740,158],[770,165],[785,200],[782,430],[755,450],[715,448]],447],
+    [[[812,470],[815,135],[785,140],[785,125],[820,115],[860,145],[850,160],[832,150],[830,470]],468,'pole'],
+    [[[310,400],[320,370],[395,348],[398,282],[430,272],[468,298],[472,345],[545,362],[545,410],[500,470],[385,495],[318,470]],492,'altar'],
+    [[[533,362],[588,362],[588,482],[533,482]],480,'bz1'],
+    [[[380,440],[438,440],[438,548],[380,548]],546,'bz2']];
+  let PCS=null;const pieces=()=>{if(PCS)return PCS;const im=GFX.a1img('a1_sac'),R=GFX.a1img('a1_sacR'),C=GFX.a1img('a1_sacC');if(!im)return null;const k=im.width/872;
+    PCS=SP.map(([P,by,tag])=>{let x0=1e9,y0=1e9,x1=0,y1=0;for(const [x,y] of P){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+      const mk=src=>{if(!src)return null;const c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*k)+2;c.height=Math.ceil((y1-y0)*k)+2;const g=c.getContext('2d');
+        g.beginPath();P.forEach(([x,y],i)=>i?g.lineTo((x-x0)*k,(y-y0)*k):g.moveTo((x-x0)*k,(y-y0)*k));g.closePath();g.clip();g.drawImage(src,-x0*k,-y0*k);return c};
+      return {x0,y0,x1,y1,by,tag,c:mk(im),r:mk(R),g:mk(C)}});return PCS};
+  const geo=e=>{const W=134,q=W/872;return {q,X0:e.x-436*q,Y0:e.y+5-572*q,W}};
+  const pul=(e,t)=>[.5+.5*Math.sin(t*1.9+e.tx),.5+.5*Math.sin(t*2.7+e.ty)];
+  const glowOn=(c,e,t,X0,Y0,W,H,R,C)=>{const [p1,p2]=pul(e,t);c.save();c.globalCompositeOperation='lighter';if(R){c.globalAlpha=.35+.45*p1;c.drawImage(R,X0,Y0,W,H)}if(C){c.globalAlpha=.4+.35*p2;c.drawImage(C,X0,Y0,W,H)}c.restore()};
+  GFX.sacArt=()=>GFX.mode==='V23D'&&!!GFX.a1img('a1_sac')&&!!pieces();
+  // ground pass: the whole picture under the units
+  GFX.sacFloor=function(c,e,now){const im=GFX.a1img('a1_sac');const {q,X0,Y0,W}=geo(e),H=im.height*W/im.width,ow=e.owner,t=now/1000;
+    if(ow===0||ow===1){c.save();c.globalAlpha=.5;c.strokeStyle=PCOL[ow];c.lineWidth=2;c.setLineDash([6,5]);c.lineDashOffset=-now/80;ell(c,e.x,e.y+2,3.2*TILE*.66,3.2*TILE*.43);c.stroke();c.restore()}
+    c.drawImage(im,X0,Y0,W,H);glowOn(c,e,t,X0,Y0,W,H,GFX.a1img('a1_sacR'),GFX.a1img('a1_sacC'))};
+  // one upright piece, depth-sorted with the units
+  GFX.sacPiece=function(c,e,i,now){const P=pieces()[i];if(!P||!P.c)return;const {q,X0,Y0}=geo(e),t=now/1000,ow=e.owner,x=X0+P.x0*q,y=Y0+P.y0*q,w=(P.x1-P.x0)*q,h=(P.y1-P.y0)*q,sw=P.c.width/((P.x1-P.x0)*P.c.width/(P.c.width-2)),
+      dw=P.c.width*q/(GFX.a1img('a1_sac').width/872),dh=P.c.height*q/(GFX.a1img('a1_sac').width/872);
+    c.drawImage(P.c,x,y,dw,dh);const [p1,p2]=pul(e,t);c.save();c.globalCompositeOperation='lighter';if(P.r){c.globalAlpha=.35+.45*p1;c.drawImage(P.r,x,y,dw,dh)}if(P.g){c.globalAlpha=.4+.35*p2;c.drawImage(P.g,x,y,dw,dh)}c.restore();
+    if(P.tag==='altar'){const cx=X0+430*q,cy=Y0+318*q,gr=c.createRadialGradient(cx,cy,0,cx,cy,22+p2*8);const tint=ow===0?'150,200,255':ow===1?'255,170,150':'255,240,190';
+      gr.addColorStop(0,'rgba('+tint+','+(.55+.25*p2).toFixed(3)+')');gr.addColorStop(1,'rgba('+tint+',0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=gr;c.fillRect(cx-32,cy-32,64,64);c.restore();
+      for(let k=0;k<2;k++){const lead=e.cap&&e.cap[k];if(lead>0){c.strokeStyle=PCOL[k];c.lineWidth=2.5;c.beginPath();c.arc(cx,cy,12,-Math.PI/2,-Math.PI/2+Math.PI*2*lead/8);c.stroke()}}}
+    if(P.tag==='bz1'&&GFX.fxFlame)GFX.fxFlame(c,X0+560*q,Y0+436*q,.55,t,e.tx*1.3);
+    if(P.tag==='bz2'&&GFX.fxFlame)GFX.fxFlame(c,X0+406*q,Y0+503*q,.55,t,e.ty*2.1);
+    if(P.tag==='pole'&&(ow===0||ow===1)){const px=X0+828*q,py=Y0+150*q,w2=Math.sin(t*2.4+e.tx)*.8;c.save();c.fillStyle=PCOL[ow];c.beginPath();c.moveTo(px-5,py);c.lineTo(px+5,py);
+      c.quadraticCurveTo(px+5+w2,py+8,px+4+w2*1.5,py+15);c.lineTo(px+w2*1.5,py+12);c.lineTo(px-4+w2*1.5,py+15);c.quadraticCurveTo(px-5+w2,py+8,px-5,py);c.closePath();c.fill();
+      c.fillStyle=PDARK[ow];c.globalAlpha=.5;c.fillRect(px-5,py,10,1.6);c.restore()}};
+  const sacSeen=e=>{try{return G.exp[0][ti(e.tx,e.ty)]}catch(err){return true}};
+  try{const _ds=drawSacred;drawSacred=function(c,e,now){if(e&&e.id!=null&&GFX.sacArt())return;return _ds(c,e,now)}}catch(err){}
+  try{const _sl=shadowLayer;shadowLayer=function(c){_sl(c);try{if(!GFX.sacArt())return;const now=performance.now();
+      for(const e of G.ents)if(e.kind==='poi'&&e.type==='sacred'&&!e.dead&&sacSeen(e)&&Math.abs(e.x-(cam.x+W/cam.z/2))<W/cam.z/2+100&&Math.abs(e.y-(cam.y+H/cam.z/2))<H/cam.z/2+100)GFX.sacFloor(c,e,now)}catch(err){}}}catch(err){}
+  try{const _td=townDecor;townDecor=function(c,now,E,V,list,inView){_td(c,now,E,V,list,inView);try{if(!GFX.sacArt())return;
+      for(const e of G.ents)if(e.kind==='poi'&&e.type==='sacred'&&!e.dead&&E[ti(e.tx,e.ty)]&&inView(e.x,e.y,100)){const {q,Y0}=geo(e);SP.forEach((p,i)=>list.push([Y0+p[1]*q,{kind:'decor',d:'sacp',sac:e,i}]))}}catch(err){}}}catch(err){}
+  try{const _dd=drawDecor;drawDecor=function(c,d,now){if(d&&d.d==='sacp'){try{GFX.sacPiece(c,d.sac,d.i,now)}catch(err){}return}return _dd(c,d,now)}}catch(err){}
 })()}catch(err){}
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
@@ -7364,6 +7393,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
