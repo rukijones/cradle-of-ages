@@ -5925,6 +5925,37 @@ try{(function(){
   IM.onload=function(){try{if(ready()&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};IM.src=GFX.ART+'nf_food.webp?v='+GFX.ARTV;
 }catch(err){}})();
 /* ===== END art chat 3: food ===== */
+/* ===== V23D Industrial/Modern market, university, mine shaft (art chat 3, Josh Oct 15 2026): Josh's picks from free concepts (Tripo image tool):
+   market Industrial A (glass-and-iron market hall) / Modern A (corner supermarket, neon cart sign; re-run without the pavement slab and misspelt sign),
+   university Industrial C (Gothic college with observatory dome) / Modern B (concrete-and-glass institute, dome + mast),
+   mine shaft Industrial A (iron headframe, brick engine house, ore cart) / Modern A (steel headframe, conveyor, hopper, dump truck; re-run without the dirt slab).
+   art/c/nf_civ.webp holds the six pictures at full cut size with half-size team masks. Shown from the Industrial Age (5) and the Modern Age (6); replaces
+   art chat 2's Renaissance look for these three from age 5 (outer bldSpr0 / sprFor wrapper). HD standard: sprites rebuilt through GFX.hdUp.
+   Doors: sp.door on the market and university (units come out of the doorway). ===== */
+(function(){try{
+  if(typeof GFX==='undefined'||typeof bldSpr0==='undefined')return;
+  const LAY={"imkt":[0,0,856,936,858,0,428,468],"iuni":[0,938,659,999,661,938,330,500],"xuni":[0,1939,667,788,669,1939,334,394],"ishaft":[1288,0,593,940,1883,0,297,470],"xshaft":[1288,942,572,981,1862,942,286,491],"xmkt":[1288,1925,558,546,1848,1925,279,273]};
+  /* [width factor, down, door [x,y,w,h,dir,mode] as fractions of the picture, smoke points in picture px] */
+  const FIT={imkt:[1.1,.04,[.11,.56,.11,.19,'l','open']],xmkt:[1.06,.04,[.19,.59,.09,.2,'l','open']],iuni:[1.0,.04,[.25,.76,.12,.12,'l','open']],xuni:[1.05,.04,[.70,.74,.09,.15,'r','open']],
+    ishaft:[1.14,.04,null,[[394,392]]],xshaft:[1.2,.04,null]};
+  const TY={market:['imkt','xmkt'],university:['iuni','xuni'],shaft:['ishaft','xshaft']};
+  const IM=new Image();let cut=false;const C={};
+  function ready(){if(cut)return true;if(!(IM.complete&&IM.naturalWidth))return false;
+    for(const k in LAY){const [x,y,w,h,mx,my,mw,mh]=LAY[k];const a=document.createElement('canvas');a.width=w;a.height=h;a.getContext('2d').drawImage(IM,x,y,w,h,0,0,w,h);
+      const m=document.createElement('canvas');m.width=w;m.height=h;const g=m.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(IM,mx,my,mw,mh,0,0,w,h);
+      GFX.imgs['nc_'+k]=a;GFX.imgs['nc_'+k+'_m']=m;try{if(!GFX_ART['nc_'+k])GFX_ART['nc_'+k]={age:k[0]==='x'?6:5,culture:'both',smoke:(FIT[k][3])||null}}catch(e){}}
+    return cut=true}
+  const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
+  function keyFor(type,o){const T=TY[type];if(!T||GFX.mode!=='V23D'||o==null||o<0||o>1)return null;const a=ageOf(o);return a>=6?T[1]:a===5?T[0]:null}
+  function spr(k,o,sz){if(!ready())return null;const ck=k+o+'_'+sz;if(C[ck])return C[ck];const [wf,dn,door]=FIT[k],S=sz*TILE;
+    let sp=GFX.spr('nc_'+k,o,S,wf,dn);if(door)sp.door=door.slice();if(GFX.hdUp)sp=GFX.hdUp(sp,GFX.imgs['nc_'+k],GFX.imgs['nc_'+k+'_m'],o,'');if(door)sp.door=door.slice();sp._nc=k;return C[ck]=sp}
+  GFX.ncSpr=spr;
+  bldSpr0=(function(prev){return function(e){if(e&&TY[e.type]){let s=null;try{const k=keyFor(e.type,e.owner);if(k)s=spr(k,e.owner,e.size||DEF[e.type].size)}catch(err){}if(s)return s}return prev(e)}})(bldSpr0);
+  try{sprFor=(function(prev){return function(type,o){if(TY[type]){let s=null;try{const k=keyFor(type,o);if(k)s=spr(k,o,DEF[type].size)}catch(err){}if(s)return s}return prev(type,o)}})(sprFor)}catch(err){}
+  try{const la=litOf;litOf=function(sp){const c=la.apply(this,arguments);if(c&&sp&&c!==sp&&sp._nc){if(sp.door&&!c.door)c.door=sp.door;c._nc=sp._nc}return c}}catch(err){}
+  IM.onload=function(){try{if(ready()&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};IM.src=GFX.ART+'nf_civ.webp?v='+GFX.ARTV;
+}catch(err){}})();
+/* ===== END art chat 3: civ ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
    Pack donkey (Josh picked load A): owned pack donkeys are the 3D wild donkey wearing a red striped blanket, a wooden pack saddle,
