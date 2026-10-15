@@ -254,7 +254,7 @@ const DEF={
   longsword:{kind:'unit',needTech:'bronzework',name:'Long swordsman',plural:'Long swordsmen',hp:95,atk:12,arm:3,range:0,cd:1.25,speed:76,sight:5,r:9,cost:{f:55,g:40},time:20,age:3},
   halberdier:{kind:'unit',name:'Halberdier',plural:'Halberdiers',hp:65,atk:6,arm:1,range:0,cd:1.3,speed:76,sight:5,r:9,cost:{f:35,w:30},time:16,age:3},
   trebuchet:{kind:'unit',name:'Trebuchet',plural:'Trebuchets',hp:170,atk:70,arm:1,range:13,cd:7,speed:22,sight:13,r:15,cost:{w:260,g:200},time:45,age:3},
-  ranch:{kind:'bld',name:'Ranch',hp:350,size:5,sight:4,trains:['donkey','caravan','ox','truck'],techs:['dairyfarm'],cost:{w:200},time:35,age:2,walkable:1},
+  ranch:{kind:'bld',name:'Ranch',hp:350,size:5,sight:4,trains:['donkey','caravan','tradecart','ox','truck'],techs:['dairyfarm'],cost:{w:200},time:35,age:2,walkable:1},
   corral:{kind:'bld',name:'Corral',hp:200,size:3,sight:3,trains:['donkey','caravan','ox','truck'],cost:{w:120},time:25,age:2,walkable:1},
   university:{kind:'bld',name:'University',hp:450,size:3,sight:6,trains:['explorer'],techs:['surveying','printing','cartography','medicine','chemistry'],cost:{w:300,s:150,g:200},time:60,age:4},
   airfield:{kind:'bld',name:'Airfield',hp:1200,size:4,sight:7,trains:['bomber'],cost:{w:250,s:450,g:300},time:70,age:6},
@@ -793,7 +793,7 @@ function capOf(u){if(u.type==='fishboat')return 25;if(u.type==='villager'&&u.don
 function rangeOf(u){const t=G.players[u.owner].tech;return (DEF[u.type].range||0)+(u.type==='slinger'&&t.vetsling?1:0)+(t.ballistics&&RANGED.has(u.type)?1:0);}
 function hitAmt(u,t){let a=atkOf(u)*(u.buff&&u.buff.type==='morale'&&u.buff.until>G.t?1.1:1)*(1+.1*(u.rank||0));const b=BONUS[u.type];if(b&&b.vs.includes(t.type))a+=b.amt;return a;}
 /* Josh: only the soldiers of the time can be trained. A unit line retires from this age on (its last version is from 2+ ages earlier). */
-const RETIRE={clubman:3,axeman:3,slinger:3,ram:5,catapult:5,trebuchet:5,spearman:5,pikeman:5,halberdier:5,swordsman:5,legionary:5,longsword:5,bowman:5,compbow:5,crossbow:5};
+const RETIRE={caravan:4,clubman:3,axeman:3,slinger:3,ram:5,catapult:5,trebuchet:5,spearman:5,pikeman:5,halberdier:5,swordsman:5,legionary:5,longsword:5,bowman:5,compbow:5,crossbow:5};
 function canTrain(o,k){const t=G.players[o].tech,it=itemOf(k);if((it.age||0)>G.players[o].age)return false;if(RETIRE[k]&&G.players[o].age>=RETIRE[k])return false;for(const c in CONV){if(k===CONV[c][0]&&t[c])return false;if(k===CONV[c][1]&&!t[c])return false;}return true;}
 function uname(type,o,pl){if(type==='slinger'&&G.players[o].tech.vetsling)return pl?'Veteran slingers':'Veteran slinger';return pl?DEF[type].plural:DEF[type].name;}
 function armOf(u){const t=G.players[u.owner].tech,mil=!NONMIL.has(u.type);const bo=BON(u.owner);return (DEF[u.type].arm||0)+(mil&&t.armor?1:0)+(mil&&t.bronzearmor?3:0)+(mil&&t.chainmail?2:0)+(mil&&t.plate?2:0)+(INFANTRY.has(u.type)?bo.leather||0:0)+((RANGED.has(u.type)||MOUNTED.has(u.type))&&bo.felt?1:0);}
@@ -985,7 +985,11 @@ function guideFor(b){const own=t=>G.ents.filter(e=>e.owner===0&&e.type===t&&!e.d
     return guideHtml('Mine shaft.',[[v,'The vein is used up'],[(b.gar||[]).length>0,'Add miners here'],[home,'Ore is piling up here: build an outpost or a rail depot nearby to bring it home']],(b.gar||[]).length+' miners digging');}
   return '';}
 const WAREV={wool:9,cheese:15,beer:10};
-function hasCaravan(o){return G.ents.some(e=>e.type==='caravan'&&e.owner===o&&!e.dead);}
+/* Josh (Oct 14): the donkey caravan upgrades to the trade cart in the Renaissance (like soldier upgrades): it keeps hauling wool/cheese/beer, and trades from the market */
+function caravanUp(o){let n=0;for(const u of G.ents){if(u.type!=='caravan'||u.owner!==o||u.dead)continue;const f=u.hp/(u.maxHp||DEF.caravan.hp);u.type='tradecart';u.maxHp=DEF.tradecart.hp;u.hp=Math.max(1,Math.round(f*u.maxHp));delete u.raise;u.home=0;u.penned=0;if(u.order&&u.order.wander)u.order=null;u.anim=u.anim||{};n++;}
+  for(const b of G.ents)if(b.owner===o&&b.queue&&b.queue.includes('caravan'))b.queue=b.queue.map(q=>q==='caravan'?'tradecart':q);
+  if(n&&o===0)toast(n===1?'Your donkey caravan is now a trade cart':'Your '+n+' donkey caravans are now trade carts');return n;}
+function hasCaravan(o){return G.ents.some(e=>(e.type==='caravan'||e.type==='tradecart')&&e.owner===o&&!e.dead);}
 function addWare(b,k,unitsPerSec,dt,goldEq){const P=G.players[b.owner];if(hasCaravan(b.owner)){b.ware=b.ware||{};b.ware[k]=(b.ware[k]||0)+unitsPerSec*dt;if(b.ware[k]>30){const x=b.ware[k]-30;b.ware[k]=30;P.g+=x*goldEq*.5;inc(b.owner,'g',x*goldEq*.5,k);}}else{P.g+=unitsPerSec*dt*goldEq*.5*(b.owner===1?G.aiMult:1);inc(b.owner,'g',unitsPerSec*dt*goldEq*.5,k);}}
 function bakeLine(b,P){const T=P.tech,egg=T.grandbake&&(b.eggs||0)>=1,milk=T.bakeworks&&egg&&(b.milk||0)>=1;return milk?{k:'pastry',v:3.4,name:'Full line (flour, eggs, milk)'}:egg?{k:'cake',v:2.6,name:'Cakes (flour, eggs)'}:{k:'bread',v:1.7,name:'Bread (flour)'};}
 function bakeryRun(b,dt,P,n){const T=P.tech,ne=T.bakeworks?(n+2)*1.5:n;b.stall='';b.working=false;b.fstock=b.fstock||0;
@@ -1138,6 +1142,7 @@ $('gmenu').addEventListener('click',e=>{const tb=e.target.closest('button[data-t
 function coppiceOwner(t){for(const o of[0,1])if(G.players[o].tech.coppicing&&inTerritory(o,t.tx,t.ty,1))return o;return -1;}
 function gatherRate(u,t){const p=G.players[u.owner],rt=RES[t.type].r;let r=t.copd&&!t.stump?RATE.w*1.2:t.type==='farm'?.55:t.type==='carcass'?1:t.type==='fish'?(u.type==='fishboat'?1:.5):RATE[rt];if(t.type==='goldmine'||t.type==='stonemine')r*=1.15;if(t.type==='farm'){if(bigFarm(t))r*=2;if(!t.mc||G.t-t.mc>5){t.mc=G.t;const ml=millOf(t);t.milled=!!ml;t.millUse=ml&&!(ml.useT>0)?useOf(ml):null;}if(t.milled)r*=1.25;if(t.millUse==='flax')r*=.45;else if(t.millUse==='barley'||t.millUse==='hay')r*=.7;if(BON(u.owner).oxen)r*=1.2;}if(u.forester){r*=2;if(p.tech.sawmill)r*=1.5;}if(p.tech.bronzetools&&u.type==='villager')r*=1.2;if(u.buff&&u.buff.type==='rest'&&u.buff.until>G.t)r*=1.15;if(t.type==='farm'&&t.ox){const ox=G.byId.get(t.ox);if(ox&&!ox.dead&&ox.owner===u.owner&&ox.plowing)r*=1.4;}if(rt==='w'&&p.tech.axes)r*=1.25;if(rt==='s'&&p.tech.picks)r*=1.25;if(t.type==='farm'&&p.tech.plow)r*=1.25;return r*(u.owner===1?G.aiMult:1);}
 function applyTech(o,k){
+  if(k==='renaissance'){try{caravanUp(o);}catch(err){}}
   if(k==='harvesters'){let n=0;for(const u of G.ents)if(u.owner===o&&u.type==='villager'&&u.order&&u.order.type==='gather'&&u.order.rtype==='farm'){u.order=null;u.path=null;n++;}if(o===0)toast('Steam harvesters now work your farms. '+n+' farmer'+(n===1?' is':'s are')+' free for other work');}
   if(k==='cartography'){G.exp[o].fill(1);if(o===0){try{computeVis();}catch(e){}}}
   const p=G.players[o];p.tech[k]=1;
@@ -1398,7 +1403,7 @@ function updUnit(u,dt){
   if(u.forester)foresterUnit(u);
   if(u.raise)raiseTick(u,dt);
   if(u.owner<2&&CORRAL_AN.has(u.type))corralHome(u,dt);
-  if(u.type==='caravan'&&u.owner<2&&!u.raise){u.load=u.load||{};
+  if((u.type==='caravan'||(u.type==='tradecart'&&(u.cv||!u.order)))&&u.owner<2&&!u.raise){u.load=u.load||{};const TCv=u.type==='tradecart';
     if(u.order&&u.order.type==='move'){}else{
       if(u.cv){const o=u.cv,tg=G.byId.get(o.id);if(!tg||tg.dead){u.cv=null;return;}const r=approach(u,tg,TILE*1.2);if(r==='fail'){u.cv=null;return;}
         if(r===true){if(o.leg==='load'){let room=6-Object.values(u.load).reduce((a,v)=>a+v,0);const W=tg.ware||{};
@@ -1410,10 +1415,10 @@ function updUnit(u,dt){
             gv=Math.round(gv*f);const P=G.players[u.owner];P.g+=gv*(u.owner===1?G.aiMult:1);inc(u.owner,'g',gv,'caravan');tg.sat=Math.min(.5,(tg.sat||0)+.015*n);
             if(u.owner===0&&V0(u))G.fx.push({type:'float',x:u.x,y:u.y-26,t:1.8,text:'+'+gv+' gold',col:'#ffe08a'});u.load={};u.cv=null;u.path=null;}}
         return;}
-      u.scan=(u.scan||0)-dt;if(u.scan>0)return;u.scan=3;let best=null,bv=2;
+      const SK=TCv?'wscan':'scan';u[SK]=(u[SK]||0)-dt;if(u[SK]<=0){u[SK]=3;let best=null,bv=TCv?4:2;
       for(const e of G.ents){if(e.owner!==u.owner||e.kind!=='bld'||!e.built||e.dead)continue;let v=e.ware?Object.values(e.ware).reduce((a,x)=>a+x,0):0;if(e.type==='pub')v+=Math.max(0,(e.beer||0)-15);
-        if(v>bv&&!G.ents.some(c=>c!==u&&c.type==='caravan'&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
-      if(best){u.cv={leg:'load',id:best.id};u.path=null;}return;}}
+        if(v>bv&&!G.ents.some(c=>c!==u&&(c.type==='caravan'||c.type==='tradecart')&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
+      if(best){u.cv={leg:'load',id:best.id};u.path=null;return;}}if(!TCv)return;}}
   if(u.type==='donkey'&&u.owner<2&&u.bake&&donkeyBake(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&!u.raise){u.scan=(u.scan||0)-dt;let v=u.buddy&&G.byId.get(u.buddy);
     if(!v||v.dead||v.owner!==u.owner||v.donkey!==u.id||!(v.order&&(v.order.type==='gather'))){if(v&&v.donkey===u.id&&!(v.order&&v.order.type==='gather')){v.idleT=(v.idleT||0)+dt;if(v.idleT<8)v=v;else{v.donkey=0;u.buddy=0;v=null;}}else{if(v&&v.donkey===u.id)v.donkey=0;u.buddy=0;v=null;}}
