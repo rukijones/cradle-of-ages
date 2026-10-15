@@ -997,12 +997,19 @@ function startYard(cs){const o=cs[0].owner,P=G.players[o];if(!canAfford(P,YARD_C
   an.mergeJob={k:'yard',ids:cs.map(c=>c.id),cost:YARD_COST};an.upT=YARD_T;for(const c of cs)if(c!==an)c.mergeWait=an.id;sendBuilder(an);return true;}
 function finishYard(b){const J=b.mergeJob;b.mergeJob=null;const cs=J.ids.map(id=>G.byId.get(id));for(const c of cs)if(c)c.mergeWait=0;
   if(cs.some(c=>!c||c.dead||c.owner!==b.owner))return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of cs){x0=Math.min(x0,c.tx);y0=Math.min(y0,c.ty);x1=Math.max(x1,c.tx+c.size);y1=Math.max(y1,c.ty+c.size);}
-  const g={k:'yard',ids:J.ids.slice(),anchor:b.id,x0,y0,x1,y1};for(const c of cs){c.yard=g;c.maxHp+=50;c.hp+=50;}
+  const g={k:'yard',ids:J.ids.slice(),anchor:b.id,x0,y0,x1,y1};for(const c of cs){c.yard=g;c.maxHp+=50;c.hp+=50;}yardOcc(g);
   if(b.owner===0){toast('Poultry yard finished: eggs +25%, and you can build more coops');panelKeyLast='';try{sfx('done',b.x,b.y);}catch(e){}}}
+/* the whole yard box is closed ground (people walk round it), the gaps between the old coops included */
+function yardOcc(g){const occ=[];for(let y=g.y0;y<g.y1;y++)for(let x=g.x0;x<g.x1;x++){if(!inB(x,y))continue;const i=ti(x,y);if(!G.occ[i]&&!G.terrain[i]&&!G.wocc[i]){G.occ[i]=g.anchor;occ.push(i);}}
+  for(const id of g.ids){const x=G.byId.get(id);if(x&&x.yard)x.yard.occ=occ;}g.occ=occ;for(const i of occ)displaceUnits({tx:i%MW,ty:(i/MW)|0,size:1});
+  let best=null,bd=1e9;const cx=(g.x0+g.x1)/2;for(const id of g.ids){const x=G.byId.get(id);if(!x)continue;const d=(g.y1-x.ty-x.size)*100+Math.abs(x.tx+x.size/2-cx);if(d<bd){bd=d;best=x;}}
+  if(best)for(const id of g.ids){const x=G.byId.get(id);if(x&&x.yard)x.yard.dr=best.id;}g.dr=best?best.id:g.anchor;}
+function yardFreeOcc(g){for(const i of g.occ||[])if(G.occ[i]===g.anchor)G.occ[i]=0;g.occ=[];}
 function yardTick(b){const ok=x=>x&&!x.dead&&x.built&&x.owner===b.owner&&x.type==='coop';
   if(b.mergeJob&&b.mergeJob.ids.some(id=>!ok(G.byId.get(id)))){for(const id of b.mergeJob.ids){const x=G.byId.get(id);if(x)x.mergeWait=0;}b.mergeJob=null;b.upT=0;}
   if(b.mergeWait){const a=G.byId.get(b.mergeWait);if(!ok(a)||!a.mergeJob)b.mergeWait=0;}
-  if(b.yard&&b.yard.ids.some(id=>!ok(G.byId.get(id)))){for(const id of b.yard.ids){const x=G.byId.get(id);if(x)x.yard=null;}b.yard=null;}}
+  if(b.yard&&!b.yard.occ&&b.yard.anchor===b.id)yardOcc(b.yard);
+  if(b.yard&&b.yard.ids.some(id=>!ok(G.byId.get(id)))){yardFreeOcc(b.yard);for(const id of b.yard.ids){const x=G.byId.get(id);if(x)x.yard=null;}b.yard=null;}}
 function coopCount(o){let n=0;const ys=new Set();for(const e of G.ents){if(e.type!=='coop'||e.owner!==o||e.dead)continue;if(e.yard){ys.add(e.yard.anchor);}else n++;}return n+ys.size;}
 function yardUI(c,P){if(c.owner!==0)return '';
   if(c.yard){let h=0,ch=0,eg=0;for(const id of c.yard.ids){const x=G.byId.get(id);if(x){h+=x.hens||0;ch+=x.chicks||0;eg+=x.eggs||0;}}
@@ -1408,6 +1415,7 @@ function nearestEnemy(u,range,bldOnly){
 /* ---------- simulation ---------- */
 function updUnit(u,dt){
   const d=DEF[u.type];u.cd-=dt;u.moving=false;u.working=false;
+  if(u.door){doorTick(u,dt);return;}
   if(d.air&&u.owner<2){u.air=true;if(u.ammo===undefined)u.ammo=24;const o=u.order;
     const fly=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd<=stop)return true;const st=speedOf(u)*dt;u.x+=dx/dd*Math.min(st,dd-stop);u.y+=dy/dd*Math.min(st,dd-stop);u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt;return false;};
     if(u.ammo<=0&&!(o&&o.type==='rearm')){const pad=G.ents.filter(e=>e.type==='helipad'&&e.owner===u.owner&&e.built&&!e.dead).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y))[0];u.order=pad?{type:'rearm',id:pad.id}:null;if(u.owner===0&&pad)toast('Helicopter out of ammo, returning to rearm');}
@@ -1524,13 +1532,13 @@ function updUnit(u,dt){
     if(o.def&&Math.hypot(t.x-u.x,t.y-u.y)>(rangeOf(u)?rangeOf(u)+3:6)*TILE){const rb=G.byId.get(o.resume);u.order=alive(rb)&&rb.owner!==u.owner?{type:'attack',id:rb.id}:null;u.path=null;return;}
     if(t.kind==='bld'&&u.owner<2&&!NONMIL.has(u.type)&&!SIEGE.has(u.type)&&!(u.windT>0||u.recT>0)){u.defT=(u.defT||0)-dt;if(u.defT<=0){u.defT=.5;const th=defThreat(u);if(th){u.order={type:'attack',id:th.id,resume:t.id,def:1};u.path=null;return;}}}
     if(t.air&&!AAOK.has(u.type)){u.order=null;u.path=null;if(u.owner===0&&G.t-(G.airMsg||-99)>6){G.airMsg=G.t;toast('Only infantry, riflemen, armored cars, helicopters and anti-aircraft guns can hit aircraft');}return;}
-    if((u.type==='ram'||u.type==='trebuchet')&&t.kind!=='bld'){u.order=null;u.path=null;return;}
+    if((u.type==='ram'||(u.type==='trebuchet'&&o.auto))&&t.kind!=='bld'){u.order=null;u.path=null;return;}
     if(o.auto&&t.kind==='unit'&&Math.hypot(t.x-u.x,t.y-u.y)>d.sight*TILE*2.2){u.order=null;u.path=null;return;}
     const rg=rangeOf(u),R=rg?rg*TILE:TILE*((HEAVY[u.type]&&HEAVY[u.type].reach)||.8);
     if(u.windT>0||u.recT>0){u.working=true;u.face=Math.atan2(t.y-u.y,t.x-u.x);
       if(u.windT>0){u.windT-=dt;if(u.windT<=0){u.windT=0;u.impactT=G.t;u.cd=Math.max(.1,d.cd-windOf(u));u.recT=rg?.12:.28;
         const dd=t.kind==='bld'?distPtEnt(u.x,u.y,t):Math.hypot(t.x-u.x,t.y-u.y)-(t.r||0);
-        if(dd<=R+u.r*.9+(rg?TILE:TILE*.7)){if(rg)shoot(u,t,hitAmt(u,t),(u.type==='catapult'||u.type==='trebuchet'||u.type==='bombard'||u.type==='fieldgun'||u.type==='artillery')?'boulder':(u.type==='arquebus'||u.type==='rifleman'||u.type==='infantry'||u.type==='armoredcar'||u.type==='tank'||u.type==='atgun')?'bullet':(u.type==='bowman'||u.type==='compbow'||u.type==='crossbow')?'arrow':'stone'),bowRecoil(u,t);else{let h=hitAmt(u,t);if(MOUNTED.has(u.type)&&(u.chargeRun||0)>3*TILE){h=Math.round(h*1.7);u._chg=1;emit('dust',t.x,t.y,6);sfx('charge',t.x,t.y);if(t.kind==='unit'){t.kbx=(t.kbx||0)+Math.cos(u.face)*5;t.kby=(t.kby||0)+Math.sin(u.face)*3;}}u.chargeRun=0;damage(t,h,u,false);if(HEAVY[u.type])heavyHit(u,t,h);}}}}
+        if(dd<=R+u.r*.9+(rg?TILE:TILE*.7)){if(rg&&u.type==='trebuchet'&&t.kind==='unit')shootAt(u,t.x,t.y,hitAmt(u,t),'boulder');else if(rg)shoot(u,t,hitAmt(u,t),(u.type==='catapult'||u.type==='trebuchet'||u.type==='bombard'||u.type==='fieldgun'||u.type==='artillery')?'boulder':(u.type==='arquebus'||u.type==='rifleman'||u.type==='infantry'||u.type==='armoredcar'||u.type==='tank'||u.type==='atgun')?'bullet':(u.type==='bowman'||u.type==='compbow'||u.type==='crossbow')?'arrow':'stone'),bowRecoil(u,t);else{let h=hitAmt(u,t);if(MOUNTED.has(u.type)&&(u.chargeRun||0)>3*TILE){h=Math.round(h*1.7);u._chg=1;emit('dust',t.x,t.y,6);sfx('charge',t.x,t.y);if(t.kind==='unit'){t.kbx=(t.kbx||0)+Math.cos(u.face)*5;t.kby=(t.kby||0)+Math.sin(u.face)*3;}}u.chargeRun=0;damage(t,h,u,false);if(HEAVY[u.type])heavyHit(u,t,h);}}}}
       else u.recT-=dt;
       return;}
     const r=approach(u,t,R);
@@ -1746,10 +1754,18 @@ function updBld(b,dt){
       if(tg.length){tg.sort((a,c)=>a[0]-c[0]);const n=(b.type==='castle'?3:1)+Math.floor(((b.type==='towncenter'||b.type==='castle')&&b.gar&&b.gar.length||0)/2);const mg=b.type==='tower'&&G.players[b.owner].age>=6;for(let i=0;i<n;i++)shoot(b,tg[i%tg.length][1],Math.round((d.atk+(sen?2:0)+kp+gtw)*(mg?1.3:1)),mg?'bullet':'arrow');b.cd=d.cd*(mg?.35:1);}}
   }
 }
+/* ---- Josh (Oct 14): trained people and vehicles come out of the building's door (front, bottom edge of the footprint) and walk out, instead of popping up beside it.
+   The door is at the middle of the front by default; an art chat can set GFX.DOOR[type] = 0..1 (fraction across the front) if its door sits elsewhere. ---- */
+const DOORB={barracks:1,range:1,stable:1,workshop:1,castle:1,towncenter:1,market:1,university:1};
+function doorOut(b,u){if(!DOORB[b.type]||!u||DEF[u.type].naval||DEF[u.type].air)return false;const s=b.size,G2=typeof GFX!=='undefined'&&GFX.DOOR,fx=G2&&G2[b.type]!==undefined?G2[b.type]:.5;
+  const dx=b.tx+Math.max(0,Math.min(s-1,Math.floor(s*fx))),dy=b.ty+s;if(!walk(dx,dy))return false;
+  const x=(b.tx+s*fx)*TILE,y0=(b.ty+s)*TILE-14,y1=(dy+.65)*TILE;u.x=u.px=x;u.y=u.py=y0;u.face=Math.PI/2;u.door={x,y0,y1,t:0,dur:(y1-y0)/Math.max(26,(DEF[u.type].speed||40)*.75)};return true;}
+function doorTick(u,dt){const D=u.door;D.t+=dt;const k=Math.min(1,D.t/D.dur),ny=D.y0+(D.y1-D.y0)*k;u.x=u.px=D.x;u.y=u.py=ny;u.face=Math.PI/2;u.moving=k<1;u.walk=(u.walk||0)+dt;if(k>=1)delete u.door;}
 function spawnFrom(b,type){
   if(type==='bomber'){b.planes=Math.min(6,(b.planes||0)+1);if(b.owner===0)toast('A bomber is ready at the airfield ('+b.planes+' parked)');return null;}
   const tx=b.rally?tl(b.rally.x):MW/2,ty=b.rally?tl(b.rally.y):MH/2;
   const ex=exitTile(b,tx,ty,0,DEF[type].naval?wwalk:walk);const u=mkUnit(type,b.owner,(ex.x+.5)*TILE,(ex.y+.5)*TILE);
+  if(!isCor(b))doorOut(b,u);
   if(isCor(b)){const hl=penLead(b),ps=penSpot(hl,'a');u.x=u.px=(ps[0]+.5)*TILE;u.y=u.py=(ps[1]+.5)*TILE;u.home=hl.id;b.rally=null;}
   if(type==='scout'){const U=G.players[b.owner].unlock||(G.players[b.owner].unlock={});U.scout=1;}
   if(type==='fishboat'){const r=b.rally&&b.rally.res&&G.byId.get(b.rally.res);const f=alive(r)&&r.type==='fish'&&!r.bare?r:fishPick(u);if(f)orderGather(u,f);else if(b.rally)orderMove([u],b.rally.x,b.rally.y);return u;}
@@ -5793,6 +5809,39 @@ function gateSpr(o){try{if(!THUMB.gate&&THUMB.wall)THUMB.gate=THUMB.wall;}catch(
   x.fillStyle=PCOL[o];x.fillRect(mid-1.2,top+11,2.4,5);x.fillStyle='#c9b27a';x.beginPath();x.arc(mid+3,(top+bot)/2+3,1.1,0,7);x.fill();
   for(const kk of['w','h','ov','dx'])if(sp[kk]!==undefined)c[kk]=sp[kk];GATESPR.set(sp,c);return c;}
 /* Poultry yard ground (gameplay placeholder until art chat 1 paints the yard): one straw-and-earth yard under all 6 coops, a low fence round the whole block, a gate and a team pennant */
+/* Poultry yard picture (gameplay placeholder until art chat 1 paints the 3D one): the coop's own hen house drawn big at the back of the yard,
+   every hen, chick and egg of the 6 coops roaming the whole yard, nest straw and the egg crate. The ground + fence is drawYards (ground layer). */
+const YST=new Map();
+function drawPoultryYard(c,e,now){const g=e.yard,X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,cx=X0+W/2;
+  const mem=g.ids.map(id=>G.byId.get(id)).filter(x=>x&&!x.dead),birds=[];for(const m of mem)for(const t0 of(m.birds||[]))birds.push(t0);
+  const GX=typeof GFX!=='undefined'&&GFX.mode==='V23D'&&GFX.cpDraw&&GFX.cpImg('hen')&&GFX.cpImg('egg')?GFX:null,gt=G.t;
+  const HW=Math.min(W*.42,TILE*4.4),hb=Y0+H*.44,sp=sprFor('coop',e.owner),hh=sp&&sp.w?sp.h*HW/sp.w:HW*.8;
+  let q=YST.get(g.anchor);if(!q){q={B:[],t:now,fill:0};YST.set(g.anchor,q);}const dt=Math.min(.1,Math.max(0,(now-q.t)/1000));q.t=now;
+  const inHouse=(x,y)=>Math.abs(x-cx)<HW*.55&&y<hb+8,pickP=()=>{for(let k=0;k<20;k++){const x=X0+14+Math.random()*(W-28),y=Y0+18+Math.random()*(H-30);if(!inHouse(x,y))return[x,y];}return[cx,Y0+H-14];};
+  while(q.B.length<birds.length){const p=pickP();q.B.push({x:p[0],y:p[1],tx:p[0],ty:p[1],f:Math.random()*6,m:'idle',mt:Math.random()*2,ph:Math.random()*9,col:q.B.length%2});}q.B.length=birds.length;
+  const D=[];
+  // the hen house (shadow, then the building)
+  D.push([hb-1,()=>{c.save();c.fillStyle='rgba(20,15,8,.28)';c.beginPath();c.ellipse(cx+8,hb-2,HW*.56,HW*.16,0,0,7);c.fill();c.restore();if(sp&&sp.w)c.drawImage(sp,cx-HW/2,hb-hh,HW,hh);}]);
+  // nest straw with the eggs, in front of the house
+  const NX=cx-HW*.18,NY=hb+10,eggs=birds.map((t0,i)=>[gt-t0,i]).filter(a=>a[0]<20);
+  D.push([NY-4,()=>{c.save();c.fillStyle='#b98c3a';c.beginPath();c.ellipse(NX,NY,16,5.5,0,0,7);c.fill();c.fillStyle='#e2b85a';c.beginPath();c.ellipse(NX,NY-.6,14,4.4,0,0,7);c.fill();c.restore();
+    eggs.forEach(([a,i],k)=>{const ex=NX-11+(k%6)*4.4,ey=NY-1+((k/6)|0)*2.6,wob=a>16?Math.sin(now/55+i)*.35:0;if(GX)GX.cpDraw(c,'egg',ex,ey,4.6,0,0,0,wob);else{c.fillStyle='#f4ead2';c.beginPath();c.ellipse(ex,ey-2,1.8,2.3,0,0,7);c.fill();}});}]);
+  const hens=[];birds.forEach((t0,i)=>{if(gt-t0>=20)hens.push(q.B[i]);});
+  birds.forEach((t0,i)=>{const a=gt-t0,s=q.B[i];if(a<20)return;const chick=a<60,spd=chick?16:9;s.mt-=dt;
+    if(chick){const m=hens.find(h=>h!==s&&gt-birds[q.B.indexOf(h)]>=60);if(m&&s.mt<=0){s.tx=m.x+(Math.random()-.5)*10;s.ty=m.y+4+Math.random()*4;s.mt=.6+Math.random();}}
+    else if(s.mt<=0){if(s.m==='walk'||Math.random()<.45){s.m='peck';s.mt=1.2+Math.random()*1.5;}else{s.m='walk';const p=pickP();s.tx=p[0];s.ty=p[1];s.mt=5;}}
+    const dx=s.tx-s.x,dy=s.ty-s.y,d=Math.hypot(dx,dy),mv=d>1;if(mv){const st=Math.min(d,spd*dt);s.x+=dx/d*st;s.y+=dy/d*st;s.f=Math.atan2(dy,dx);}else if(!chick&&s.m==='walk')s.mt=0;
+    s.ph+=dt*(mv?9:0);const dir=((Math.round(s.f/(Math.PI/4))%8)+8)%8;
+    if(!GX){D.push([s.y,()=>{c.fillStyle=chick?'#f3d65a':(s.col?'#9a6a3a':'#f2efe6');c.beginPath();c.ellipse(s.x,s.y-3,chick?2:3.6,chick?1.8:3,0,0,7);c.fill();}]);return;}
+    const RM=GX.cpRM[dir];
+    if(chick){const hop=mv?Math.abs(Math.sin(s.ph*1.6))*1.4:0;D.push([s.y,()=>GX.cpDraw(c,'chick',s.x,s.y-hop,6.2,RM[0],0,RM[1])]);return;}
+    const S=GFX_COOP3D.hen;let col;if(mv)col=S.seg.walk[0]+((s.ph|0)%S.seg.walk[1]);else if(s.m==='peck'){const k=((now/140+i*3)|0)%(S.seg.peck[1]*2);col=S.seg.peck[0]+Math.min(S.seg.peck[1]-1,k<S.seg.peck[1]?k:S.seg.peck[1]*2-1-k);}else col=S.seg.idle[0];
+    const bob=mv?Math.abs(Math.sin(s.ph*1.6))*.8:0;D.push([s.y,()=>GX.cpDraw(c,s.col?'henb':'hen',s.x,s.y-bob,12,RM[0],col,RM[1])]);});
+  // egg crate: fills from all the yard's hens (x1.25), ships itself when full (display only; food is credited by the coop tick)
+  let hn=0;for(const m of mem)hn+=m.hens||0;const pm=G.players[e.owner]&&G.players[e.owner].age>=6?3:1;if(hn>0&&useOf(e)==='eggs')q.fill+=hn*dt*.05*pm/1.5*YARD_K;
+  if(q.fill>=12){q.fill=0;if(e.owner===0){try{if(GX)GX.eggIcon();const an=G.byId.get(g.anchor)||e,bk=an.toBakery&&G.ents.find(b=>b.type==='bakery'&&b.owner===0&&b.built&&!b.dead&&Math.hypot(b.x-e.x,b.y-e.y)<15*TILE);addPop(bk||an,'egg',18*pm);}catch(err){}}}
+  const CX=X0+W-30,CY=Y0+H-16;D.push([CY,()=>{if(GX){GX.cpDraw(c,'crate',CX,CY,19,0,0,0);const n=Math.floor(q.fill);for(let k=0;k<n;k++){const r=(k/4)|0,cc=k%4;GX.cpDraw(c,'egg',CX-6+cc*4+(r%2)*1.5,CY-4.6+r*2.3,3.4,0,0,0);}}else{c.fillStyle='#8a6034';c.fillRect(CX-9,CY-8,18,8);}}]);
+  D.sort((a,b)=>a[0]-b[0]);for(const d of D)d[1]();}
 function drawYards(c,E,inView){const seen=new Set();for(const b of G.ents){const g=b.type==='coop'&&!b.dead&&b.yard;if(!g||seen.has(g.anchor))continue;seen.add(g.anchor);
     const cx=Math.floor((g.x0+g.x1)/2),cy=Math.floor((g.y0+g.y1)/2);if(b.owner!==0&&!E[ti(cx,cy)])continue;
     const x0=g.x0*TILE-6,y0=g.y0*TILE-6,w=(g.x1-g.x0)*TILE+12,h=(g.y1-g.y0)*TILE+12;if(!inView(x0+w/2,y0+h/2,Math.max(w,h)))continue;
@@ -5839,10 +5888,11 @@ function shadowLayer(c){const z=cam.z,vw=W/z,vh=H/z,vx=cam.x,vy=cam.y;const insi
     const g=SHL.c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cw,ch);g.setTransform(ks,0,0,ks,-bx*ks,-by*ks);shadowPass(g,st);}
   c.drawImage(SHL.c,SHL.x,SHL.y,SHL.w,SHL.h);}
 function shadowPass(c,list){for(const it of list){const e=it[1];if(!e||!e.kind)continue;
-    if(e.kind==='bld'&&e.built&&e.type!=='farm'&&e.type!=='wall'&&!DEF[e.type].walkable){const sp=bldSpr(e),S=e.size*TILE,x0=e.tx*TILE-(sp.dx||0),y0=e.ty*TILE-sp.ov;castShadow(c,sp,x0,y0,sp.ov+S*.8,.3,.95);}
+    if(e.kind==='bld'&&e.built&&e.type!=='farm'&&e.type!=='wall'&&!DEF[e.type].walkable&&!(e.type==='coop'&&e.yard)){const sp=bldSpr(e),S=e.size*TILE,x0=e.tx*TILE-(sp.dx||0),y0=e.ty*TILE-sp.ov;castShadow(c,sp,x0,y0,sp.ov+S*.8,.3,.95);}
     else if(e.kind==='res'&&e.type==='tree'&&!e.stump&&!e.sapling&&!e.copd){const v=Math.min(.999,e.v),sp=SPR.trees[(v*SPR.trees.length)|0];castShadow(c,sp,e.x-30,e.y+11-66,58,.26,1.05);}}}
 function spTop(sp){if(sp._top!==undefined)return sp._top;let top=0;try{const g=sp.getContext('2d'),d=g.getImageData(0,0,sp.width,sp.height).data,k=sp.width/sp.w;outer:for(let y=0;y<sp.height;y++){for(let x=0;x<sp.width;x++)if(d[(y*sp.width+x)*4+3]>40){top=y/k;break outer;}}}catch(e){top=0;}sp._top=top;return top;}
 function drawBuilding(c,e,now){
+  if(e.type==='coop'&&e.yard&&e.built){if((e.yard.dr||e.yard.anchor)===e.id){try{drawPoultryYard(c,e,now);}catch(err){console.warn(err);}}return;}
   if(e.type==='farm'&&e.built){drawFarmPlot(c,e.tx*TILE,e.ty*TILE,e.size*TILE,Math.min(1,e.amt/farmCap(e)*1.4),e.id);return;}
   /* Josh (Oct 14): a farm being built showed the old 2x2 picture inside its 3x3 lot; now the full-size bed appears as it is built */
   if(e.type==='farm'&&!e.built){const S=e.size*TILE,x0=e.tx*TILE,fy=e.ty*TILE,p=Math.max(.06,e.progress||0),H=S+44,top=fy+S+8-H*p;
@@ -6163,7 +6213,7 @@ function draw(){
     if(e.kind==='decor'){drawDecor(c,e,now);continue;}
     if(e.kind==='res')drawRes(c,e);
     else if(e.kind==='poi'){if(e.type==='ruin')drawRuin(c,e,now);else if(e.type==='tradepost')drawTradepost(c,e,now);else drawSacred(c,e,now);}
-    else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=(e.type==='pen'||e.type==='corral')&&e.mgrp;c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
+    else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&e.yard);c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
     else{const ux=it[2],uy=it[3];
       if(selSet.has(e.id)){c.save();c.strokeStyle=e.owner===0?'#ffffff':'#ff8a7a';c.lineWidth=1.6;c.setLineDash([5,3]);c.lineDashOffset=-now/50;c.beginPath();c.ellipse(ux,uy+5,10.5,4.6,0,0,7);c.stroke();c.restore();}
       else if(e.owner<2&&!(GFX.noRing&&GFX.noRing(e))){c.strokeStyle=e.owner===0?'rgba(90,150,240,.55)':'rgba(230,80,64,.55)';c.lineWidth=1.1;c.beginPath();c.ellipse(ux,uy+5,8,3.3,0,0,7);c.stroke();}
@@ -6523,6 +6573,7 @@ function pick(wx,wy){
     const d=dx/B[0]+Math.abs(wy-(e.y-B[1]*.5))/B[1]-e.y*1e-4;if(d<bd){bd=d;best=e;}
   }
   if(best)return best;
+  for(const e of G.ents)if(e.type==='coop'&&e.yard&&e.yard.anchor===e.id&&!e.dead){const g=e.yard;if(e.owner!==0&&!G.exp[0][ti(tl(e.x),tl(e.y))])continue;if(wx>=g.x0*TILE&&wx<g.x1*TILE&&wy>=g.y0*TILE&&wy<g.y1*TILE)return e;}
   for(const e of G.ents)if(e.kind==='bld'){
     if(e.owner!==0&&!G.exp[0][ti(tl(e.x),tl(e.y))])continue;if(!innSeen(e,0))continue;
     if(wx>=e.tx*TILE&&wx<(e.tx+e.size)*TILE&&wy>=e.ty*TILE&&wy<(e.ty+e.size)*TILE)return e;
