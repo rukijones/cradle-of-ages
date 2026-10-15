@@ -5124,8 +5124,8 @@ try{(function(){
         c.restore();
         c.save();c.globalCompositeOperation='lighter';const gl=c.createRadialGradient(bx,by,1,bx,by,R*2.2);gl.addColorStop(0,'rgba(255,200,90,.55)');gl.addColorStop(1,'rgba(255,120,30,0)');c.fillStyle=gl;circ(c,bx,by,R*2.2);c.fill();c.restore();
         const g=c.createRadialGradient(bx-2,by-2.4,.6,bx,by,R);g.addColorStop(0,'#c9b8a0');g.addColorStop(.55,'#7d7266');g.addColorStop(1,'#3e3832');c.fillStyle=g;circ(c,bx,by,R);c.fill();c.strokeStyle='rgba(35,30,26,.85)';c.lineWidth=.8;c.stroke();
-        c.save();c.globalCompositeOperation='lighter';for(let k=0;k<3;k++){const ph=now/60+k*2.1,fy=by-R*.6-k*2.2-Math.abs(Math.sin(ph))*2;c.fillStyle=k===0?'rgba(255,230,140,.8)':k===1?'rgba(255,150,40,.7)':'rgba(230,80,20,.6)';
-          c.beginPath();c.moveTo(bx-R*.7+k,by-R*.2);c.quadraticCurveTo(bx-p.vx*4+Math.sin(ph)*2,fy-R*(1-k*.2),bx+R*.7-k,by-R*.2);c.closePath();c.fill()}c.restore()}
+        c.save();for(let k=2;k>=0;k--){const ph=now/60+k*2.1,fy=by-R*.5-k*1.8-Math.abs(Math.sin(ph))*2;c.fillStyle=k===0?'rgba(255,200,70,.9)':k===1?'rgba(250,120,30,.85)':'rgba(210,60,15,.8)';
+          const hx=bx-p.vx*R*(1.6-k*.3)+Math.sin(ph)*1.5,hy=by-R*(2.3-k*.45)-Math.abs(Math.sin(ph))*2;c.beginPath();c.moveTo(bx-R*(.95-k*.2),by-R*.1);c.quadraticCurveTo(bx-R*.9,hy+R*.6,hx,hy);c.quadraticCurveTo(bx+R*.6,hy+R*.8,bx+R*(.95-k*.2),by-R*.1);c.closePath();c.fill()}c.restore()}
       for(let i=BURST.length-1;i>=0;i--){const B=BURST[i],t=(now-B.t0)/700;if(t>=1){BURST.splice(i,1);continue}
         c.save();c.globalCompositeOperation='lighter';c.globalAlpha=1-t;const rr=6+t*22,g2=c.createRadialGradient(B.x,B.y-4,1,B.x,B.y-4,rr);g2.addColorStop(0,'rgba(255,230,140,.9)');g2.addColorStop(.5,'rgba(255,130,30,.6)');g2.addColorStop(1,'rgba(200,60,10,0)');c.fillStyle=g2;ell(c,B.x,B.y-4,rr,rr*.7);c.fill();c.restore();
         c.save();c.globalAlpha=(1-t)*.5;c.fillStyle='#6d655c';for(let k=0;k<5;k++){const a=k*1.26;circ(c,B.x+Math.cos(a)*t*16,B.y-6-t*14+Math.sin(a)*t*6,3+t*7);c.fill()}c.restore()}}catch(err){}return r};
