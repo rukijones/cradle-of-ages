@@ -677,6 +677,7 @@ function newGame(diff,startAge){
   const tcs=G.bases.map(([bx,by],o)=>mkBld('towncenter',o,bx-1,by-1,true));
   for(const tc of tcs){for(let i=0;i<3;i++){const ex=exitTile(tc,MW/2,MH/2,i);mkUnit('villager',tc.owner,(ex.x+.5)*TILE,(ex.y+.5)*TILE);}}
   if(startAge>=1)for(const tc of tcs)startKit(tc,startAge);
+  G.aiOff=startAge>=2?AI_AGE_AT[startAge]||0:0;
   renderGround();computeVis();
   VIS.parts=[];VIS.birds=[];VIS.birdT=8;spawnClouds();
   cam.z=clampZ(Math.min(1.25,Math.max(.8,Math.min(W,H)/360)));
@@ -1390,7 +1391,7 @@ function animTick(u,dt){if(!(u.order&&u.order.type==='attack')){u.windT=0;u.recT
   else{const per=(st==='walk'||st==='carry')?Math.max(.25,36/Math.max(20,spd)):(ACYC[st]||1.2);a.period=per;const ph=a.t/per,c=Math.floor(ph);a.impact=c>a.cycle&&st!=='walk'&&st!=='carry'&&st!=='idle'&&st!=='aim';a.cycle=c;a.phase=ph-c;}
   a.ang=u.face||0;a.dir8=((Math.round(a.ang/(Math.PI/4))%8)+8)%8;a.hit=!!(u.hitT&&G.t-u.hitT<.25);}
 {const baseArm2=armOf;armOf=function(u){return baseArm2(u)+(u.buff&&u.buff.type==='morale'&&u.buff.until>G.t?1:0);};}
-function aiArmyCapped(o){const ai=G.ais&&G.ais[o];if(!ai||ai.diff==='hard')return false;const mins=G.t/60,cap=ai.diff==='easy'?Math.max(3,(mins-4)*.75):Math.max(5,(mins-3)*1.6);
+function aiArmyCapped(o){const ai=G.ais&&G.ais[o];if(!ai||ai.diff==='hard')return false;const mins=(G.t+(G.aiOff||0))/60,cap=ai.diff==='easy'?Math.max(3,(mins-4)*.75):Math.max(5,(mins-3)*1.6);
   let n=0;for(const e of G.ents){if(e.owner!==o||e.dead)continue;if(e.kind==='unit'&&!NONMIL.has(e.type))n++;else if(e.kind==='bld')for(const q of e.queue)if(DEF[q]&&!NONMIL.has(q))n++;}return n>=cap;}
 function enqueue(b,k){if(DEF[k]&&DEF[k].kind==='unit'&&!NONMIL.has(k)&&aiArmyCapped(b.owner))return false;const p=G.players[b.owner],c=itemOf(k).cost;if(b.queue.length>=5||!canQueue(b,k)||!canAfford(p,c))return false;pay(p,c);b.queue.push(k);return true;}
 function cancelQ(b){if(!b.queue.length)return;const t=b.queue.pop();refund(G.players[b.owner],itemOf(t).cost);if(!b.queue.length)b.trainT=0;}
@@ -2087,7 +2088,7 @@ function tick(dt){
   for(const m of G.marks)m.t-=dt;G.marks=G.marks.filter(m=>m.t>0);
   if(G.ping){G.ping.t-=dt;if(G.ping.t<=0)G.ping=null;}
   if((G.visT-=dt)<=0){G.visT=.25;computeVis();}
-  if((G.aiT-=dt)<=0){G.aiT=.5;for(const o of G.aiPlayers){aiTick(o);aiExtra(o);}}
+  if((G.aiT-=dt)<=0){G.aiT=.5;for(const o of G.aiPlayers){aiTick(o);aiExtra(o);try{aiCure(o);}catch(err){}}}
   if((G.endT-=dt)<=0){G.endT=1;checkEnd();checkUnlocks();calcBonuses();checkRoads();expTick();troopTick();powerTick();}
   railTick(dt);autoFarmTick(dt);flightTick(dt);
   if((G.poiT=(G.poiT||0)-dt)<=0){G.poiT=.5;updPOIs(.5);for(const k in G.prices)G.prices[k]+=(100-G.prices[k])*.002;}
@@ -2107,7 +2108,7 @@ function newAI(o,diff,pers){
 }
 // Pacing (Josh: a full game should run 1-1.5 h). Earliest game time (s) at which the computer starts saving for each age.
 const AI_AGE_AT=[0,0,900,1590,2280,3000,3600],AI_PACE={'Fast ager':.88,Raider:1.05};
-function aiAgeOK(ai,n){const P=PERS[ai.pers];return G.t>=AI_AGE_AT[n]*((P&&AI_PACE[P.name])||1)*(ai.diff==='easy'?1.12:1);}
+function aiAgeOK(ai,n){const P=PERS[ai.pers];return G.t+(G.aiOff||0)>=AI_AGE_AT[n]*((P&&AI_PACE[P.name])||1)*(ai.diff==='easy'?1.12:1);}
 // Attack escalation by the computer's own age: Stone-Iron = raids (small squad, short, avoids the town center and towers);
 // Medieval-Renaissance = big timed assaults that pull back after heavy losses; Industrial+ = all-out.
 const AI_RAID_CAP=[4,6,9,16,24],AI_RAID_TIME=[75,100,125,170,200];
@@ -2204,7 +2205,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(age>=2&&!has('corral')&&!has('ranch')&&ok('ranch')&&vills.length>=16)T('ranch',0,6);
   else if(age>=3&&PS.towers>=1&&!has('castle')&&P.s>=600&&ok('castle'))T('castle',0,6);
   else if(age>=2&&!has('goldmine')&&P.tech.picks&&nearestRes('gold',base.x,base.y,15*TILE)){B('goldmine',nearestRes('gold',base.x,base.y,15*TILE),1);}
-  else if(age>=2&&count('coop')<(PS.coops||2))B('coop');
+  else if(age>=2&&count('coop')<(PS.coops||2)&&ok('coop'))T('coop');
   else if(age>=1&&!has('dock')&&!ai.noDock&&P.w>=150){if(!B('dock',0,2))ai.noDock=G.t;}
   else if(age>=1&&PS.ruins>=1&&vills.length>=18){const g=nearestRes('gold',base.x,base.y,1e9),dropNear=g&&blds.some(b=>DEF[b.type].drop&&Math.hypot(b.x-g.x,b.y-g.y)<6*TILE);if(g&&!dropNear&&count('storage')<3)B('storage',g,2);}
   if(ai.noDock&&G.t-ai.noDock>240)ai.noDock=0;
@@ -2249,7 +2250,8 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   if(P.w>500)want.w*=.45;if(P.s>350)want.s*=.3;if(P.g>500)want.g*=.5;if(P.f<150)want.f*=1.3;if(age===0&&G.t>=(PS.ageAt||0)&&vills.length>=ai.ageV&&P.f<500)want.f*=1.4;
   const typeOf={w:'tree',s:'stone',g:'gold'};
   if(P.w<120)want.w*=1.6;if(P.f<120)want.f*=1.3;
-  for(const v of vills){if(v.order&&!(v.order.type==='gather'&&v.order.rtype==='tree'&&P.w>900&&Math.random()<.15)&&!(v.order.type==='gather'&&RES[v.order.rtype]&&P[RES[v.order.rtype].r]>600&&Math.min(P.f,P.w)<150&&Math.random()<.04))continue;
+  if(P.f>1500)want.f*=.35;if(P.tech.picks&&P.g<300)want.g*=1.7;const glut=P.f>1500&&P.tech.picks&&P.g<400;
+  for(const v of vills){if(v.order&&!(v.order.type==='gather'&&v.order.rtype==='tree'&&P.w>900&&Math.random()<.15)&&!(v.order.type==='gather'&&RES[v.order.rtype]&&P[RES[v.order.rtype].r]>600&&Math.min(P.f,P.w)<150&&Math.random()<.04)&&!(glut&&v.order.type==='gather'&&RES[v.order.rtype]&&RES[v.order.rtype].r==='f'&&Math.random()<.08))continue;
     const ord=['f','w','s','g'].sort((a,b)=>(cnt[a]-want[a]*vills.length)-(cnt[b]-want[b]*vills.length));
     for(const r of ord){let res=null;
       if(r==='f'){const fm=blds.filter(b=>b.type==='farm'&&b.built&&b.amt>0&&!vills.some(x=>x.order&&x.order.id===b.id));res=fm[0]||nearestRes('carcass',base.x,base.y,14*TILE)||mine.find(u=>u.type==='sheep'&&!(u.born&&G.t-u.born<60))||nearestRes('berry',base.x,base.y,1e9);
@@ -7503,6 +7505,8 @@ function sheepWingUI(one,P){const line=(b,t)=>'<div class="hint"><b>'+b+'</b>'+(
   if(W&&!W.built){const nb=G.ents.filter(u=>u.order&&u.order.type==='build'&&u.order.id===W.id&&!u.dead).length;return line('Sheep wing: being built',Math.round((W.progress||0)*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('swingb','Send builders','','',false,0,'wide'));}
   if(P.age<4)return line('No sheep yet','The sheep wing comes in the Renaissance Age: a fold on the side of the ranch, with 3 sheep for wool or mutton');
   return btn('mkswing','Sheep wing',costHtml(DEF.pen.cost),bldIcon('pen',THUMB.pen||THUMB.ranch),!canAfford(P,DEF.pen.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds a sheep fold onto a side of the ranch. 3 sheep join; a shepherd keeps them for wool or mutton (up to 8)</div>';}
+/* health check (Oct 15): the computer treats sick animals (25 gold each, like you), 10-40 seconds after they fall ill */
+function aiCure(o){const P=G.players[o];for(const e of G.ents){if(e.owner!==o||e.dead||!e.sick||(e.type!=='cow'&&e.type!=='sheep'))continue;if(G.t-e.sick<(e.aiCureAt||(e.aiCureAt=10+Math.random()*30)))continue;if(P.g<25)return;P.g-=25;e.sick=0;e.spread=0;e.aiCureAt=0;}}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -8227,7 +8231,9 @@ const CHEATS={
   upgrades:()=>{const P=G.players[0];let n=0;for(const k in TECH)if(k!=='bronze'&&(TECH[k].age||0)<=P.age&&!P.tech[k]){applyTech(0,k);n++;}return n?n+' upgrades researched':'No upgrades available yet';},
   quick:()=>{G.cheat.quick=!G.cheat.quick;return G.cheat.quick?'Quick on: building, training and research 10x faster':'Quick off';},
   anim:()=>{G.cheat.anim=!G.cheat.anim;return G.cheat.anim?'Animation overlay on: each unit shows its state, cycle progress and IMPACT':'Animation overlay off';},
-  reveal:()=>{G.cheat.reveal=!G.cheat.reveal;computeVis();return G.cheat.reveal?'Map revealed':'Map reveal off';}
+  reveal:()=>{G.cheat.reveal=!G.cheat.reveal;computeVis();return G.cheat.reveal?'Map revealed':'Map reveal off';},
+  /* Josh (Oct 15): watch the computer play both sides */
+  watch:()=>{if(G.aiPlayers.includes(0)){G.aiPlayers=G.aiPlayers.filter(o=>o!==0);G.ais[0]=null;return 'Watch off: you are in control again';}G.ais[0]=newAI(0,G.diff||'normal','boomer');G.aiPlayers=[0,1];if(!G.cheat.reveal){G.cheat.reveal=true;computeVis();}return 'Watch on: the computer plays blue too (map revealed). Type watch again to take over';}
 };
 function applyCheat(){if(!G)return;const k=$('cheatIn').value.trim().toLowerCase();$('cheatIn').value='';
   if(k.startsWith('start')){const nm=k.replace(/^start\s*/,'').replace(/\s*age$/,'');const idx=AGES.findIndex(a=>a.toLowerCase().startsWith(nm)&&nm);
