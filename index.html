@@ -1543,7 +1543,7 @@ function updUnit(u,dt){
     if(u.type!=='wolf')return;}
   if(!o&&u.owner===2){
     u.scan-=dt;if(u.scan>0)return;u.scan=.5+Math.random()*.3;
-    if(u.type==='wolf'){let best=null,bd=4*TILE;for(const e of G.ents)if(e.kind==='unit'&&!e.dead&&e.owner<2&&e.type!=='ram'&&e.type!=='tradecart'&&e.type!=='explorer'){const dd=Math.hypot(e.x-u.x,e.y-u.y);if(dd<bd){bd=dd;best=e;}}if(best){u.order={type:'attack',id:best.id,auto:true};return;}}
+    if(u.type==='wolf'){let best=null,bd=(u.prowl?1.5:4)*TILE;for(const e of G.ents)if(e.kind==='unit'&&!e.dead&&e.owner<2&&e.type!=='ram'&&e.type!=='tradecart'&&e.type!=='explorer'){const dd=Math.hypot(e.x-u.x,e.y-u.y);if(dd<bd){bd=dd;best=e;}}if(best){u.order={type:'attack',id:best.id,auto:true};return;}if(wolfRaid(u))return;}
     if(u.rt)return;
     if(u.ph==null){u.ph=Math.random()<.4?1:0;u.phT=G.t+4+Math.random()*14;}
     if(G.t>u.phT){u.ph=1-u.ph;u.phT=G.t+(u.ph?10+Math.random()*10:12+Math.random()*16);u.wt=0;}
@@ -1782,7 +1782,7 @@ function updBld(b,dt){
     if(ok&&W.fuel){for(const k in W.fuel)if(P[k]<W.fuel[k]*n*dt){ok=false;b.stall=b.type==='factory'?'Needs wood and stone for the machines':'Needs wood for the ovens';}}
     if(ok&&b.type==='weaver'){const sh=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&!(e.born&&G.t-e.born<60)).length;if(sh<4){ok=false;b.stall='Needs 4 adult sheep for wool';}}
     b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){if((b.wool||0)>=amt/4){b.wool-=amt/4;if(expAt(b,'textile',amt/5))continue;P.g+=amt*1.6*(b.owner===1?G.aiMult:1);inc(b.owner,'g',amt*1.6,'textiles');continue;}b.stall='Needs wool: set a livestock pen to Wool (runs at half speed without it)';if(expAt(b,'cloth',amt/12))continue;P[k]+=amt*.5*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt*.5,b.type);continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
-  if(b.type==='coop'){if(!b.birds)b.birds=[-999];b.layT=(b.layT||0)+dt*(b.yard?YARD_K:1);if(b.birds.length<6&&b.layT>=45){b.layT=0;b.birds.push(G.t);}
+  if(b.type==='coop'){if(!b.birds)b.birds=[-999];b.layT=(b.layT||0)+dt*(b.yard?YARD_K:1);if(b.birds.length<6&&b.layT>=45&&coopHens(b)){b.layT=0;b.birds.push(G.t);}
     let h=0,ch=0,eg=0;for(const t0 of b.birds){const a=G.t-t0;if(a>=60)h++;else if(a>=20)ch++;else eg++;}
     if(b.owner===0&&b.hens&&h>b.hens&&G.t-(G.lastHenMsg||-99)>25){G.lastHenMsg=G.t;toast('A chick grew into a laying hen');}
     if(b.owner===0&&b.eggs&&eg<b.eggs&&G.t-(G.lastHatchMsg||-99)>25){G.lastHatchMsg=G.t;toast('An egg hatched');}
@@ -1922,7 +1922,28 @@ function claimRuin(r,o){
   if(o===0){toast('Ruins explored: '+msg);G.fx.push({type:'puff',x:r.x,y:r.y-10,t:.35});CELE.on||(CELE.stars=[]);for(let i=0;i<14;i++)CELE.stars.push({x:r.x+(Math.random()-.5)*30,y:r.y,z:Math.random()*10,vz:20+Math.random()*30,t:0,life:1+Math.random(),size:2+Math.random()*2.5,rot:Math.random()*3,col:'#ffe58a'});CELE.on=true;CELE.t=Math.max(CELE.t,12);}
   else if(G.vis[0][ti(r.tx,r.ty)])toast('The red tribe explored ruins');
 }
-function updPOIs(dt){try{boatIdleTick(dt);}catch(e){}try{grazeTick(dt);}catch(e){}
+/* Josh (Oct 15): wolves raid chicken coops and the coop starts again from 1 hen; a new wolf pack wanders in from the map edge every few minutes.
+   Wolf: u.prowl = coop id it is heading for, u.nextRaid = G.t before it may raid again. G.wolfT = next pack time. */
+function coopMembers(c){return c.yard&&c.yard.ids?c.yard.ids.map(id=>G.byId.get(id)).filter(m=>m&&!m.dead):[c];}
+function coopHens(c){return coopMembers(c).some(m=>m.birds&&m.birds.some(t=>G.t-t>=60));}
+function wolfTick(dt){if(G.wolfT==null)G.wolfT=Math.max(G.t,0)+480;if(G.t<G.wolfT)return;G.wolfT=G.t+240+Math.random()*180;
+  if(G.ents.filter(e=>e.type==='wolf'&&e.owner===2&&!e.dead).length>=8)return;const tcs=G.ents.filter(e=>e.type==='towncenter'&&!e.dead);
+  for(let k=0;k<60;k++){const side=(Math.random()*4)|0,t=3+((Math.random()*5)|0),a=6+((Math.random()*(MW-12))|0);const x=side===0?t:side===1?MW-1-t:a,y=side===2?t:side===3?MH-1-t:a;
+    if(!inB(x,y)||G.terrain[ti(x,y)]||G.occ[ti(x,y)])continue;if(tcs.some(c=>Math.hypot(c.tx-x,c.ty-y)<30))continue;
+    const n=G.players.some(p=>p.age>=3)?3:2;for(let i=0;i<n;i++){const u=mkUnit('wolf',2,(x+.5)*TILE+(i-1)*10,(y+.5)*TILE+(i%2)*8);u.hx=x;u.hy=y;u.face=Math.random()*6;u.nextRaid=G.t+30;}return;}}
+function wolfRaid(u){if(u.type!=='wolf'||u.owner!==2)return false;
+  if(!u.prowl){if(G.t<(u.nextRaid||0))return false;u.nextRaid=G.t+20;let best=null,bd=40*TILE;for(const c of G.ents){if(c.type!=='coop'||c.dead||!c.built||c.owner>1)continue;if(c.yard&&c.yard.anchor!==c.id)continue;if(!coopHens(c)&&!coopMembers(c).some(m=>m.birds&&m.birds.length>1))continue;const d=Math.hypot(c.x-u.x,c.y-u.y);if(d<bd){bd=d;best=c;}}
+    if(!best)return false;u.prowl=best.id;for(const w of G.ents)if(w!==u&&w.type==='wolf'&&w.owner===2&&!w.dead&&!w.prowl&&Math.hypot(w.x-u.x,w.y-u.y)<5*TILE){w.prowl=best.id;w.nextRaid=G.t+20;}}
+  const c=G.byId.get(u.prowl);if(!c||c.dead||c.type!=='coop'){u.prowl=0;return false;}const mem=coopMembers(c);
+  if(mem.some(m=>distPtEnt(u.x,u.y,m)<=TILE*1.4)){u.prowl=0;u.nextRaid=G.t+300;let lost=0;mem.forEach((m,i)=>{lost+=(m.birds||[]).length;m.birds=i===0?[-999]:[];m.layT=0;});
+    for(const w of G.ents)if(w.type==='wolf'&&w.owner===2&&w.prowl===c.id){w.prowl=0;w.nextRaid=G.t+300;}
+    emit('dust',c.x,c.y,8);if(c.owner===0){toast('A wolf raided your chicken coop! Only 1 hen is left');try{sfx('hit',c.x,c.y);}catch(e){}}
+    u.order={type:'move',x:u.hx,y:u.hy};u.path=null;return true;}
+  if(!u.pw||Math.hypot(u.x-u.pw.x,u.y-u.pw.y)>12){u.pw={x:u.x,y:u.y,t:G.t};}else if(G.t-u.pw.t>6){/* stuck (no path): amble straight toward the coop */
+    const cx=u.x/TILE,cy=u.y/TILE;let a=Math.atan2(c.y-u.y,c.x-u.x);for(let k=0;k<8;k++){if(clearLine(cx,cy,a,2)){u.rt=[u.x+Math.cos(a)*2*TILE,u.y+Math.sin(a)*2*TILE];break;}a+=(k%2?1:-1)*(k+1)*.6;}
+    if(G.t-u.pw.t>40){u.prowl=0;u.nextRaid=G.t+120;}return false;}
+  const ex=exitTile(mem[0],tl(u.x),tl(u.y),0);if(ex){u.order={type:'move',x:ex.x,y:ex.y};u.path=null;}else u.prowl=0;return true;}
+function updPOIs(dt){try{wolfTick(dt);}catch(e){}try{boatIdleTick(dt);}catch(e){}try{grazeTick(dt);}catch(e){}
   for(const t of G.ents)if(t.bare&&!t.dead){if(t.type==='fish'){t.amt+=dt*(RES.fish.amt/150);if(t.amt>=RES.fish.amt){t.amt=RES.fish.amt;t.bare=false;}}else{t.amt+=dt*(30/600);if(t.amt>=30){t.amt=30;t.bare=false;}}}
   for(const t of G.ents){if(t.type!=='tree'||t.dead||t.deadStump||!(t.stump||t.sapling))continue;
     let browsed=false;if(t.growT<45)for(const a of G.ents)if((a.type==='deer'||a.type==='sheep'||a.type==='cow')&&!a.dead&&Math.abs(a.x-t.x)<48&&Math.hypot(a.x-t.x,a.y-t.y)<1.6*TILE){browsed=true;break;}
