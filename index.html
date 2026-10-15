@@ -58,6 +58,7 @@ button{font:inherit;color:inherit;touch-action:manipulation}
 #toast{position:absolute;left:50%;top:38px;transform:translateX(-50%);background:var(--shade);border:1px solid var(--edge);border-radius:6px;padding:6px 12px;z-index:4;opacity:0;transition:opacity .2s;pointer-events:none;font-size:13px}
 #toast.show{opacity:1}
 .am{display:inline-flex;width:30px;height:6px;border-radius:3px;overflow:hidden;background:#c4432f;margin:0 2px;vertical-align:middle}.am i{display:block;height:100%;background:#4f8fe0;width:50%}.am.unk{background:rgba(0,0,0,.45)}#armyR{font-size:11px}
+.b.tabb.warn::after{content:'';position:absolute;top:3px;right:4px;width:7px;height:7px;border-radius:4px;background:#ff6a4d;box-shadow:0 0 6px #ff6a4d}.b.tabb .tc{font-weight:600;color:var(--muted);margin-left:3px}
 .b.nextb{border-color:#cfb2ff;animation:nbG 1.4s ease-in-out infinite}@keyframes nbG{50%{box-shadow:0 0 0 1px #cfb2ff,0 0 12px rgba(207,178,255,.8)}}.b.hasnext::after{content:'';position:absolute;top:3px;right:4px;width:7px;height:7px;border-radius:4px;background:#cfb2ff;box-shadow:0 0 6px #cfb2ff}@media (prefers-reduced-motion:reduce){.b.nextb{animation:none;box-shadow:0 0 0 1px #cfb2ff}}
 #sickBar{position:absolute;left:50%;top:calc(36px + var(--st));transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:8px;padding:5px 6px 5px 8px;background:linear-gradient(#a3301f,#6e1c12);border:2px solid #ffd25a;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.6),0 0 14px rgba(255,90,60,.55);color:#fff;max-width:calc(100% - 210px)}#sickBar[hidden]{display:none}#sickBar>img{width:30px;height:30px;object-fit:contain}#sickBar .sbt{display:flex;flex-direction:column;min-width:0}#sickBar .sbt b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#sickBar .sbt span{font-size:11px;color:#ffe0a0;font-variant-numeric:tabular-nums}#sickBar .b{min-width:54px;height:34px;flex-direction:column;font-weight:700;font-size:11px}#sickBar .sbc{border-color:#ffd25a}#sickBar.late{animation:sbPulse .7s ease-in-out infinite}#sickBar.flash{animation:sbIn .5s ease-out 3}@keyframes sbPulse{50%{box-shadow:0 4px 16px rgba(0,0,0,.6),0 0 26px rgba(255,60,40,.95)}}@keyframes sbIn{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.12)}100%{transform:translateX(-50%) scale(1)}}
 #panel{position:absolute;left:var(--sl);right:var(--sr);bottom:var(--sb);display:flex;align-items:flex-end;gap:6px;padding:0 58px 6px 6px;z-index:3;pointer-events:none}
@@ -844,6 +845,48 @@ function penGrpCalc(){if(G._pgT===G.t)return;G._pgT=G.t;const T={};
 const isPen=e=>!!e&&(e.type==='pen'||e.type==='ranch'),isCor=e=>!!e&&(e.type==='corral'||e.type==='ranch'),isDairy=e=>!!e&&(e.type==='dairy'||(e.type==='ranch'&&!!G.players[e.owner]&&!!G.players[e.owner].tech.dairyfarm));
 function rZone(b,k){const x=b.tx,y=b.ty;return k==='a'?[x+2.75,y+.45,x+4.65,y+4.6]:k==='c'?[x+.4,y+2.75,x+2.35,y+4.6]:[x+.4,y+.45,x+2.35,y+(isDairy(b)?2.3:4.6)];}
 function rKind(e){return e&&CORRAL_AN.has(e.type)?'a':e&&e.type==='cow'?'c':'s';}
+/* ---- Ranch panel in 3 tabs (Josh, Oct 14): Sheep / Cows / Work animals, each with one status line and only its own buttons ---- */
+function ranchActs(one,P){
+  const PL=penLead(one),own=e=>e.owner===0&&!e.dead;
+  const sheep=G.ents.filter(e=>e.type==='sheep'&&own(e)&&inPenArea(PL,e,0,'s')),lambs=sheep.filter(e=>e.born&&G.t-e.born<60).length,sh=G.ents.filter(e=>e.shep===PL.id&&!e.dead).length;
+  const anySheep=G.ents.some(e=>e.type==='sheep'&&own(e)),cows=one.cFlock||0,dairy=!!P.tech.dairyfarm;
+  const sickS=one.sickN||0,sickC=G.ents.some(e=>e.type==='cow'&&own(e)&&e.sick&&Math.hypot(e.x-one.x,e.y-one.y)<5*TILE);
+  const qTab=one.queue.length?(one.queue[0]==='dairyfarm'?'c':'a'):'';
+  const warn={s:sickS>0||(anySheep&&!sh),c:sickC,a:false};
+  let tab=G.rtab;if(!['s','c','a'].includes(tab))tab=G.rtab='s';
+  const TL=[['s','Sheep',sheep.length],['c','Cows',dairy?cows:''],['a','Work animals','']];
+  let h='';for(const[k,lab,n]of TL)h+=btn('rtab:'+k,lab+(n!==''?'<span class="tc">'+n+'</span>':''),'','',false,0,'g tabb'+(k===tab?' on':'')+(k!==tab&&warn[k]?' warn':''));
+  const line=(b,t)=>'<div class="hint"><b>'+b+'</b>'+(t?'<br>'+t:'')+'</div>';
+  const queueUI=()=>'<div class="hint" style="min-width:130px"><span id="qtxt"></span><div class="bar q"><i id="qbar"></i></div></div>'+btn('cancel','Cancel','<span class="cost">last in queue</span>','',false);
+  if(tab==='s'){
+    h+=line(sheep.length+' sheep'+(lambs?' · '+lambs+' lamb'+(lambs>1?'s':''):'')+' · room for '+10*penN(one),(sh?(sh>1?sh+' shepherds':'1 shepherd')+' working':'No shepherd yet')+(PL.hayless?' · out of wood: no lambs':''));
+    if(G.prevSelFor===one.id){const pv=(G.prevSel||[]).filter(id=>{const u=G.byId.get(id);return u&&!u.dead&&u.type==='villager';});if(pv.length)h+=btn('sendsel','Make shepherds','<span class="cost">Send '+pv.length+' selected villager'+(pv.length>1?'s':'')+'</span>',THUMB.villager,false,0,'wide');}
+    if(sickS)h+=btn('medicine','Give medicine',costHtml({g:25*sickS}),THUMB.sheep,!canAfford(P,{g:25*sickS}),sickS,'wide danger',PILL('up','Sick'));
+    h+=btn('shepherds',sh?(sh>1?sh+' shepherds':'1 shepherd'):'No shepherd','<span class="cost">'+(sh?'Tap to select':'Not assigned')+'</span>',THUMB.villager,false,0,'wide',sh?PILL('res','Working'):'');
+    h+=btn('herd','Call sheep','<span class="cost">'+(sh?'Bring collared sheep in':'Needs a shepherd')+'</span>',THUMB.sheep,!sh,0,'wide');
+    if(usesFor(one).length>1){const ud=USES[one.type].find(x=>x[0]===useOf(one));h+=btn('usemenu','Use: '+ud[1],'<span class="cost">'+(one.useT>0?'Switching '+Math.ceil(one.useT)+'s':'Tap to change')+'</span>','',false,0,'wide',one.useT>0?PILL('res','Switching'):PILL('new','Active'));}
+    if(!anySheep){const wild=G.ents.filter(e=>e.type==='sheep'&&e.owner>1&&!e.dead&&G.exp[0][ti(tl(e.x),tl(e.y))]).sort((a,b)=>Math.hypot(a.x-one.x,a.y-one.y)-Math.hypot(b.x-one.x,b.y-one.y))[0];
+      h+='<div class="hint" style="max-width:230px">No sheep yet: send a villager next to wild sheep to collar them. '+(wild?'Nearest: '+Math.round(Math.hypot(wild.x-one.x,wild.y-one.y)/TILE)+' tiles '+dirName(wild.x-one.x,wild.y-one.y)+'.':'None seen yet: explore.')+'</div>';}
+    else if(!sh)h+='<div class="hint" style="max-width:220px">Select villagers, tap the ranch, then tap Make shepherds.</div>';
+  }else if(tab==='c'){
+    if(!dairy){
+      if(qTab==='c')h+=queueUI();
+      else if(P.age<(TECH.dairyfarm.age||0))h+=line('No cows yet','Dairy comes in the Medieval Age: 2 cows, milk for food or cheese for gold');
+      else h+=btn('train:dairyfarm',TECH.dairyfarm.name,costHtml(TECH.dairyfarm.cost),techIcon('dairyfarm'),!canAfford(P,TECH.dairyfarm.cost)||one.queue.length>=5,0,'tech',techPill('dairyfarm'))+line('Research Dairy','2 cows join the ranch. Milk gives food, cheese gives gold');
+    }else{
+      h+=line(cows+' cow'+(cows===1?'':'s')+' · '+(one.milked||0)+' milked',(sh?'The shepherd milks them':'Needs a shepherd to milk them (Sheep tab)'));
+      if(sickC)h+=btn('medicine','Give medicine',costHtml({g:25}),THUMB.cow,!canAfford(P,{g:25}),0,'wide danger',PILL('up','Sick'));
+      h+=btn('cuse','Make: '+(one.cuse==='cheese'?'Cheese':'Milk'),'<span class="cost">'+(one.cuse==='cheese'?'Gold':'Food')+'. Tap to switch</span>',THUMB.cow,false,0,'wide');
+      h+=btn('herdc','Call cows','<span class="cost">Bring your cows in</span>',THUMB.cow,false,0,'wide');
+    }
+  }else{
+    const n=raisingN(PL),cp=RAISE_CAP*penN(one);
+    h+=line('Raising '+n+' of '+cp+' young',one.rfull?'Full: the next one waits':'Young ones grow up here, then go to work');
+    for(const t of DEF.ranch.trains){if(!canTrain(0,t))continue;if(DEF[t].needTech&&!P.tech[DEF[t].needTech])continue;const q=one.queue.filter(x=>x===t).length;h+=btn('train:'+t,uname(t,0),costHtml(DEF[t].cost),unitIcon(t),!canAfford(P,DEF[t].cost)||one.queue.length>=5,q,'',unitPill(t,0));}
+    if(qTab==='a')h+=queueUI();
+  }
+  return h;
+}
 function penLead(b){if(b&&b.mgrp){const a=G.byId.get(b.mgrp.anchor);if(a&&!a.dead)return a;}return b;}
 function penN(b){const L=penLead(b);return L&&L.mgrp?L.mgrp.ids.length:1;}
 function penBox(b,k){const L=penLead(b),g=L.mgrp;if(L.type==='ranch')return rZone(L,k||'s');return g?[g.x0,g.y0,g.x1,g.y1]:[L.tx,L.ty,L.tx+L.size,L.ty+L.size];}
@@ -6693,7 +6736,7 @@ function uiFrame(){
   const sel=selEnts();
   if(sel.length!==G.sel.length)setSel(sel);
   const aff=Object.keys(DEF).concat(Object.keys(TECH)).map(k=>canAfford(P,itemOf(k).cost)?1:0).join('');
-  const key=JSON.stringify([(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='pub'?[r.inn,Math.ceil(r.innUpT||0),r.innOn]:0;})(),[...nextBuilds(0)].join(),(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='ranch'?[r.cuse,r.cFlock,r.milked,r.cowsA,G.players[0].tech.dairyfarm]:0;})(),G.sel,G.buildTab,G.aground,G.prospect,G.strikeN,G.reconAim,G.sel.length===1&&G.byId.get(G.sel[0])&&[G.byId.get(G.sel[0]).planes,G.byId.get(G.sel[0]).rearmT>G.t],G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).export,G.prevSelFor,G.showMore,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).fallow,G.sel.length===1&&G.byId.get(G.sel[0])&&USES[G.byId.get(G.sel[0]).type]?(()=>{const b=G.byId.get(G.sel[0]);return [b.use,b.useT>0?Math.ceil(b.useT):0,b.useOK,b.useWhy];})():0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='house'?[G.byId.get(G.sel[0]).lvl,G.byId.get(G.sel[0]).upT>0?Math.ceil(G.byId.get(G.sel[0]).upT):0,G.ents.filter(e=>e.order&&e.order.type==='upgrade'&&e.order.id===G.sel[0]).length]:0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='dairy'?[G.byId.get(G.sel[0]).cheese,G.byId.get(G.sel[0]).flock,G.byId.get(G.sel[0]).cowsA]:0,G.prices&&Math.round(G.prices.f+G.prices.w*7+G.prices.s*13),G.selForm,activeGroup(),BUILDS.filter(b=>bAvail(0,b)).join(),G.place&&G.place.type,G.place&&placeValid(),G.place&&(G.place.type==='wall'?JSON.stringify(wallTiles()):placeWhy(G.place.type,G.place.tx,G.place.ty,0,true,0)),G.demo,G.boxMode,idleVills().length,armyUnits().length,
+  const key=JSON.stringify([(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='pub'?[r.inn,Math.ceil(r.innUpT||0),r.innOn]:0;})(),[...nextBuilds(0)].join(),(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='ranch'?[r.cuse,r.cFlock,r.milked,r.cowsA,G.players[0].tech.dairyfarm,G.rtab,raisingN(r),r.rfull,r.sickN]:0;})(),G.sel,G.buildTab,G.aground,G.prospect,G.strikeN,G.reconAim,G.sel.length===1&&G.byId.get(G.sel[0])&&[G.byId.get(G.sel[0]).planes,G.byId.get(G.sel[0]).rearmT>G.t],G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).export,G.prevSelFor,G.showMore,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).fallow,G.sel.length===1&&G.byId.get(G.sel[0])&&USES[G.byId.get(G.sel[0]).type]?(()=>{const b=G.byId.get(G.sel[0]);return [b.use,b.useT>0?Math.ceil(b.useT):0,b.useOK,b.useWhy];})():0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='house'?[G.byId.get(G.sel[0]).lvl,G.byId.get(G.sel[0]).upT>0?Math.ceil(G.byId.get(G.sel[0]).upT):0,G.ents.filter(e=>e.order&&e.order.type==='upgrade'&&e.order.id===G.sel[0]).length]:0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='dairy'?[G.byId.get(G.sel[0]).cheese,G.byId.get(G.sel[0]).flock,G.byId.get(G.sel[0]).cowsA]:0,G.prices&&Math.round(G.prices.f+G.prices.w*7+G.prices.s*13),G.selForm,activeGroup(),BUILDS.filter(b=>bAvail(0,b)).join(),G.place&&G.place.type,G.place&&placeValid(),G.place&&(G.place.type==='wall'?JSON.stringify(wallTiles()):placeWhy(G.place.type,G.place.tx,G.place.ty,0,true,0)),G.demo,G.boxMode,idleVills().length,armyUnits().length,
     aff,P.age,Object.keys(P.tech).join(),sel.map(e=>e.kind==='bld'?[e.built,e.queue.join(),reqMissing(0,'bronze')?1:0,e.sickN||0,e.flock||0,isPen(e)?Math.floor(G.t/5)+':'+G.ents.filter(x=>x.shep===e.id).length:0,e.gar?e.gar.length:0,e.type==='towncenter'?shelteredN(e.owner)+':'+G.ents.some(u=>u.owner===e.owner&&u.order&&u.order.type==='garrison'):G.ents.some(u=>u.order&&u.order.type==='garrison'&&u.order.id===e.id)]:e.type)]);
   if(key!==panelKeyLast){panelKeyLast=key;renderPanel(sel);}
   const one=sel.length===1?sel[0]:null;
@@ -6818,7 +6861,8 @@ function renderPanel(sel){
   }
   if(one&&one.kind==='bld'&&one.owner===0&&!G.place&&info){const g=(one.type==='pen'||one.type==='corral')&&one.mgrp;if(g)info=info.replace('>'+DEF[one.type].name+'<','>'+DEF[one.type].name+' ×'+g.ids.length+'<');
     info+='<button class="b demo-mini'+(G.demo===one.id?' danger':'')+'" data-act="demolish" aria-label="'+(one.built?'Demolish':'Cancel build')+'"><img alt="" src="'+TRASH_ICO+'"></button>';}
-  $('info').innerHTML=info;try{const o1=sel.length===1&&!G.place?sel[0]:null,ps=o1&&o1.kind==='unit'&&o1.owner===0?portSheet(o1):null;if(ps){const nmEl=document.querySelector('#info .nm');const rn=ps[1],nm=PNAMES[FEM.has(rn)?'woman':'man'][(o1.id*7)%10];if(nmEl)nmEl.textContent=nm+', '+(o1.type==='villager'?'villager':DEF[o1.type].name.toLowerCase());}}catch(e){}{const up=document.getElementById('upop');if(up&&String(G.sel[0]||'')!==up.dataset.bid)closeUpPop();}{const T=[];acts=acts.replace(/<button class="b g tabb[^"]*"[^>]*>.*?<\/button>/g,m=>{T.push(m);return '';});const bt=$('btabs');if(bt)bt.innerHTML=T.join('');}$('acts').innerHTML=acts;
+  $('info').innerHTML=info;try{const o1=sel.length===1&&!G.place?sel[0]:null,ps=o1&&o1.kind==='unit'&&o1.owner===0?portSheet(o1):null;if(ps){const nmEl=document.querySelector('#info .nm');const rn=ps[1],nm=PNAMES[FEM.has(rn)?'woman':'man'][(o1.id*7)%10];if(nmEl)nmEl.textContent=nm+', '+(o1.type==='villager'?'villager':DEF[o1.type].name.toLowerCase());}}catch(e){}{const up=document.getElementById('upop');if(up&&String(G.sel[0]||'')!==up.dataset.bid)closeUpPop();}if(one&&one.type==='ranch'&&one.owner===0&&one.built&&!G.place){try{acts=ranchActs(one,P);}catch(err){console.error(err);}}
+  {const T=[];acts=acts.replace(/<button class="b g tabb[^"]*"[^>]*>.*?<\/button>/g,m=>{T.push(m);return '';});const bt=$('btabs');if(bt)bt.innerHTML=T.join('');}$('acts').innerHTML=acts;
   const iv=idleVills().length,ar=armyUnits().length;
   renderGroups();
   $('glob').innerHTML=btn('idle','Idle','','',!iv,iv||0,'g')+btn('army','Army','','',!ar,ar||0,'g')+btn('upg','Upgrades','','',!upgCache().n,upgCache().a||0,'g')+btn('econ','Overview','','',false,0,'g')+btn('desel','Clear','','',!G.sel.length&&!G.place,0,'g')+panelFormH;panelFormH='';$('glob').classList.toggle('six',$('glob').children.length>5);
@@ -6865,6 +6909,7 @@ $('panel').addEventListener('click',e=>{
   if((act==='sell'||act==='buy')&&one){const k=arg,pr=G.prices;if(act==='sell'&&P[k]>=100){P[k]-=100;P.g+=Math.round(pr[k]*.75);inc(0,'g',Math.round(pr[k]*.75),'market');pr[k]=Math.max(30,pr[k]*.93);}else if(act==='buy'&&P.g>=pr[k]){P.g-=Math.round(pr[k]);P[k]+=100;pr[k]=Math.min(300,pr[k]*1.07);}panelKeyLast='';return;}
   if(act==='form'){const fi=FORMS.findIndex(f=>f[0]===(G.selForm||'loose'));G.selForm=FORMS[(fi+1)%FORMS.length][0];const ag=activeGroup();if(ag>=0)G.groupForm[ag]=G.selForm;toast('Formation: '+FORMS[(fi+1)%FORMS.length][1]);panelKeyLast='';return;}
   if(act==='savegrp'){let i=-1;for(let k=0;k<5;k++)if(!grpUnits(k).length){i=k;break;}if(i<0)toast('All 5 groups are in use. Hold a group number to replace it');else assignGroup(i);return;}
+  if(act==='rtab'){G.rtab=arg;panelKeyLast='';return;}
   if(act==='shepherds'&&one){const s=G.ents.filter(e=>e.shep===penLead(one).id&&!e.dead);if(s.length)setSel(s);else toast('Select villagers, then tap the pen to make them shepherds');panelKeyLast='';return;}
   if(act==='locked'){const P0=G.players[0],tab=G.buildTab||'eco';const lk=BTABS.find(t=>t[0]===tab)[2].filter(b=>(DEF[b].age||0)<=P0.age&&!bReqMet(0,b));toast(lk.map(b=>DEF[b].name+': '+UNLOCK_HINT[b].toLowerCase()).join('  |  '));return;}
   if(act==='build'){const c=centerTile();G.place=arg==='wall'?{type:'wall',ta:0,tb:0}:{type:arg,tx:c.x-(DEF[arg].size>>1),ty:c.y-(DEF[arg].size>>1)};}
