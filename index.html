@@ -6260,7 +6260,7 @@ try{(function(){
   /* ---- Poultry yard (Josh picked A): one long hen house with nesting boxes and two ramps, egg crates, feed trough, dust bath,
      fenced run, drawn over the whole c.yard box. All the yard's hens and chicks roam the run (3D birds), and now and then a bird
      (chicks most often) walks up a ramp and goes in at the door, stays inside a while, then comes back out. ---- */
-  const YA={"yard":[0,0,700,537],"yard_m":[702,0,700,537],"wing":[0,539,600,489],"wing_m":[602,539,600,489],"ruin":[0,1030,473,391],"chc":[475,1030,90,90],"cho":[567,1030,129,135],"rgR":[698,1030,102,108],"rgL":[906,1030,71,131],"rgR_e":[802,1030,102,108],"rgL_e":[979,1030,71,131]};let YL=null,yat=null;
+  const YA={"yard":[0,0,700,537],"yard_m":[702,0,700,537],"wing":[0,539,600,489],"wing_m":[602,539,600,489],"ruin":[0,1030,473,391],"chc":[475,1030,90,90],"cho":[567,1030,129,135],"rgR":[698,1030,102,108],"rgL":[906,1030,71,131],"rgR_e":[802,1030,102,108],"rgL_e":[979,1030,71,131],"fold":[0,1423,560,409],"fold_m":[562,1423,560,409],"fgSW":[1124,1423,38,83],"fgSE":[1164,1423,70,101],"rgNW":[1236,1423,52,121],"rgNW_e":[1290,1423,52,121]};let YL=null,yat=null;
   function yload(){if(yat)return;yat=new Image();yat.onload=()=>{try{const m={};for(const k in YA){const [x,y,w,h]=YA[k],c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(yat,x,y,w,h,0,0,w,h);m[k]=c}YL=m}catch(err){}yat.onload=yat.onerror=null;yat.src=''};
     yat.onerror=()=>{setTimeout(()=>{yat=null},5000)};yat.src=GFX.ART+'a1_poi.webp?v='+GFX.ARTV}
   const ytint={};const yardPic=o=>{if(!YL){yload();return null}o=o>1?0:o;if(ytint[o])return ytint[o];return ytint[o]=GFX.tint(YL.yard,YL.yard_m,o)};GFX.yardPic=()=>!!YL;
@@ -6422,6 +6422,58 @@ try{(function(){
       c.strokeStyle='rgba(60,40,25,.45)';c.lineWidth=.35;c.beginPath();c.moveTo(-f.s*1.15,0);c.lineTo(f.s,0);c.stroke();c.restore()}};
   GFX.featherBurst=FB;
   try{const _dp=drawParts;drawParts=function(c){_dp(c);if(GFX.mode!=='V23D')return;try{const now=performance.now();fScan(now);if(FB.length)fDraw(c,now)}catch(err){}}}catch(err){}
+
+  /* ---- Sheep wing (Josh picked C, Oct 15): the Renaissance sheep fold (DEF.pen with b.sranch) drawn as a straw yard with a shearing shed,
+     wool bales and baskets, diamond centred on its 3x3 footprint so the sheep spots (centre + edge-middle tiles) stand inside it.
+     The ranch opening and the fold gate that face each other are drawn open, and a dirt lane on the ground joins them, going round
+     a corner of either building when the straight way is blocked. Ranch openings: lower-left (L) and lower-right (R) gates, upper-left (NW)
+     where the ranch path ends; fold gates: front-left (SW) and front-right (SE). ---- */
+  const SWFW=853,SWFWF=1.378,SWFDN=-.045;
+  const SWFB={SW:[186,389,244,515],SE:[572,393,679,547]},RGB2={NW:[139,202,191,323]};
+  const SWFG={SW:{i:[225,458],o:[187,523]},SE:{i:[612,468],o:[650,533]}};
+  const SWRO={L:{i:[290,500],o:[291,546]},R:{i:[688,470],o:[702,500]},NW:{i:[188,320],o:[150,286]}};
+  const SWFDIA=[[9,374],[426,616],[851,369],[434,127]],SWRDIA=[[5,345],[460,660],[928,340],[466,30]];
+  const swRanch=e=>{const R=e&&e.type==='pen'&&e.sranch&&G.byId.get(e.sranch);return R&&!R.dead&&R.type==='ranch'?R:null};
+  const SWFCV={};
+  GFX.foldBase=function(o){o=o>1?0:o;const k='b'+o;if(SWFCV[k])return SWFCV[k];if(!YL){yload();return null}
+    if(!GFX.imgs.a1_fold){GFX.imgs.a1_fold=YL.fold;GFX.imgs.a1_fold_m=YL.fold_m}try{if(!GFX_ART.a1_fold)GFX_ART.a1_fold={age:4,culture:'both'}}catch(err){}
+    return SWFCV[k]=GFX.spr('a1_fold',o,3*TILE,SWFWF,SWFDN)};
+  GFX.foldGate=function(o,fk){o=o>1?0:o;const k=fk+o;if(SWFCV[k])return SWFCV[k];const s=GFX.foldBase(o);if(!s)return null;
+    const c=document.createElement('canvas');c.width=s.width;c.height=s.height;const g=c.getContext('2d');g.drawImage(s,0,0);const f=s.width/SWFW,b=SWFB[fk];
+    g.drawImage(YL['fg'+fk],b[0]*f,b[1]*f,(b[2]-b[0])*f,(b[3]-b[1])*f);for(const key of Object.keys(s))c[key]=s[key];return SWFCV[k]=c};
+  const dia=(pts)=>{const cx=(pts[0][0]+pts[2][0])/2,cy=(pts[1][1]+pts[3][1])/2,hw=(pts[2][0]-pts[0][0])/2,hh=(pts[1][1]-pts[3][1])/2;return (x,y,k)=>Math.abs(x-cx)/(hw*k)+Math.abs(y-cy)/(hh*k)<1};
+  const SWRTC=new WeakMap();
+  GFX.swRoute=function(w,sr){const R=swRanch(w);if(!R||!YL)return null;const fb=GFX.foldBase(w.owner);if(!fb||!sr||!sr.w)return null;
+    const key=R.tx+','+R.ty+','+w.tx+','+w.ty+','+sr.w+','+sr.ov;let q=SWRTC.get(w);if(q&&q.key===key)return q;
+    const kR=sr.w/933,rp=([x,y])=>[R.tx*TILE-sr.dx+x*kR,R.ty*TILE-sr.ov+y*kR],kF=fb.w/SWFW,fp=([x,y])=>[w.tx*TILE-fb.dx+x*kF,w.ty*TILE-fb.ov+y*kF];
+    const inR=dia(SWRDIA.map(rp)),inF=dia(SWFDIA.map(fp));
+    const blk=(P,Q)=>{for(let i=1;i<16;i++){const t=i/16,x=P[0]+(Q[0]-P[0])*t,y=P[1]+(Q[1]-P[1])*t;if(inR(x,y,.9)||inF(x,y,.9))return true}return false};
+    const ext=(I,O,d)=>{const L=Math.hypot(O[0]-I[0],O[1]-I[1])||1;return [O[0]+(O[0]-I[0])/L*d,O[1]+(O[1]-I[1])/L*d]};
+    const out=(pts,cx,cy,d)=>pts.map(([x,y])=>{const L=Math.hypot(x-cx,y-cy)||1;return [x+(x-cx)/L*d,y+(y-cy)/L*d]});
+    const rD=SWRDIA.map(rp),fD=SWFDIA.map(fp),WR=out(rD,(rD[0][0]+rD[2][0])/2,(rD[1][1]+rD[3][1])/2,14),WF=out(fD,(fD[0][0]+fD[2][0])/2,(fD[1][1]+fD[3][1])/2,12);
+    const len=P=>{let s=0;for(let i=1;i<P.length;i++)s+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return s};
+    let best=null;
+    for(const rk of ['L','R','NW'])for(const fk of ['SW','SE']){const Ai=rp(SWRO[rk].i),Ao=ext(Ai,rp(SWRO[rk].o),8),Fi=fp(SWFG[fk].i),Fo=ext(Fi,fp(SWFG[fk].o),8);
+      const cands=[[]];for(const a of WR)cands.push([a]);for(const b of WF)cands.push([b]);for(const a of WR)for(const b of WF)cands.push([a,b]);
+      for(const mid of cands){const P=[Ao,...mid,Fo];let ok=true;for(let i=1;i<P.length;i++)if(blk(P[i-1],P[i])){ok=false;break}if(!ok)continue;
+        const L=len(P)+(rk==='NW'?20:0);if(!best||L<best.L)best={L,rk,fk,P:[Ai,...P,Fi]}}}
+    if(!best){const Ai=rp(SWRO.R.i),Fi=fp(SWFG.SW.i);best={L:0,rk:'R',fk:'SW',P:[Ai,Fi]}}
+    best.key=key;SWRTC.set(w,best);return best};
+  try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='pen'&&e.sranch&&GFX.mode==='V23D'){const R=swRanch(e);if(R){if(!YL){yload();return prev(e)}
+      if(!e.built){const b=GFX.foldBase(e.owner);if(b)return b}else{let sr=null;try{sr=bldSpr0(R)}catch(err){}const rt=sr&&GFX.swRoute(e,sr);const s=GFX.foldGate(e.owner,rt?rt.fk:'SE');if(s)return s}}}return prev(e)}})(bldSpr0)}catch(err){}
+  // the ranch side that faces its sheep wing is opened too (L / R gate, or the upper-left fence where the ranch path ends)
+  const SWRSC=new WeakMap();
+  try{bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(e&&e.type==='ranch'&&e.swing&&GFX.mode==='V23D'&&s&&s.w&&YL){const w=G.byId.get(e.swing);if(w&&!w.dead&&w.built&&w.type==='pen'){
+      const rt=GFX.swRoute(w,s);if(!rt)return s;const k=rt.rk;let m=SWRSC.get(s);if(!m){m={};SWRSC.set(s,m)}if(m[k])return m[k];
+      const c=document.createElement('canvas');c.width=s.width;c.height=s.height;const g=c.getContext('2d');g.drawImage(s,0,0);const f=s.width/933,b=k==='NW'?RGB2.NW:RGB[k],X=b[0]*f,Y=b[1]*f,Wd=(b[2]-b[0])*f,Hd=(b[3]-b[1])*f;
+      g.globalCompositeOperation='destination-out';g.drawImage(YL['rg'+k+'_e'],X,Y,Wd,Hd);g.globalCompositeOperation='source-over';g.drawImage(YL['rg'+k],X,Y,Wd,Hd);
+      for(const key of Object.keys(s))c[key]=s[key];return m[k]=c}}}catch(err){}return s}})(bldSpr0)}catch(err){}
+  const lanePoly=(c,P)=>{const path=()=>{c.beginPath();c.moveTo(P[0][0],P[0][1]);for(let i=1;i<P.length-1;i++){const m=[(P[i][0]+P[i+1][0])/2,(P[i][1]+P[i+1][1])/2];c.quadraticCurveTo(P[i][0],P[i][1],i===P.length-2?P[i+1][0]:m[0],i===P.length-2?P[i+1][1]:m[1])}if(P.length===2)c.lineTo(P[1][0],P[1][1])};
+    c.save();c.lineCap='round';c.lineJoin='round';path();c.strokeStyle='rgba(110,84,46,.25)';c.lineWidth=16;c.stroke();path();c.strokeStyle='rgba(140,104,58,.5)';c.lineWidth=12;c.stroke();
+    const gr=c.createLinearGradient(P[0][0],P[0][1],P[P.length-1][0],P[P.length-1][1]);gr.addColorStop(0,'#a87842');gr.addColorStop(1,'#c99e58');path();c.strokeStyle=gr;c.lineWidth=9;c.stroke();
+    try{if(GFX.pat&&GFX.tex&&GFX.tex.dirt){path();c.globalAlpha=.28;c.strokeStyle=GFX.pat(c,'dirt');c.lineWidth=7;c.stroke()}}catch(err){}c.restore()};
+  try{const _sl6=shadowLayer;shadowLayer=function(c){_sl6(c);try{if(GFX.mode!=='V23D'||!YL)return;for(const e of G.ents){if(e.type!=='pen'||e.dead||!e.built||!e.sranch)continue;if(e.owner!==0&&!(G.exp&&G.exp[0][ti(e.tx,e.ty)]))continue;
+      if(Math.abs(e.x-(cam.x+W/cam.z/2))>W/cam.z/2+260||Math.abs(e.y-(cam.y+H/cam.z/2))>H/cam.z/2+260)continue;const R=swRanch(e);if(!R||!R.built)continue;let sr=null;try{sr=bldSpr0(R)}catch(err){}const rt=sr&&GFX.swRoute(e,sr);if(rt)lanePoly(c,rt.P)}}catch(err){}}}catch(err){}
 })()}catch(err){}
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
@@ -8343,6 +8395,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
