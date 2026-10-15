@@ -1709,7 +1709,7 @@ function updUnit(u,dt){
       if(!alive(dp)||!dp.built){dp=nearestDrop(u);if(!dp){u.order=null;return;}o.drop=dp.id;u.path=null;}
       const r=approach(u,dp,TILE*.8);
       if(r==='fail'){u.order=null;return;}
-      if(r===true){if(u.owner===0&&u.carry.amt>0&&V0(dp))addPop(dp,popKey(u.carry),u.carry.amt*(dp.type==='butcher'&&u.carry.meat?1.3:1));if(u.carry.src==='fish'&&u.carry.amt>=5)fishJackpot(u,dp);if(u.carry.r==='tin'){dp.tin=(dp.tin||0)+u.carry.amt;}else if(dp.type==='depot'&&dp.rail){const ga=u.carry.amt*(u.carry.meat?1:1);(dp.stock=dp.stock||{})[u.carry.r]=(dp.stock[u.carry.r]||0)+ga;}else{const ga=u.carry.amt*(dp.type==='butcher'&&u.carry.meat?1.3:1);if(dp.type==='truck'){dp.load=dp.load||{};dp.load[u.carry.r]=(dp.load[u.carry.r]||0)+ga;if(!dp.loadT)dp.loadT=G.t;u.carry.amt=0;}else if(dp.type==='mill'&&u.carry.src==='farm'){dp.grain=(dp.grain||0)+ga;if(u.owner===0&&V0(dp))G.fx.push({type:'float',x:dp.x,y:dp.y-30,t:1.4,text:'+'+Math.round(ga)+' grain',col:'#f2d98a'});u.carry.amt=0;}else G.players[u.owner][u.carry.r]+=ga;inc(u.owner,u.carry.r,ga,u.carry.meat?'meat':u.type==='fishboat'?'fish':(u.carry.src||'gathering'));}u.carry.amt=0;u.carry.meat=false;o.phase='go';u.path=null;}
+      if(r===true){if(u.owner===0&&u.carry.amt>0&&V0(dp))addPop(dp,popKey(u.carry),u.carry.amt*(dp.type==='butcher'&&u.carry.meat?1.3:1));if(u.carry.src==='fish'&&u.carry.amt>=5)fishJackpot(u,dp);if(u.carry.r==='tin'){dp.tin=(dp.tin||0)+u.carry.amt;}else if(dp.type==='depot'&&dp.rail){const ga=u.carry.amt*(u.carry.meat?1:1);(dp.stock=dp.stock||{})[u.carry.r]=(dp.stock[u.carry.r]||0)+ga;}else{const ga=u.carry.amt*(dp.type==='butcher'&&u.carry.meat?1.3:1);if(dp.type==='truck'){dp.load=dp.load||{};dp.load[u.carry.r]=(dp.load[u.carry.r]||0)+ga;if(!dp.loadT)dp.loadT=G.t;u.carry.amt=0;}else if(dp.type==='mill'&&u.carry.src==='farm'){dp.grain=(dp.grain||0)+ga;if(u.owner===0&&V0(dp))G.fx.push({type:'float',x:dp.x,y:dp.y-30,t:1.4,text:'+'+Math.round(ga)+' grain',col:'#f2d98a'});u.carry.amt=0;}else G.players[u.owner][u.carry.r]+=ga;/* Josh Oct 15: grain left at a windmill isn't food yet (it's counted as bakery bread later), so it no longer shows under Farms */if(!(dp.type==='mill'&&u.carry.src==='farm'))inc(u.owner,u.carry.r,ga,u.carry.meat?'meat':u.type==='fishboat'?'fish':(u.carry.src||'gathering'));}u.carry.amt=0;u.carry.meat=false;o.phase='go';u.path=null;}
       return;
     }
     let t=G.byId.get(o.id);
@@ -8863,6 +8863,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
