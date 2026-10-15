@@ -313,10 +313,10 @@ const DEF={
   tower:{kind:'bld',name:'Watchtower',hp:250,size:2,sight:8,atk:4,range:6,cd:1.8,cost:{w:25,s:75},time:30},
 };
 const BUILDS=['house','farm','storage','barracks','tower','wall','range','stable','forge','workshop','mine','coop','ranch','butcher','dock','outpost','mill','bakery','castle','market','station','depot','factory','university','shaft','weaver','power','pylon','tesla','airfield','helipad','aagun','radar','pub','inn'];
-const BTABS=[['eco','Economy',['house','farm','storage','mine','coop','dock','ranch','mill','bakery','pub','market','university','shaft','power','pylon','station','depot','factory']],['mil','Military',['barracks','range','stable','forge','workshop','airfield','helipad']],['def','Defense',['tower','wall','outpost','castle','tesla','aagun']]];
-const UNLOCK_HINT={ranch:'Build a farm',mill:'Build 2 farms',bakery:'Build a windmill',dairy:'Build a bakery',weaver:'Build a livestock pen',pub:'Build a windmill',inn:'Research Inn at your pub',market:'Build a bakery',forester:'Build a storage pit',smelter:'Build a storage pit',corral:'Build a farm',airfield:'Build a power plant',helipad:'Build a power plant',aagun:'Build a power plant',radar:'Build a power plant',power:'Build a factory',pylon:'Build a power plant',tesla:'Build a power plant',shaft:'Research Surveying and find a vein',university:'Build a market',station:'Build a market',depot:'Build a railway station',factory:'Build a railway station',castle:'Build a watchtower',pen:'Build a farm',butcher:'Build a livestock pen',dock:'Catch a fish from the shore',coop:'Build a farm',range:'Build a barracks',stable:'Build a barracks',forge:'Build a barracks',workshop:'Build a forge',wall:'Build 2 watchtowers',outpost:'Train a scout'};
+const BTABS=[['eco','Economy',['house','farm','storage','mine','coop','dock','ranch','mill','bakery','pub','market','university','shaft','power','pylon','station','depot','factory']],['mil','Military',['barracks','range','stable','forge','workshop','airfield','helipad']],['def','Defense',['tower','wall','outpost','inn','castle','tesla','aagun']]];
+const UNLOCK_HINT={ranch:'Build a farm',mill:'Build 2 farms',bakery:'Build a windmill',dairy:'Build a bakery',weaver:'Build a livestock pen',pub:'Build a windmill',inn:'Build a pub',market:'Build a bakery',forester:'Build a storage pit',smelter:'Build a storage pit',corral:'Build a farm',airfield:'Build a power plant',helipad:'Build a power plant',aagun:'Build a power plant',radar:'Build a power plant',power:'Build a factory',pylon:'Build a power plant',tesla:'Build a power plant',shaft:'Research Surveying and find a vein',university:'Build a market',station:'Build a market',depot:'Build a railway station',factory:'Build a railway station',castle:'Build a watchtower',pen:'Build a farm',butcher:'Build a livestock pen',dock:'Catch a fish from the shore',coop:'Build a farm',range:'Build a barracks',stable:'Build a barracks',forge:'Build a barracks',workshop:'Build a forge',wall:'Build 2 watchtowers',outpost:'Train a scout'};
 function bReqMet(o,b){const P=G.players[o],U=P.unlock||(P.unlock={});if(U[b])return true;const has=t=>G.ents.some(e=>e.owner===o&&e.type===t&&e.built&&!e.dead);let ok=true;
-  switch(b){case 'pen':ok=has('farm');break;case 'butcher':ok=false;break;case 'dock':ok=!!U.fish;break;case 'coop':ok=has('farm');break;case 'range':case 'stable':case 'forge':ok=has('barracks');break;case 'workshop':ok=has('forge');break;case 'wall':ok=G.ents.filter(e=>e.owner===o&&e.type==='tower'&&e.built&&!e.dead).length>=2;break;case 'outpost':ok=!!U.scout;break;case 'mill':ok=G.ents.filter(e=>e.owner===o&&e.type==='farm'&&e.built).length>=2;break;case 'bakery':ok=has('mill');break;case 'dairy':ok=has('bakery');break;case 'weaver':ok=false;break;case 'pub':ok=has('mill');break;case 'inn':ok=false;break;case 'ranch':ok=has('farm');break;case 'market':ok=has('bakery');break;case 'forester':ok=has('storage');break;case 'smelter':ok=has('storage');break;case 'corral':ok=has('farm');break;case 'airfield':ok=has('power');break;case 'helipad':ok=has('power');break;case 'aagun':ok=has('power');break;case 'radar':ok=false;break;case 'power':ok=has('factory');break;case 'pylon':ok=has('power');break;case 'tesla':ok=has('power');break;case 'shaft':ok=!!G.players[o].tech.surveying&&G.ents.some(e=>e.type==='vein'&&!e.dead);break;case 'university':ok=has('market');break;case 'station':ok=has('market');break;case 'depot':ok=has('station');break;case 'factory':ok=has('station');break;case 'castle':ok=has('tower');break;}
+  switch(b){case 'pen':ok=has('farm');break;case 'butcher':ok=false;break;case 'dock':ok=!!U.fish;break;case 'coop':ok=has('farm');break;case 'range':case 'stable':case 'forge':ok=has('barracks');break;case 'workshop':ok=has('forge');break;case 'wall':ok=G.ents.filter(e=>e.owner===o&&e.type==='tower'&&e.built&&!e.dead).length>=2;break;case 'outpost':ok=!!U.scout;break;case 'mill':ok=G.ents.filter(e=>e.owner===o&&e.type==='farm'&&e.built).length>=2;break;case 'bakery':ok=has('mill');break;case 'dairy':ok=has('bakery');break;case 'weaver':ok=false;break;case 'pub':ok=has('mill');break;case 'inn':ok=has('pub');break;case 'ranch':ok=has('farm');break;case 'market':ok=has('bakery');break;case 'forester':ok=has('storage');break;case 'smelter':ok=has('storage');break;case 'corral':ok=has('farm');break;case 'airfield':ok=has('power');break;case 'helipad':ok=has('power');break;case 'aagun':ok=has('power');break;case 'radar':ok=false;break;case 'power':ok=has('factory');break;case 'pylon':ok=has('power');break;case 'tesla':ok=has('power');break;case 'shaft':ok=!!G.players[o].tech.surveying&&G.ents.some(e=>e.type==='vein'&&!e.dead);break;case 'university':ok=has('market');break;case 'station':ok=has('market');break;case 'depot':ok=has('station');break;case 'factory':ok=has('station');break;case 'castle':ok=has('tower');break;}
   if(ok)U[b]=1;return ok;}
 function bAvail(o,b){return (DEF[b].age||0)<=G.players[o].age&&bReqMet(o,b);}
 function checkUnlocks(){const S=G.seenAvail||(G.seenAvail={}),fresh=[];for(const b of BUILDS)if(!S[b]&&bAvail(0,b)){S[b]=G.t;if(G.t>2)fresh.push(DEF[b].name.toLowerCase());}if(fresh.length&&!CELE.on)toast('New building unlocked: '+fresh.join(', '));else if(fresh.length)G.pendingUnlock=(G.pendingUnlock||[]).concat(fresh);if(!CELE.on&&G.pendingUnlock&&G.pendingUnlock.length){toast('New buildings unlocked: '+G.pendingUnlock.join(', '));G.pendingUnlock=null;}}
@@ -521,7 +521,7 @@ function genMap(){
   const spot=(minB,tries,ok)=>{for(let k=0;k<tries;k++){const x=4+Math.floor(R()*(MW-8)),y=4+Math.floor(R()*(MH-8));if(nearBase(x,y,minB)||!free(x,y)||(ok&&!ok(x,y)))continue;return[x,y];}return null;};
   const pois=[];const farPoi=(x,y,d)=>pois.every(([a,b])=>Math.hypot(a-x,b-y)>d);
   for(let i=0;i<4;i++){const sp=spot(i===0?0:30,400,(x,y)=>farPoi(x,y,26)&&(i>0||Math.hypot(x-C,y-C)<14));if(!sp)continue;pois.push(sp);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const k=G.occ[ti(sp[0]+dx,sp[1]+dy)];if(k){const e=G.byId.get(k);if(e&&e.kind==='res'){e.dead=true;G.occ[ti(sp[0]+dx,sp[1]+dy)]=0;}}}
-    addEnt({kind:'poi',type:'sacred',owner:-1,tx:sp[0],ty:sp[1],size:1,x:(sp[0]+.5)*TILE,y:(sp[1]+.5)*TILE,cap:[0,0]});}
+    addEnt({kind:'poi',type:'sacred',owner:-1,tx:sp[0],ty:sp[1],size:1,x:(sp[0]+.5)*TILE,y:(sp[1]+.5)*TILE,cap:[0,0],hid:1,found:[0,0],disc:[0,0]});}
   for(const[ex,ey,dx,dy]of[[3,MH>>1,1,0],[MW-4,MH>>1,-1,0],[MW>>1,3,0,1],[MW>>1,MH-4,0,-1]]){let px=ex,py=ey;for(let k=0;k<30&&!(free(px,py)&&free(px+1,py)&&free(px,py+1));k++){px+=dx;py+=dy;}
     for(let yy=py-1;yy<=py+2;yy++)for(let xx=px-1;xx<=px+2;xx++){const id=G.occ[ti(xx,yy)];if(id){const e=G.byId.get(id);if(e&&e.kind==='res'){e.dead=true;G.occ[ti(xx,yy)]=0;}}}
     addEnt({kind:'poi',type:'tradepost',owner:-1,tx:px,ty:py,size:1,x:(px+.5)*TILE,y:(py+.5)*TILE});}
@@ -996,7 +996,7 @@ function guideFor(b){const own=t=>G.ents.filter(e=>e.owner===0&&e.type===t&&!e.d
     return guideHtml('Rail depot.',[[st,'Build a railway station in your town'],[!!b.rail,'Laying track. If this lasts, move the depot onto land connected to the station'],[stock+cargo>0||G.ents.some(u=>u.owner===0&&u.type==='villager'&&u.order&&u.order.type==='gather'&&Math.hypot(u.x-b.x,u.y-b.y)<10*TILE),'Send villagers to gather near this depot']],'Trains are hauling goods home');}
   if(b.type==='power'){const pw=(G.pw&&G.pw[0])||{};return guideHtml('Power plant.',[[!!b.on,'Out of fuel: it burns about 9 wood and 6 stone a minute']],'Powering '+(pw.np||0)+' buildings. Build pylons to carry power farther (each reaches about 9 tiles)');}
   if(b.type==='farm'){const ox=oxAlive(b);if(!ox)return '';return guideHtml('Oxen field.',[[!!(b.tendBy||G.ents.some(u=>u.type==='villager'&&u.order&&u.order.type==='gather'&&u.order.id===b.id)),'Put a farmer on an oxen field in this row: one farmer guides the oxen on up to 3 fields touching in a straight row']],b.tendBy?'Worked by oxen, guided by the farmer next door':'Farmer and oxen working here. Oxen also replant this field when it runs out ('+farmReplantW(b)+' wood)');}
-  if(b.type==='inn')return guideHtml('Roadside inn (hidden from the enemy).',[[G.ents.some(e=>e.type==='pub'&&e.owner===0&&e.built&&!e.dead),'Needs beer: build a pub. A cart brings barrels here automatically (careful, enemies may spot the cart)'],[(b.beer||0)>=1||!!b.trip,'Waiting for the first beer delivery']],'Beer: '+Math.floor(b.beer||0)+' barrels. Stolen so far: '+Math.floor(b.stolen||0)+' gold. Enemy soldiers marching within 6 tiles may stop for a drink (about 1 in 3), spending 10 of their gold here. After every 300 gold, rumors make it visible to them for 60 seconds. Enemy scouts and explorers can also find it'+((b.revealT||0)>G.t?'. <b style="color:#ff7a5a">Visible to the enemy right now!</b>':''));
+  if(b.type==='inn')return guideHtml('Roadside inn (hidden from the enemy).',[[G.ents.some(e=>e.type==='pub'&&e.owner===0&&e.built&&!e.dead),'Needs beer: build a pub'],[!!innDonkeyOf(b)||(b.beer||0)>=1,'A pack donkey carries beer here from your pub (train one at the ranch). Guard the road: enemies can catch it'],[(b.beer||0)>=1||!!b.trip,'Waiting for the first beer delivery']],'Beer: '+Math.floor(b.beer||0)+' barrels. Stolen so far: '+Math.floor(b.stolen||0)+' gold. Enemy soldiers marching within 6 tiles may stop for a drink (about 1 in 3), spending 10 of their gold here. After every 300 gold, rumors make it visible to them for 60 seconds. Enemy scouts and explorers can also find it'+((b.revealT||0)>G.t?'. <b style="color:#ff7a5a">Visible to the enemy right now!</b>':''));
   if(b.type==='pen'||b.type==='dairy'){const w=b.ware?Object.values(b.ware).reduce((a,v)=>a+v,0):0;if(!w&&!hasCaravan(0))return '';if(w||hasCaravan(0))return guideHtml(b.type==='pen'?'Wool for trade.':'Cheese for trade.',[[hasCaravan(0),'Train a donkey caravan at a corral to carry goods to a trading post (sold here at half price until then)']],Math.floor(w)+' '+(b.type==='pen'?'bales':'wheels')+' waiting for a caravan');}
   if(b.type==='pub'){const m=G.ents.some(e=>e.type==='mill'&&e.owner===0&&e.built&&!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);return guideHtml('Pub.',[[m,'Build a windmill within 15 tiles to supply grain'],[(b.gar||[]).length>0,'Add brewers here'],[(b.beer||0)>=1,'Brewing the first barrels']],Math.floor(b.beer||0)+' barrels. Idle villagers within 12 tiles drop in (+15% work for 3 min). Select soldiers and tap Round at the pub (+10% attack, +1 armor)'+(b.barley?'. Barley: brewing 1.5x faster':'. Tip: a windmill set to Barley brews 1.5x faster'));}
   if(b.type==='helipad')return guideHtml('Helipad.',[[own('heli').length>0,'Train attack helicopters here']],'Helicopters land here to rearm and repair when out of ammo');
@@ -1084,9 +1084,27 @@ function pubTick(b,dt){const n=b.gar?b.gar.length:0,P=G.players[b.owner];b.beer=
     for(const u of G.ents){if(u.owner!==b.owner||u.type!=='villager'||u.dead||u.order||u.shep)continue;if(Math.hypot(u.x-b.x,u.y-b.y)>12*TILE)continue;
       if(free>0&&b.beer>=1&&(u.pubCd||0)<=G.t){u.order={type:'pub',id:b.id,seat:busy+(6-free)};free--;}else if(rd<9){u.order={type:'ready',id:b.id,slot:rd++};u.path=null;}}}}
 function innSeen(e,o){return e.type!=='inn'||e.owner===o||(e.revealT||0)>G.t||(e.spotT&&e.spotT[o]>G.t);}
+/* Josh (Oct 14): the roadside inn is a trap out on the roads, so it gets its beer from your pub by pack donkey (a real donkey on the road,
+   which the enemy can catch). b.donk = donkey id; donkey: u.innD = inn id, u.ileg 'home'|'go', u.ipub, u.beerC. No windmill or farm near the inn. */
+function innPub(b,min){let best=null,bd=1e9;for(const e of G.ents)if(e.type==='pub'&&e.owner===b.owner&&e.built&&!e.dead&&(e.beer||0)>=min){const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<bd){bd=d;best=e;}}return best;}
+function innDonkeyOf(b){const d=b.donk&&G.byId.get(b.donk);return d&&!d.dead&&d.owner===b.owner&&d.innD===b.id?d:null;}
+function innSupply(b,dt){if(!b.built)return;let d=innDonkeyOf(b);if(!d)b.donk=0;if(d)return;b.dscan=(b.dscan||0)-dt;if(b.dscan>0)return;b.dscan=3;
+  if((b.beer||0)>=8||!innPub(b,2))return;let best=null,bs=1e9;
+  for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.bake||u.innD||u.penned||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>70*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
+  if(!best){if(b.owner===0&&G.t-(b.noDk||-99)>90){b.noDk=G.t;toast('Your roadside inn needs a pack donkey to bring beer from the pub. Train one at the ranch');}return;}
+  const v=best.buddy&&G.byId.get(best.buddy);if(v&&v.donkey===best.id)v.donkey=0;best.buddy=0;best.home=0;best.order=null;best.path=null;best.innD=b.id;best.ileg='home';best.beerC=0;b.donk=best.id;}
+function donkeyInn(u,dt){const b=G.byId.get(u.innD);
+  if(!b||b.dead||b.owner!==u.owner||b.donk!==u.id){u.innD=0;u.beerC=0;u.ileg=0;return false;}
+  if(u.order&&!u.order.auto){b.donk=0;u.innD=0;if(u.beerC){b.beer=(b.beer||0)+u.beerC;u.beerC=0;}return false;}
+  u.order=null;if(u.fz>G.t)return true;
+  if(u.ileg==='go'){const p=G.byId.get(u.ipub);if(!p||p.dead||p.owner!==u.owner){u.ileg='home';return true;}const r=approach(u,p,TILE*1.1);if(r==='fail'){u.ileg='home';u.fz=G.t+3;return true;}if(r!==true)return true;
+    u.lw=(u.lw||0)+dt;if(u.lw<1.2)return true;const a=Math.min(12,Math.floor((p.beer||0)-1));if(a<1){if(u.lw>20){u.lw=0;u.ileg='home';}return true;}p.beer-=a;u.beerC=a;u.lw=0;u.ileg='home';return true;}
+  const r=approach(u,b,TILE*1.1);if(r==='fail'){u.fz=G.t+3;u.nf=(u.nf||0)+1;if(u.nf>=5){u.nf=0;b.donk=0;u.innD=0;return false;}return true;}u.nf=0;if(r!==true)return true;
+  if(u.beerC){b.beer=(b.beer||0)+u.beerC;if(b.owner===0)G.fx.push({type:'float',x:b.x,y:b.y-22,t:1.4,text:'+'+u.beerC+' beer',col:'#f2c46a'});u.beerC=0;}
+  if((b.beer||0)<8){const p=innPub(b,3);if(p){u.ipub=p.id;u.ileg='go';u.lw=0;}}return true;}
 function innTick(b,dt){b.beer=b.beer||0;
   if(b.trip){b.trip.t+=dt;if(b.trip.t>=b.trip.dur){b.beer+=b.trip.amt;b.trip=null;}}
-  else if(b.beer<8){const pb=G.ents.filter(e=>e.type==='pub'&&e.owner===b.owner&&e.built&&!e.dead&&(e.beer||0)>=4).sort((x,y)=>Math.hypot(x.x-b.x,x.y-b.y)-Math.hypot(y.x-b.x,y.y-b.y))[0];if(pb){const a=Math.min(10,Math.floor(pb.beer-2));pb.beer-=a;b.trip={fx:pb.x,fy:pb.y+10,amt:a,t:0,dur:Math.max(3,Math.hypot(pb.x-b.x,pb.y-b.y)/70),cargo:'beer'};}}
+  else innSupply(b,dt);
   b.scanT=(b.scanT||0)-dt;if(b.scanT>0)return;b.scanT=1;const en=1-b.owner;b.spotT=b.spotT||{};b.stolen=b.stolen||0;b.nextRumor=b.nextRumor||300;
   for(const u of G.ents){if(u.owner!==en||u.kind!=='unit'||u.dead||u.air)continue;const d=Math.hypot(u.x-b.x,u.y-b.y);
     if((u.type==='scout'||u.type==='explorer')&&d<6*TILE&&!(b.spotT[en]>G.t)){b.spotT[en]=G.t+60;if(en===0)toast('Your '+DEF[u.type].name.toLowerCase()+' found a hidden enemy inn!');}
@@ -1103,7 +1121,7 @@ function bakeRunner(b){const r=b.runner&&G.byId.get(b.runner);return r&&!r.dead&
 function bakeryHaul(b,dt){b.flour=b.flour||0;if(b.trip){const t=b.trip;t.t+=dt;if(t.t>=t.dur){b.flour+=t.amt;b.trip=null;}return;}
   {const cm=chuteMill(b);b.chute=cm?cm.id:0;if(cm){const dk=bakeDonkey(b);if(dk){if(dk.flourC){b.flour+=dk.flourC;dk.flourC=0;}dk.bake=0;dk.leg=0;}b.donk=0;b.runner=0;const a=Math.min(cm.flour||0,Math.max(0,80-b.flour),20*dt);if(a>0){cm.flour-=a;b.flour+=a;}return;}}
   let d=bakeDonkey(b);if(!d)b.donk=0;
-  if(!d){b.dscan=(b.dscan||0)-dt;if(b.dscan<=0){b.dscan=2;let best=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.bake||u.penned||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
+  if(!d){b.dscan=(b.dscan||0)-dt;if(b.dscan<=0){b.dscan=2;let best=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.bake||u.innD||u.penned||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
     if(best){const v=best.buddy&&G.byId.get(best.buddy);if(v&&v.donkey===best.id)v.donkey=0;best.buddy=0;best.order=null;best.path=null;best.bake=b.id;best.leg='home';best.flourC=0;b.donk=best.id;d=best;}}}
   if(d){b.runner=0;return;}
   if(!bakeRunner(b))b.runner=0;
@@ -1147,7 +1165,7 @@ function chuteMill(b){for(const e of G.ents)if(e.type==='mill'&&e.owner===b.owne
 const MILQ=['barracks','range','stable'];
 /* ranch (Josh): a corral touching or 1 tile from your own livestock pen trains 10% faster */
 const CORRAL_AN=new Set(['donkey','ox','caravan']);
-function corralBusy(u){return !!((u.type==='donkey'&&(u.buddy||u.bake))||(u.type==='ox'&&u.farm)||((u.type==='caravan'||u.type==='truck')&&u.cv));}
+function corralBusy(u){return !!((u.type==='donkey'&&(u.buddy||u.bake||u.innD))||(u.type==='ox'&&u.farm)||((u.type==='caravan'||u.type==='truck')&&u.cv));}
 function corralFree(u){if(u.type==='ox'&&u.farm){const f=G.byId.get(u.farm);if(f&&f.ox===u.id)f.ox=0;u.farm=0;u.plowing=false;}
   if(u.type==='donkey'){const v=u.buddy&&G.byId.get(u.buddy);if(v&&v.donkey===u.id)v.donkey=0;u.buddy=0;if(u.bake){const b=G.byId.get(u.bake);if(b&&b.donk===u.id)b.donk=0;if(u.flourC&&b&&!b.dead)b.flour=(b.flour||0)+u.flourC;u.flourC=0;u.bake=0;u.leg=0;}}}
 /* ---- raising (Josh): the corral raises young animals. A foal/calf appears in the yard at once and grows; it can't work until grown.
@@ -1478,6 +1496,7 @@ function updUnit(u,dt){
       for(const e of G.ents){if(e.owner!==u.owner||e.kind!=='bld'||!e.built||e.dead)continue;let v=e.ware?Object.values(e.ware).reduce((a,x)=>a+x,0):0;if(e.type==='pub')v+=Math.max(0,(e.beer||0)-15);
         if(v>bv&&!G.ents.some(c=>c!==u&&(c.type==='caravan'||c.type==='tradecart')&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
       if(best){u.cv={leg:'load',id:best.id};u.path=null;return;}}if(!TCv)return;}}
+  if(u.type==='donkey'&&u.owner<2&&u.innD&&donkeyInn(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&u.bake&&donkeyBake(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&!u.raise){u.scan=(u.scan||0)-dt;let v=u.buddy&&G.byId.get(u.buddy);
     if(!v||v.dead||v.owner!==u.owner||v.donkey!==u.id||!(v.order&&(v.order.type==='gather'))){if(v&&v.donkey===u.id&&!(v.order&&v.order.type==='gather')){v.idleT=(v.idleT||0)+dt;if(v.idleT<8)v=v;else{v.donkey=0;u.buddy=0;v=null;}}else{if(v&&v.donkey===u.id)v.donkey=0;u.buddy=0;v=null;}}
@@ -1730,8 +1749,16 @@ function bAnimEnd(b,dt){const a=b.anim||(b.anim={t:0,phase:0,ev:{}});const W=WOR
   const act=!!(b.working||(b.queue&&b.queue.length)||(b.type==='mill'&&((b.grain||0)>0||(b.flour||0)>0))||(b.type==='power'&&b.on)||(b.type==='coop'&&(b.hens||0)>0)||(b.type==='shaft'&&n>0)||(b.trip));
   a.active=act;a.rate=(W&&W.max?Math.max(.25,n/W.max):1)*(b.powered?1.5:1);a.t=act?a.t+dt:0;if(act)a.phase=(a.phase+dt*.5*a.rate)%1;
   a.stock={grain:b.grain||0,flour:b.flour||0,beer:b.beer||0,wool:b.wool||0,goods:b.goods||null,planes:b.planes||0,hens:b.hens||0,stolen:b.stolen||0};}
+/* Josh (Oct 14): 3 farms in a straight row, touching, each with its ox, become one long farm (same footprint, 3 oxen working it).
+   f.frow = {ids:[3], anchor:id, x0,y0,x1,y1 (tiles, x1/y1 exclusive), dir:'h'|'v'}; recomputed every second (farmRowCalc). The anchor draws the whole
+   field (GFX.drawFarmRow(c,x0px,y0px,wpx,hpx,fill,dir,seed) if the art defines it, else the 3 plots as before); the others draw nothing then. */
+function farmRowCalc(){if(G._frT>G.t)return;G._frT=G.t+1;const F=G.ents.filter(e=>e.type==='farm'&&e.built&&!e.dead&&(e.size||2)===3);for(const f of F)f.frow=null;
+  const key=new Map();for(const f of F)key.set(f.owner+':'+f.tx+':'+f.ty,f);const ok=f=>{const o=f.ox&&G.byId.get(f.ox);return o&&!o.dead&&o.farm===f.id;};
+  for(const dir of['h','v'])for(const f of F){if(f.frow||!ok(f))continue;const nx=g=>key.get(g.owner+':'+(g.tx+(dir==='h'?3:0))+':'+(g.ty+(dir==='v'?3:0)));
+    const b=nx(f),c=b&&nx(b);if(!b||!c||b.frow||c.frow||!ok(b)||!ok(c))continue;const R={ids:[f.id,b.id,c.id],anchor:f.id,x0:f.tx,y0:f.ty,x1:c.tx+3,y1:c.ty+3,dir};f.frow=b.frow=c.frow=R;}}
 function updBld(b,dt){
   if(!b.built)return;
+  if(b.type==='farm')farmRowCalc();
   if((b.type==='pen'||b.type==='corral')&&G._pgT!==G.t)penGrpCalc();
   if(b.type==='house'&&(b.grp||b.mergeJob||b.mergeWait))houseGrpTick(b);
   if(b.type==='coop'&&(b.yard||b.mergeJob||b.mergeWait))yardTick(b);
@@ -1909,7 +1936,8 @@ function updPOIs(dt){try{boatIdleTick(dt);}catch(e){}try{grazeTick(dt);}catch(e)
     if(p.kind!=='poi')continue;
     if(p.type==='tradepost')continue;
     if(p.type==='ruin'){if(p.looted)continue;for(const u of G.ents)if(u.kind==='unit'&&u.owner<2&&!u.dead&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<56&&Math.abs(u.y-p.y)<56&&Math.hypot(u.x-p.x,u.y-p.y)<1.7*TILE){claimRuin(p,u.owner);break;}continue;}
-    const pres=[0,0];for(const u of G.ents)if(u.kind==='unit'&&u.owner<2&&!u.dead&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<110&&Math.hypot(u.x-p.x,u.y-p.y)<3.2*TILE)pres[u.owner]++;
+    if(p.type==='sacred'&&p.hid)sacDisc(p,dt);
+    const pres=[0,0];for(const u of G.ents)if(u.kind==='unit'&&u.owner<2&&!u.dead&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<110&&Math.hypot(u.x-p.x,u.y-p.y)<3.2*TILE&&sacFound(p,u.owner))pres[u.owner]++;
     const side=pres[0]&&!pres[1]?0:pres[1]&&!pres[0]?1:-1;
     if(side>=0&&p.owner!==side){p.cap[side]+=dt;p.cap[1-side]=Math.max(0,p.cap[1-side]-dt);if(p.cap[side]>=8){const prev=p.owner;p.owner=side;p.cap=[0,0];
         if(side===0)toast('You captured a sacred site');else if(prev===0)toast('The red tribe took your sacred site');else if(G.vis[0][ti(p.tx,p.ty)])toast('The red tribe captured a sacred site');}}
@@ -1917,6 +1945,17 @@ function updPOIs(dt){try{boatIdleTick(dt);}catch(e){}try{grazeTick(dt);}catch(e)
     if(p.owner===0||p.owner===1){G.players[p.owner].g+=0.5*dt;inc(p.owner,'g',.5*dt,'sacred');}
   }
 }
+/* Josh (Oct 14): sacred sites start hidden. Each side sees only a mystical glow on the ground until one of its units stands on it for SAC_FIND s;
+   then the site fades in for that side like a ghost and stays for the rest of the game. A side can't capture (or contest) a site it hasn't found.
+   p.hid (new games only; old saves = found), p.found[o] = G.t when found (0 = not yet), p.disc[o] = seconds stood on it. */
+const SAC_FIND=5;
+function sacFound(p,o){return !p||!p.hid||!!(p.found&&p.found[o]);}
+function sacDisc(p,dt){if(!p.found)p.found=[0,0];if(!p.disc)p.disc=[0,0];
+  for(const o of[0,1]){if(p.found[o])continue;let on=false;for(const u of G.ents)if(u.kind==='unit'&&u.owner===o&&!u.dead&&!u.air&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<48&&Math.hypot(u.x-p.x,u.y-p.y)<1.4*TILE){on=true;break;}
+    p.disc[o]=on?p.disc[o]+dt:Math.max(0,p.disc[o]-dt*.5);
+    if(p.disc[o]>=SAC_FIND){p.found[o]=Math.max(.001,G.t);if(o===0){toast('You found a sacred site! Hold it to earn gold');try{sfx('done',p.x,p.y);}catch(err){}}}}}
+function sacAlpha(e){if(!e||!e.hid)return 1;const f=e.found&&e.found[0];if(!f){const d=(e.disc&&e.disc[0])||0;return d>0?.06+.2*Math.min(1,d/SAC_FIND):0;}
+  const k=G.t-f;if(k<0)return 1;if(k<1.2)return .3;if(k<3.6){const q=(k-1.2)/2.4;return .3+.7*q*q*(3-2*q);}return 1;}
 function checkEnd(){
   const has=[false,false];
   for(const e of G.ents)if(!e.dead&&e.owner>=0&&e.owner<2&&(e.kind==='bld'||(e.kind==='unit'&&!DEF[e.type].animal)))has[e.owner]=true;
@@ -2074,7 +2113,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   {const sp=bld('storage');if(age>=2&&sp&&sp.queue.length===0&&!P.tech.coppicing&&P.f>220&&P.w>220)enqueue(sp,'coppicing');}
   {const fg1=bld('forge');if(fg1&&fg1.queue.length===0&&!P.tech.bronzework&&P.w>200&&P.s>120)enqueue(fg1,'bronzework');const st1=bld('storage');if(st1&&st1.queue.length===0&&P.tech.bronzework&&!P.tech.bronzetools&&P.g>120&&P.w>200)void 0;const fg2=bld('forge');if(fg2&&fg2.queue.length===0&&P.tech.bronzework&&!P.tech.bronzearmor&&P.g>140&&P.f>200)enqueue(fg2,'bronzearmor');}
   {const rc=bld('ranch');if(rc&&age>=3&&rc.built&&!rc.wing&&P.w>350)aiWing(rc);const st=bld('storage');if(st&&age>=3&&st.queue.length===0&&!P.tech.forestry&&vills.length>24&&P.w>300&&P.g>120)enqueue(st,'forestry');const pb=bld('pub');if(pb&&!hasInn(pb)&&!(pb.innUpT>0)&&P.g>260&&canAfford(P,INNUP_COST)){pay(P,INNUP_COST);pb.innUpT=30;}}
-  {const cor=bld('ranch')||bld('corral');if(cor&&cor.queue.length===0){const nf=G.ents.filter(e=>e.type==='farm'&&e.owner===o&&!e.dead).length,no=mine.filter(u=>u.type==='ox').length,nd=mine.filter(u=>u.type==='donkey').length;if(no<Math.min(4,nf))enqueue(cor,'ox');else if(nd<Math.min(5,vills.length>>2)+G.ents.filter(e=>e.type==='bakery'&&e.owner===o&&e.built&&!e.dead).length)enqueue(cor,'donkey');}}
+  {const cor=bld('ranch')||bld('corral');if(cor&&cor.queue.length===0){const nf=G.ents.filter(e=>e.type==='farm'&&e.owner===o&&!e.dead).length,no=mine.filter(u=>u.type==='ox').length,nd=mine.filter(u=>u.type==='donkey').length;if(no<Math.min(4,nf))enqueue(cor,'ox');else if(nd<Math.min(5,vills.length>>2)+G.ents.filter(e=>(e.type==='bakery'||e.type==='inn')&&e.owner===o&&e.built&&!e.dead).length)enqueue(cor,'donkey');}}
   for(const f of G.ents)if(f.type==='farm'&&f.owner===o&&f.fallow&&!f.dead&&P.w>=60)replantFarm(f);
   {const bk=bld('bakery');if(bk){if(bk.queue.length===0&&age>=4&&!P.tech.grandbake&&P.g>300&&P.w>300)enqueue(bk,'grandbake');else if(bk.queue.length===0&&age>=5&&!P.tech.bakeworks&&P.g>400&&P.s>350)enqueue(bk,'bakeworks');if(bld('market'))bk.exp=50;}}
   {const cor=bld('ranch')||bld('corral');if(cor&&age>=2&&age<4&&cor.queue.length===0&&(bld('pen')||bld('dairy')||(bld('ranch')&&P.tech.dairyfarm))&&mine.filter(u=>u.type==='caravan').length<2&&P.f>200)enqueue(cor,'caravan');}
@@ -6164,6 +6203,8 @@ function shadowPass(c,list){for(const it of list){const e=it[1];if(!e||!e.kind)c
 function spTop(sp){if(sp._top!==undefined)return sp._top;let top=0;try{const g=sp.getContext('2d'),d=g.getImageData(0,0,sp.width,sp.height).data,k=sp.width/sp.w;outer:for(let y=0;y<sp.height;y++){for(let x=0;x<sp.width;x++)if(d[(y*sp.width+x)*4+3]>40){top=y/k;break outer;}}}catch(e){top=0;}sp._top=top;return top;}
 function drawBuilding(c,e,now){
   if(e.type==='coop'&&e.yard&&e.built){if((e.yard.dr||e.yard.anchor)===e.id){try{drawPoultryYard(c,e,now);}catch(err){console.warn(err);}}return;}
+  if(e.type==='farm'&&e.built&&e.frow&&typeof GFX!=='undefined'&&GFX.drawFarmRow){const R=e.frow;if(R.anchor!==e.id)return;const m=R.ids.map(id=>G.byId.get(id)).filter(Boolean);
+    const fill=m.length?Math.min(1,m.reduce((a,f)=>a+f.amt/farmCap(f),0)/m.length*1.4):0;if(GFX.drawFarmRow(c,R.x0*TILE,R.y0*TILE,(R.x1-R.x0)*TILE,(R.y1-R.y0)*TILE,fill,R.dir,e.id))return;}
   if(e.type==='farm'&&e.built){drawFarmPlot(c,e.tx*TILE,e.ty*TILE,e.size*TILE,Math.min(1,e.amt/farmCap(e)*1.4),e.id);return;}
   /* Josh (Oct 14): a farm being built showed the old 2x2 picture inside its 3x3 lot; now the full-size bed appears as it is built */
   if(e.type==='farm'&&!e.built){const S=e.size*TILE,x0=e.tx*TILE,fy=e.ty*TILE,p=Math.max(.06,e.progress||0),H=S+44,top=fy+S+8-H*p;
@@ -6538,7 +6579,7 @@ function drawMini(){
   }
   for(const e of G.ents){
     if(e.kind==='bld'){if(e.owner!==0&&!E[ti(tl(e.x),tl(e.y))])continue;if(!innSeen(e,0))continue;m.fillStyle=PCOL[e.owner];m.fillRect(e.tx*s,e.ty*s,e.size*s,e.size*s);}
-    else if(e.kind==='poi'){if(!E[ti(e.tx,e.ty)])continue;if(e.type==='tradepost'){m.fillStyle=OL;m.fillRect(e.tx*s-2.6*s,e.ty*s-2.6*s,6.2*s,6.2*s);m.fillStyle='#ffd34a';m.fillRect(e.tx*s-2*s,e.ty*s-2*s,5*s,5*s);}else if(e.type==='sacred'){m.fillStyle=OL;m.fillRect(e.tx*s-2.4*s,e.ty*s-2.4*s,5.8*s,5.8*s);m.fillStyle=e.owner===0?'#8fc0ff':e.owner===1?'#ff9a8a':'#fff1b0';m.fillRect(e.tx*s-1.8*s,e.ty*s-1.8*s,4.6*s,4.6*s);}else if(!e.looted){m.fillStyle='#ffe58a';m.fillRect(e.tx*s-s,e.ty*s-s,3*s,3*s);}}
+    else if(e.kind==='poi'){if(!E[ti(e.tx,e.ty)])continue;if(e.type==='tradepost'){m.fillStyle=OL;m.fillRect(e.tx*s-2.6*s,e.ty*s-2.6*s,6.2*s,6.2*s);m.fillStyle='#ffd34a';m.fillRect(e.tx*s-2*s,e.ty*s-2*s,5*s,5*s);}else if(e.type==='sacred'&&!sacFound(e,0)){}else if(e.type==='sacred'){m.fillStyle=OL;m.fillRect(e.tx*s-2.4*s,e.ty*s-2.4*s,5.8*s,5.8*s);m.fillStyle=e.owner===0?'#8fc0ff':e.owner===1?'#ff9a8a':'#fff1b0';m.fillRect(e.tx*s-1.8*s,e.ty*s-1.8*s,4.6*s,4.6*s);}else if(!e.looted){m.fillStyle='#ffe58a';m.fillRect(e.tx*s-s,e.ty*s-s,3*s,3*s);}}
     else if(e.kind==='unit'){if(e.owner!==0&&!V[ti(tl(e.x),tl(e.y))])continue;m.fillStyle=e.owner===0?'#9cc8ff':e.owner===2?'#c9a070':'#ff8f84';m.fillRect(e.x/TILE*s-s,e.y/TILE*s-s,s*2,s*2);}
   }
   m.imageSmoothingEnabled=true;m.drawImage(fogC,0,0,w,w);
@@ -6866,6 +6907,20 @@ function cmdToBuilding(mine,hit){
       if(hit.built&&(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')&&v.length){if(hit.type==='goldmine'&&!G.players[0].tech.picks){toast('Research Copper picks to mine gold');return true;}v.forEach(u=>orderGather(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&DEF[hit.type].drop&&v.length&&v.every(u=>u.carry.amt>0)){v.forEach(u=>{u.order={type:'gather',phase:'drop',drop:hit.id,id:0,rtype:{f:'berry',w:'tree',s:'stone',g:'gold'}[u.carry.r],lx:u.x,ly:u.y,bad:0};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
   return false;}
+/* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
+try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
+  if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
+  function glow(c,e,now){const t=now/1000,x=e.x,y=e.y+4,f=e.found&&e.found[0],fade=f?Math.max(0,1-(G.t-f)/3):1;if(fade<=0)return;const p=.75+.25*Math.sin(t*1.7+e.id);
+    c.save();c.globalAlpha=fade;c.globalCompositeOperation='lighter';const R=2.2*TILE;
+    const g=c.createRadialGradient(x,y,2,x,y,R);g.addColorStop(0,'rgba(170,230,255,'+(.42*p)+')');g.addColorStop(.45,'rgba(120,170,255,'+(.2*p)+')');g.addColorStop(1,'rgba(90,120,255,0)');
+    c.fillStyle=g;c.beginPath();c.ellipse(x,y,R,R*.58,0,0,7);c.fill();
+    c.strokeStyle='rgba(190,240,255,'+(.35*p)+')';c.lineWidth=1.2;for(let k=0;k<3;k++){const a0=t*(.6+k*.25)+k*2.1;c.beginPath();c.ellipse(x,y,R*(.35+k*.17),R*(.35+k*.17)*.58,0,a0,a0+1.9);c.stroke();}
+    for(let i=0;i<14;i++){const ph=(t*.35+i*.0714+e.id*.13)%1,an=i*2.39+e.id,rr=R*.75*((i*37%10)/10),sx=x+Math.cos(an)*rr,sy=y+Math.sin(an)*rr*.58-ph*26,al=Math.sin(ph*Math.PI);
+      c.fillStyle='rgba(230,250,255,'+(.85*al)+')';c.beginPath();c.arc(sx,sy,1.1+al*1.1,0,7);c.fill();}
+    c.restore();}
+  const _sl=shadowLayer;shadowLayer=function(c){_sl(c);try{const now=performance.now(),E=G.exp[0];for(const e of G.ents){if(e.kind!=='poi'||e.type!=='sacred'||e.dead||!e.hid)continue;const f=e.found&&e.found[0];if(f&&G.t-f>3)continue;if(!E[ti(e.tx,e.ty)])continue;
+      if(Math.abs(e.x-(cam.x+W/cam.z/2))>W/cam.z/2+120||Math.abs(e.y-(cam.y+H/cam.z/2))>H/cam.z/2+120)continue;if(GFX.sacGlow){try{GFX.sacGlow(c,e,now,f?Math.max(0,1-(G.t-f)/3):1);continue;}catch(err){}}glow(c,e,now);}}catch(err){}};
+})()}catch(err){}
 function onTap(wx,wy){
   if(!G||G.over)return;
   if(G.strikeN||G.reconAim){const ap=G.byId.get(G.strikeFrom);if(ap&&!ap.dead){if(G.strikeN){airLaunch(0,ap,Math.min(G.strikeN,ap.planes||0),wx,wy,'strike');mark(wx,wy,'#ff3b2f');toast('Air strike launched');}else if(G.players[0].g>=50){G.players[0].g-=50;ap.reconT=G.t+60;airLaunch(0,ap,1,wx,wy,'recon');mark(wx,wy,'#9ec4e0');toast('Recon plane on its way');}}G.strikeN=0;G.reconAim=false;panelKeyLast='';return;}
@@ -7353,8 +7408,9 @@ function renderPanel(sel){
     info='';
   }else if(one&&one.kind==='poi'){
     const own=one.owner===0?'Held by you. ':one.owner===1?'Held by the red tribe. ':'';
+    if(one.type==='sacred'&&!sacFound(one,0)){info='<div style="min-width:0;flex:1"><div class="nm">A strange glow</div><div class="sub">Something is hidden here</div></div>';acts='<div class="hint">Stand any of your units on the glow for a few seconds to see what it is.</div>';}else{
     info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site')+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec')+'</div></div>';
-    acts='<div class="hint">'+(one.type==='tradepost'?'In the Renaissance Age, trade carts from your market travel here and bring back gold. The farther your market, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';
+    acts='<div class="hint">'+(one.type==='tradepost'?'In the Renaissance Age, trade carts from your market travel here and bring back gold. The farther your market, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';}
   }else if(one&&one.kind!=='unit'){
     const nm=one.kind==='res'?RES[one.type].name:(one.type==='pub'&&hasInn(one)?'Pub & Inn':one.type==='coop'&&one.yard?'Poultry yard':bname(one.type,one.owner))+(one.owner===1?' (enemy)':'');
     const ag=one.kind==='bld'?G.players[one.owner].age:0,tk=ag>=6&&THUMB[one.type+'x']?one.type+'x':ag>=5&&THUMB[one.type+'n']?one.type+'n':ag>=4&&THUMB[one.type+'r']?one.type+'r':ag>=3&&THUMB[one.type+'m']?one.type+'m':ag>=2&&THUMB[one.type+'i']?one.type+'i':ag>=1&&THUMB[one.type+'b']?one.type+'b':one.type;
