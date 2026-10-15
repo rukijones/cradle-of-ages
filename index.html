@@ -5241,10 +5241,9 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
    Modern Age (age 6, art/c/nb_mod.webp): the 9 core looks (key \'x\'; bunker, vehicle depot, machine shop, artillery factory), command fortress (castle x),
    motor pool (corral x), poultry farm (coop x), power plant, pylon, Tesla coil, airfield, helipad, AA gun (bare keys), and the apartment block
    (a merged 6x4 house group h.grp.k===\'apt\': the anchor house draws the whole block, the others draw nothing). Castle/corral/coop/apt are also
-   hooked at draw time (bldSpr0, sprFor) because other blocks draw those types at draw time.
-   House floor levels nL1/nL2 (Industrial) and xL1/xL2 (Modern) and the Modern station/depot/textile mill (station|depot|factory+o+\'x\', drawn from age 6): art/c/nb_mod2.webp, GFX.lvCore. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks). ===== */
+   hooked at draw time (bldSpr0, sprFor) because other blocks draw those types at draw time. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks). ===== */
 (function(){try{
-  const ATL=[{f:'nb_core',lay:{tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]},gap:0},{f:'nb_ind2',lay:{"tower":[0,0,209,466],"factory":[424,0,358,443],"barracks":[1146,0,402,438],"workshop":[0,468,384,413],"stable":[774,468,339,395],"station":[0,883,469,388],"forge":[944,883,354,367],"range":[0,1273,327,361],"depot":[660,1273,308,303]},gap:2},{f:'nb_mod',lay:{"pylon":[0,0,263,473],"towncenter":[530,0,382,472],"castle":[0,475,394,436],"workshop":[792,475,397,419],"tesla":[0,913,268,409],"apt":[540,913,451,406],"storage":[0,1324,334,366],"tower":[672,1324,348,366],"forge":[0,1692,364,350],"power":[732,1692,425,334],"house":[0,2044,285,330],"stable":[574,2044,337,305],"corral":[0,2376,440,304],"airfield":[884,2376,410,304],"barracks":[0,2682,432,290],"aagun":[868,2682,317,286],"range":[0,2974,432,270],"helipad":[868,2974,317,256],"coop":[0,3246,423,245]},gap:2},{f:'nb_mod2',lay:{"nL2":[0,0,223,457],"xL2":[450,0,255,387],"xL1":[964,0,380,345],"nL1":[0,459,227,336],"depot":[458,459,389,335],"factory":[0,797,368,334],"station":[740,797,432,302]},gap:2}];
+  const ATL=[{f:'nb_core',lay:{tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]},gap:0},{f:'nb_ind2',lay:{"tower":[0,0,209,466],"factory":[424,0,358,443],"barracks":[1146,0,402,438],"workshop":[0,468,384,413],"stable":[774,468,339,395],"station":[0,883,469,388],"forge":[944,883,354,367],"range":[0,1273,327,361],"depot":[660,1273,308,303]},gap:2},{f:'nb_mod',lay:{"pylon":[0,0,263,473],"towncenter":[530,0,382,472],"castle":[0,475,394,436],"workshop":[792,475,397,419],"tesla":[0,913,268,409],"apt":[540,913,451,406],"storage":[0,1324,334,366],"tower":[672,1324,348,366],"forge":[0,1692,364,350],"power":[732,1692,425,334],"house":[0,2044,285,330],"stable":[574,2044,337,305],"corral":[0,2376,440,304],"airfield":[884,2376,410,304],"barracks":[0,2682,432,290],"aagun":[868,2682,317,286],"range":[0,2974,432,270],"helipad":[868,2974,317,256],"coop":[0,3246,423,245]},gap:2}];
   const TY={towncenter:['nb_tc',0,'tc',1.15,.04],house:['nb_house',0,'house',.98,.05],storage:['nb_storage',0,'storage',1.1,.04],
     barracks:['nb_barracks',1,'barracks',1.1,.04],tower:['nb_tower',1,'tower',.95,.04],range:['nb_range',1,'range',1.08,.04],stable:['nb_stable',1,'stable',1.08,.04],
     forge:['nb_forge',1,'forge',1.08,.04],workshop:['nb_workshop',1,'workshop',1.1,.04],station:['nb_station',1,'station',1.1,.03],depot:['nb_depot',1,'depot',1.08,.04],factory:['nb_factory',1,'factory',1.02,.04]};
@@ -5253,11 +5252,8 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
     tower:['nx_tower','tower',1.05,.04],range:['nx_range','range',1.1,.04],stable:['nx_stable','stable',1.08,.04],forge:['nx_forge','forge',1.08,.04],workshop:['nx_workshop','workshop',1.1,.04],
     castle:['nx_castle','castle',1.08,.04],corral:['nx_corral','corral',1.08,.04],coop:['nx_coop','coop',1.1,.04],power:['nx_power','power',1.1,.04],pylon:['nx_pylon','pylon',1.0,.04],
     tesla:['nx_tesla','tesla',1.0,.04],airfield:['nx_airfield','airfield',1.08,.04],helipad:['nx_helipad','helipad',1.08,.04],aagun:['nx_aagun','aagun',1.08,.04]};
-  const BARE6=new Set(['power','pylon','tesla','airfield','helipad','aagun']),DRAW6=new Set(['castle','corral','coop','station','depot','factory']);
-  /* house floor levels (Industrial n, Modern x) and Modern station/depot/mill: art/c/nb_mod2.webp; [art, key, tier, width, down] */
-  const LV7={nL1:['ny_nL1','house',5,.9,.05],nL2:['ny_nL2','house',5,.88,.05],xL1:['ny_xL1','house',6,1,.05],xL2:['ny_xL2','house',6,.9,.05],
-    x_station:['ny_station','station',6,1.12,.03],x_depot:['ny_depot','depot',6,1.1,.04],x_factory:['ny_factory','factory',6,1.05,.04]};
-  const SMK={nb_tc:[[379,47],[153,154]],nb_house:[[124,7]],nb_factory:[[137,23],[177,9]],nb_forge:[[148,8]],nb_workshop:[[309,72]],nx_power:[[262,8],[311,30]],nx_house:[[165,40]],nx_forge:[[322,45]],nx_workshop:[[22,108]],ny_factory:[[85,45]],ny_nL1:[[152,18]],ny_nL2:[[165,24]],ny_xL1:[[266,38]]};
+  const BARE6=new Set(['power','pylon','tesla','airfield','helipad','aagun']),DRAW6=new Set(['castle','corral','coop']);
+  const SMK={nb_tc:[[379,47],[153,154]],nb_house:[[124,7]],nb_factory:[[137,23],[177,9]],nb_forge:[[148,8]],nb_workshop:[[309,72]],nx_power:[[262,8],[311,30]],nx_house:[[165,40]],nx_forge:[[322,45]],nx_workshop:[[22,108]]};
   const IM=ATL.map(()=>new Image()),cut=ATL.map(()=>false);const OLD={};
   function ready(i){if(cut[i])return true;const im=IM[i];if(!(im.complete&&im.naturalWidth))return false;const A=ATL[i];
     for(const t in TY){const [nm,ai,k]=TY[t];if(ai!==i)continue;const [x,y,w,h]=A.lay[k];
@@ -5266,9 +5262,6 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
     if(i===2){const L6=Object.values(TY6).map(v=>[v[0],v[1]]).concat([['nx_apt','apt']]);for(const [nm,k] of L6){const [x,y,w,h]=A.lay[k];
       for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
       if(!GFX_ART[nm])GFX_ART[nm]={age:6,culture:'both',smoke:SMK[nm]||null}}}
-    if(i===3){for(const q in LV7){const nm=LV7[q][0],k=nm.slice(3),[x,y,w,h]=A.lay[k];
-      for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
-      if(!GFX_ART[nm])GFX_ART[nm]={age:LV7[q][2],culture:'both',smoke:SMK[nm]||null}}}
     return cut[i]=true}
   GFX.indCore=function(o){if(GFX.mode!=='V23D'||!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(5)))return false;let n=0;
     for(const t in TY){const [nm,ai,,wf,dn]=TY[t];if(!ready(ai)||!DEF[t])continue;const S=DEF[t].size*TILE,
@@ -5280,11 +5273,6 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
         keys=t==='house'?['house'+o+'x','house'+o+'xL1','house'+o+'xL2']:BARE6.has(t)?[t+o]:[t+o+'x'];
       for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=GFX.spr(nm,o,S,wf,dn);sp._nb=1;SPR.bld[k]=sp;n++}}
     if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
-  GFX.lvCore=function(o){if(GFX.mode!=='V23D'||!ready(3))return false;let n=0;
-    for(const q in LV7){const [nm,t,tier,wf,dn]=LV7[q];if(!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(tier))||!DEF[t])continue;
-      const k=q[0]==='x'&&q[1]==='_'?t+o+'x':'house'+o+q,cur=SPR.bld[k];if(cur&&cur._lv)continue;if(cur&&!cur._nb)OLD[k]=cur;
-      const sp=GFX.spr(nm,o,DEF[t].size*TILE,wf,dn);sp._nb=1;sp._lv=1;SPR.bld[k]=sp;n++}
-    if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
   const BL=document.createElement('canvas');BL.width=BL.height=1;BL.w=1;BL.h=1;BL.ov=0;BL.dx=0;const AC={};
   GFX.aptSpr=function(g,o){if(!ready(2))return null;const gw=(g.x1-g.x0)*TILE,gh=(g.y1-g.y0)*TILE,key=o+'_'+gw+'_'+gh;if(AC[key])return AC[key];
@@ -5295,10 +5283,10 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
   const _sf=sprFor;sprFor=function(type,o){try{if(DRAW6.has(type)&&o<2&&GFX.mode==='V23D'&&ageOf(o)>=6){const s=SPR.bld[type+o+'x'];if(s&&s._nb)return s}}catch(err){}return _sf(type,o)};
   /* Modern poultry farm: its painted yard has its own fence, so the 3x3 coop's front fence (art chat 1's yard) is skipped from age 6 */
   try{const _cc=drawCoopChickens;drawCoopChickens=function(c,e,now){if(GFX.mode==='V23D'&&e&&e.owner<2&&ageOf(e.owner)>=6&&GFX.cpFenceEdges){const f=GFX.cpFenceEdges;GFX.cpFenceEdges=function(){};try{return _cc(c,e,now)}finally{GFX.cpFenceEdges=f}}return _cc(c,e,now)}}catch(err){}
-  const _g=genTier;genTier=function(o,t){const r=_g(o,t);if(t===5){try{GFX.indCore(o)}catch(e){}}if(t===6){try{GFX.modCore(o)}catch(e){}}if(t===5||t===6){try{GFX.lvCore(o)}catch(e){}}return r};
+  const _g=genTier;genTier=function(o,t){const r=_g(o,t);if(t===5){try{GFX.indCore(o)}catch(e){}}if(t===6){try{GFX.modCore(o)}catch(e){}}return r};
   const _d=dropTier;dropTier=function(o,t){if(t===5||t===6)for(const k in OLD)if(tierOfKey(k,o)===t)delete OLD[k];return _d(o,t)};
-  const _a=GFX.apply;GFX.apply=function(){const r=_a.apply(this,arguments);try{if(GFX.mode==='V23D'){GFX.indCore(0);GFX.indCore(1);GFX.modCore(0);GFX.modCore(1);GFX.lvCore(0);GFX.lvCore(1)}else{for(const k in OLD){if(SPR.bld[k]&&SPR.bld[k]._nb)SPR.bld[k]=OLD[k]}for(const k in SPR.bld)if(SPR.bld[k]&&SPR.bld[k]._lv&&!OLD[k])delete SPR.bld[k]}}catch(e){}return r};
-  ATL.forEach((A,i)=>{IM[i].onload=function(){try{const a=GFX.indCore(0)|GFX.modCore(0)|GFX.lvCore(0),b=GFX.indCore(1)|GFX.modCore(1)|GFX.lvCore(1);if((a||b)&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};
+  const _a=GFX.apply;GFX.apply=function(){const r=_a.apply(this,arguments);try{if(GFX.mode==='V23D'){GFX.indCore(0);GFX.indCore(1);GFX.modCore(0);GFX.modCore(1)}else for(const k in OLD){if(SPR.bld[k]&&SPR.bld[k]._nb)SPR.bld[k]=OLD[k]}}catch(e){}return r};
+  ATL.forEach((A,i)=>{IM[i].onload=function(){try{const a=GFX.indCore(0)|GFX.modCore(0),b=GFX.indCore(1)|GFX.modCore(1);if((a||b)&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};
     IM[i].src=GFX.ART+A.f+'.webp?v='+GFX.ARTV});
 }catch(err){}})();
 /* ===== END art chat 3: indcore ===== */
