@@ -1050,9 +1050,9 @@ function yardUI(c,P){if(c.owner!==0)return '';
     return '<div class="hint"><b>Poultry yard: 6 coops</b><br>'+h+' hens'+(ch?', '+ch+' chicks':'')+(eg?', '+eg+' eggs':'')+' · eggs +25%. Counts as 1 coop</div>';}
   if(c.mergeWait){const a=G.byId.get(c.mergeWait);return '<div class="hint">Being joined into a Poultry yard'+(a&&a.upT>0?': '+Math.ceil(a.upT)+'s left':'')+'</div>';}
   if(c.mergeJob){const busy=G.ents.some(u=>u.order&&u.order.type==='upgrade'&&u.order.id===c.id);return '<div class="hint">Building the Poultry yard: '+Math.ceil(c.upT)+'s left</div>'+(busy?'':btn('hbuild','Send a builder','','',false,0,'wide'));}
-  if(P.age<2)return '';const g=yardFor(c);
-  if(g)return btn('mkyard','Poultry yard',costHtml(YARD_COST),bldIcon('coop',THUMB.coop),!canAfford(P,YARD_COST),0,'wide',PILL('up','Upgrade'))+'<div class="hint" style="max-width:200px">Joins these 6 coops into one yard: eggs +25%, and it counts as 1 coop, so you can build more</div>';
-  return coopCount(0)>=4?'<div class="hint" style="max-width:210px">Tip: 6 coops in a block of 2 rows of 3 (1–2 tiles apart) can become a Poultry yard</div>':'';}
+  const nbH=coopNb(c)>1?'<div class="hint">Next to other coops: eggs +'+Math.round((coopNb(c)-1)*100)+'%</div>':'';if(c.mgOld)return nbH+'<div class="hint">Being replaced by a new Poultry yard; it keeps laying until the yard is finished</div>';if(P.age<2)return nbH;const g=mgCoops(c);
+  if(g)return nbH+btn('mkyard','Poultry yard',costHtml(YARD_COST),bldIcon('coop',THUMB.coop),!canAfford(P,YARD_COST),0,'wide',PILL('up','Upgrade'))+'<div class="hint" style="max-width:220px">Joins 6 coops into one yard that you place anywhere: eggs +25%, counts as 1 coop. Within 3 tiles of the old coops: half price and half the time</div>';
+  return nbH+(coopCount(0)>=4?'<div class="hint" style="max-width:210px">Tip: 6 coops can be joined into a Poultry yard. Coops next to each other lay more eggs</div>':'');}
 const WAREV={wool:9,cheese:15,beer:10};
 /* Josh (Oct 14): the donkey caravan upgrades to the trade cart in the Renaissance (like soldier upgrades): it keeps hauling wool/cheese/beer, and trades from the market */
 function caravanUp(o){let n=0;for(const u of G.ents){if(u.type!=='caravan'||u.owner!==o||u.dead)continue;const f=u.hp/(u.maxHp||DEF.caravan.hp);u.type='tradecart';u.maxHp=DEF.tradecart.hp;u.hp=Math.max(1,Math.round(f*u.maxHp));delete u.raise;u.home=0;u.penned=0;if(u.order&&u.order.wander)u.order=null;u.anim=u.anim||{};n++;}
@@ -1061,7 +1061,7 @@ function caravanUp(o){let n=0;for(const u of G.ents){if(u.type!=='caravan'||u.ow
 function hasCaravan(o){return G.ents.some(e=>(e.type==='caravan'||e.type==='tradecart')&&e.owner===o&&!e.dead);}
 function addWare(b,k,unitsPerSec,dt,goldEq){const P=G.players[b.owner];if(hasCaravan(b.owner)){b.ware=b.ware||{};b.ware[k]=(b.ware[k]||0)+unitsPerSec*dt;if(b.ware[k]>30){const x=b.ware[k]-30;b.ware[k]=30;P.g+=x*goldEq*.5;inc(b.owner,'g',x*goldEq*.5,k);}}else{P.g+=unitsPerSec*dt*goldEq*.5*(b.owner===1?G.aiMult:1);inc(b.owner,'g',unitsPerSec*dt*goldEq*.5,k);}}
 function bakeLine(b,P){const T=P.tech,egg=T.grandbake&&(b.eggs||0)>=1,milk=(T.bakeworks||b.steam)&&egg&&(b.milk||0)>=1;return milk?{k:'pastry',v:3,name:'Full line (flour, eggs, milk)'}:egg?{k:'cake',v:2.2,name:'Cakes (flour, eggs)'}:{k:'bread',v:1.5,name:'Bread (flour)'};}
-function bakeryRun(b,dt,P,n){const T=P.tech,ne=b.steam?(n+1)*1.9:T.bakeworks?(n+2)*1.5:n;b.stall='';b.working=false;b.fstock=b.fstock||0;
+function bakeryRun(b,dt,P,n){const T=P.tech,ne=(b.steam?(n+1)*1.9:T.bakeworks?(n+2)*1.5:n)*bakeNb(b);b.stall='';b.working=false;b.fstock=b.fstock||0;
   if(ne>0){const need=1.4*ne*dt,fuel=.12*ne*dt;
     if((b.flour||0)<Math.min(need*.05,.01)){if(G.t-(b.lastBake||-99)>2.5)b.stall=flourStall(b);else b.working=true;}else if(P.w<fuel)b.stall='Needs wood for the ovens';
     else{const L=bakeLine(b,P),nd=Math.min(need,b.flour);b.flour-=nd;b.lastBake=G.t;P.w-=fuel*nd/need;if(L.k!=='bread')b.eggs=Math.max(0,b.eggs-nd/20);if(L.k==='pastry')b.milk=Math.max(0,b.milk-nd/20);b.line=L.name;b.working=true;
@@ -1834,7 +1834,7 @@ function updBld(b,dt){
     let h=0,ch=0,eg=0;for(const t0 of b.birds){const a=G.t-t0;if(a>=60)h++;else if(a>=20)ch++;else eg++;}
     if(b.owner===0&&b.hens&&h>b.hens&&G.t-(G.lastHenMsg||-99)>25){G.lastHenMsg=G.t;toast('A chick grew into a laying hen');}
     if(b.owner===0&&b.eggs&&eg<b.eggs&&G.t-(G.lastHatchMsg||-99)>25){G.lastHatchMsg=G.t;toast('An egg hatched');}
-    b.hens=h;b.chicks=ch;b.eggs=eg;if(b.useT>0)b.useT-=dt;else if(useOf(b)==='eggs'){const pm=G.players[b.owner].age>=6?3:1;const bk=G.players[b.owner].tech.grandbake&&G.ents.find(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(e.eggs||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);const yk=b.yard?YARD_K:1;if(bk&&h){bk.eggs=(bk.eggs||0)+.025*h*dt*pm*yk;b.toBakery=true;}else{b.toBakery=false;G.players[b.owner].f+=.05*h*dt*pm*yk;inc(b.owner,'f',.05*h*dt*pm*yk,'coop');}}}
+    b.hens=h;b.chicks=ch;b.eggs=eg;if(b.useT>0)b.useT-=dt;else if(useOf(b)==='eggs'){const pm=G.players[b.owner].age>=6?3:1;const bk=G.players[b.owner].tech.grandbake&&G.ents.find(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(e.eggs||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);const yk=(b.yard?YARD_K:1)*coopNb(b);if(bk&&h){bk.eggs=(bk.eggs||0)+.025*h*dt*pm*yk;b.toBakery=true;}else{b.toBakery=false;G.players[b.owner].f+=.05*h*dt*pm*yk;inc(b.owner,'f',.05*h*dt*pm*yk,'coop');}}}
   if(b.type==='pen'&&penLead(b)!==b){b.flock=0;b.sickN=0;}
   if(b.type==='ranch'){try{ranchCowTick(b,dt);}catch(err){}}
   if(isPen(b)&&penLead(b)===b){const pnN=penN(b),pIds=b.mgrp?b.mgrp.ids:[b.id],fl=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&inPenArea(b,e,.8)),n=fl.filter(e=>!e.sick&&!(e.born&&G.t-e.born<60)).length;b.flock=fl.length;b.sickN=fl.filter(e=>e.sick).length;const P=G.players[b.owner];
@@ -7199,7 +7199,7 @@ function draw(){
     c.fillStyle='rgba(255,232,150,.09)';c.fill();c.setLineDash([8,6]);c.lineDashOffset=-now/60;c.strokeStyle='rgba(255,226,140,.45)';c.lineWidth=2/z;c.stroke();c.restore();
     const p=G.place;
     if(p.type==='wall'){for(const t of wallTiles()){c.fillStyle=t.ok?'rgba(120,220,90,.28)':'rgba(230,70,60,.32)';c.fillRect(t.x*TILE,t.y*TILE,TILE,TILE);if(t.ok)drawBld(c,'wall',0,t.x*TILE,t.y*TILE,1,.7);}}
-    else{const S=DEF[p.type].size*TILE,ok=placeValid();
+    else if(p.mg){}else{const S=DEF[p.type].size*TILE,ok=placeValid();
     c.fillStyle=ok?'rgba(120,220,90,.28)':'rgba(230,70,60,.32)';GFX.placeMark(c,p.type,p.tx,p.ty,S,ok,'fill');
     drawBld(c,p.type,0,p.tx*TILE,p.ty*TILE,DEF[p.type].size,.7);
     planPreview(c,p.type,(p.tx+DEF[p.type].size/2)*TILE,(p.ty+DEF[p.type].size/2)*TILE,z,now);
@@ -7676,7 +7676,7 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
     const X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,z=cam.z||1,lw=1.6/Math.min(1,z);
     c.save();c.setLineDash([7/z+3,5/z+2]);c.lineDashOffset=-(now/60)%24;c.strokeStyle=e.owner===0?'rgba(255,214,110,.95)':'rgba(255,140,120,.9)';c.lineWidth=lw;
     c.beginPath();if(c.roundRect)c.roundRect(X0+2,Y0+2,W-4,H-4,8);else c.rect(X0+2,Y0+2,W-4,H-4);c.stroke();c.setLineDash([]);
-    const p=Math.max(0,Math.min(1,1-(e.upT||0)/YARD_T)),bw=Math.min(W*.6,130),bh=7,bx=X0+W/2-bw/2,by=Y0-14;
+    const p=Math.max(0,Math.min(1,1-(e.upT||0)/(e.mergeJob.T||YARD_T))),bw=Math.min(W*.6,130),bh=7,bx=X0+W/2-bw/2,by=Y0-14;
     c.fillStyle='rgba(20,14,8,.8)';c.fillRect(bx-2,by-2,bw+4,bh+4);c.fillStyle='#3a2c1d';c.fillRect(bx,by,bw,bh);c.fillStyle='#e8c26a';c.fillRect(bx,by,bw*p,bh);
     const nb=G.ents.filter(u=>u.order&&u.order.type==='upgrade'&&u.order.id===e.id&&!u.dead).length;
     c.font='bold 10px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.75)';const tx='Poultry yard '+Math.round(p*100)+'%'+(e.owner===0&&!nb?' · no builder':'');
@@ -7708,11 +7708,11 @@ try{bakeryRun=(function(prev){return function(b,dt,P,n){
 function steamActs(one,P){if(one.steamOf){const a0=G.byId.get(one.steamOf);if(a0&&!a0.dead)one=a0;}const line=(b,t)=>'<div class="hint" style="max-width:240px"><b>'+b+'</b>'+(t?'<br>'+t:'')+'</div>';
   if(one.steam)return line('Steam bakery','2 bakeries joined: about 2.5x the bread of one. The steam ovens bake even with no bakers; up to 3 bakers add more'+(G.players[0].tech.grandbake?'. Eggs make cakes; milk from a dairy makes pastries':''));
   const a=one.mergeJob&&one.mergeJob.k==='steam'?one:one.mergeWait?G.byId.get(one.mergeWait):null;
-  if(a&&a.mergeJob&&a.mergeJob.k==='steam'){const nb=G.ents.filter(u=>u.order&&u.order.type==='upgrade'&&u.order.id===a.id&&!u.dead).length;return line('Joining into a steam bakery',Math.round((1-a.upT/STEAM_T)*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('steamb','Send a builder','','',false,0,'wide'));}
+  if(a&&a.mergeJob&&a.mergeJob.k==='steam'){const nb=G.ents.filter(u=>u.order&&u.order.type==='upgrade'&&u.order.id===a.id&&!u.dead).length;return line('Joining into a steam bakery',Math.round((1-a.upT/(a.mergeJob.T||STEAM_T))*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('steamb','Send a builder','','',false,0,'wide'));}
   if(P.age<4)return '';
-  if(P.age<5)return line('Steam bakery in the Industrial Age','Build 2 bakeries side by side and you can join them into one steam bakery');
-  const pr=steamPair(one);if(pr)return btn('mksteam','Steam bakery',costHtml(STEAM_COST),bldIcon('bakery',THUMB.bakery),!canAfford(P,STEAM_COST),0,'wide',PILL('up','Join'))+line('','Joins this bakery and the one beside it: about 2.5x the bread, ovens that bake on their own, and the milk pastry line');
-  return line('Steam bakery','Build a second bakery right beside this one (touching, side by side) to join them into a steam bakery: about 2.5x the bread');}
+  if(P.age<5)return line('Steam bakery in the Industrial Age','Build 2 bakeries and you can join them into one steam bakery. Bakeries next to each other bake 15% faster');
+  if(one.mgOld)return line('Being replaced by a steam bakery','It keeps baking until the new one is finished');const pr=mgBakery(one);if(pr)return btn('mksteam','Steam bakery',costHtml(STEAM_COST),bldIcon('bakery',THUMB.bakery),!canAfford(P,STEAM_COST),0,'wide',PILL('up','Join'))+line('','Joins 2 bakeries into one steam bakery that you place anywhere: about 2.5x the bread, ovens that bake on their own. Within 3 tiles of the old ones: half price and half the time');
+  return line('Steam bakery','Build a second bakery to join them into a steam bakery: about 2.5x the bread');}
 try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{
   for(const e of G.ents){if(e.type!=='bakery'||e.dead||!e.mergeJob||e.mergeJob.k!=='steam'||!yardSeen(e))continue;const g=steamJobBox(e);if(!g)continue;
     const X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,z=cam.z||1;
@@ -7796,6 +7796,69 @@ function millFarmOK(u,f){if(!millOf(f))return true;if(mfTaken(f,u))return false;
   f.mfB=(best||u).id;return f.mfB===u.id;}
 function freeMillFarm(u,f){const m=millOf(f);let b=null,bd=1e9;for(const e of G.ents){if(e.type!=='farm'||e.dead||!e.built||e.owner!==u.owner||e.fallow||!(e.amt>0)||millOf(e)!==m||mfTaken(e,u))continue;const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;b=e;}}return b;}
 function millFarmers(m){let n=0;for(const e of G.ents)if(e.type==='farm'&&!e.dead&&millOf(e)===m&&mfHolder(e))n++;return n;}
+/* ===== Merged buildings placed anywhere (Josh, Oct 15): "If you build the 6 chicken coops that merge into 1, you should be able to place the
+   new larger unit anywhere. Same with anything that is merged." His picks: any 6 coops (any 2 bakeries) can merge; the old ones keep working until
+   the new one is built, then disappear; placed within 3 tiles of the old ones = half price and half the time; and coops / bakeries next to each
+   other work better (coop +10% eggs per touching coop, up to +30%; a bakery next to another bakes 15% faster).
+   How: the new building is a group of fresh members (6 coops 2x2 in 2 rows of 3, or 2 bakeries side by side) flagged ysite / bsite with
+   siteA = anchor; the anchor carries the usual mergeJob {k:'yard'|'steam', ids:new, old:old ids, T, site:1} and upT; the old ones have mgOld. ===== */
+const MG_NEAR=3;
+function mgFreeC(e,o){return e&&e.type==='coop'&&e.owner===o&&!e.dead&&e.built&&!e.yard&&!e.mergeJob&&!e.mergeWait&&!e.ysite&&!e.mgOld;}
+function mgCoops(c){if(!mgFreeC(c,c.owner))return null;const cs=G.ents.filter(e=>e!==c&&mgFreeC(e,c.owner)).sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y));return cs.length>=5?[c].concat(cs.slice(0,5)):null;}
+function mgFreeB(e,o){return e&&e.type==='bakery'&&e.owner===o&&!e.dead&&e.built&&!e.steam&&!e.steamOf&&!e.mergeJob&&!e.mergeWait&&!e.bsite&&!e.mgOld;}
+function mgBakery(b){if(!mgFreeB(b,b.owner)||G.players[b.owner].age<5)return null;let best=null,bd=1e9;for(const e of G.ents){if(e===b||!mgFreeB(e,b.owner))continue;const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<bd){bd=d;best=e;}}return best;}
+function mgDims(k){const s=k==='yard'?DEF.coop.size:DEF.bakery.size;return k==='yard'?{w:3*s,h:2*s,s,n:6,cols:3,type:'coop'}:{w:2*s,h:s,s,n:2,cols:2,type:'bakery'};}
+function mgBox(olds){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const id of olds){const e=G.byId.get(id);if(!e||e.dead)continue;x0=Math.min(x0,e.tx);y0=Math.min(y0,e.ty);x1=Math.max(x1,e.tx+e.size);y1=Math.max(y1,e.ty+e.size);}return {x0,y0,x1,y1};}
+function mgNear(mg,tx,ty){const B=mgBox(mg.olds),gx=Math.max(0,B.x0-(tx+mg.w),tx-B.x1),gy=Math.max(0,B.y0-(ty+mg.h),ty-B.y1);return Math.max(gx,gy)<=MG_NEAR;}
+function beginMerge(k,olds){const d=mgDims(k),B=mgBox(olds.map(e=>e.id));G.place={type:d.type,mg:{k,olds:olds.map(e=>e.id),w:d.w,h:d.h},tx:Math.round((B.x0+B.x1)/2-d.w/2),ty:B.y1+1};G.sel=[];panelKeyLast='';
+  toast('Tap where the '+(k==='yard'?'Poultry yard':'steam bakery')+' goes. Within 3 tiles of the old ones (yellow box): half price and half the time');}
+function mergeWhy(mg,tx,ty,needExp){const FREE=new Set(['wall','gate','farm','pylon','outpost']);
+  for(let y=ty;y<ty+mg.h;y++)for(let x=tx;x<tx+mg.w;x++){if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);if(G.terrain[i])return 'Water or cliffs in the way';
+    if(G.occ[i]&&!clearableTree(G.occ[i])){const e=G.byId.get(G.occ[i]);return e&&e.kind==='bld'&&DEF[e.type]?'Your '+DEF[e.type].name.toLowerCase()+' is in the way':'Blocked. Pick open ground';}
+    if(G.wocc[i])return 'Blocked. Pick open ground';if(needExp&&!G.exp[0][i])return 'Pick explored ground';}
+  if(!inTerritory(0,tx+Math.floor(mg.w/2)-1,ty+Math.floor(mg.h/2)-1,2))return 'Build it inside your territory';
+  for(const e of G.ents){if(e.kind!=='bld'||e.dead||FREE.has(e.type)||(DEF[e.type]&&DEF[e.type].walkable)||mg.olds.includes(e.id))continue;const es=e.size||DEF[e.type].size;if(tx-1<e.tx+es&&tx+mg.w+1>e.tx&&ty-1<e.ty+es&&ty+mg.h+1>e.ty)return 'Leave 1 tile of space next to other buildings so people can walk between them';}
+  return '';}
+function mgCost(mg,tx,ty){const base=mg.k==='yard'?YARD_COST:STEAM_COST,near=mgNear(mg,tx,ty),c={};for(const k in base)c[k]=Math.round(base[k]*(near?.5:1));return {c,T:(mg.k==='yard'?YARD_T:STEAM_T)*(near?.5:1),near};}
+function placeMerge(sel){const p=G.place,mg=p&&p.mg;if(!mg)return;const P=G.players[0],why=mergeWhy(mg,p.tx,p.ty,true);if(why){toast(why);return;}
+  const olds=mg.olds.map(id=>G.byId.get(id)).filter(e=>e&&!e.dead&&e.owner===0);if(olds.length<(mg.k==='yard'?6:2)){toast('Some of the old buildings are gone');G.place=null;return;}
+  const {c,T,near}=mgCost(mg,p.tx,p.ty);if(!canAfford(P,c)){toast(shortMsg?shortMsg(c):'Not enough resources');return;}pay(P,c);
+  const d=mgDims(mg.k),ms=[];for(let i=0;i<d.n;i++){const m=mkBld(d.type,0,p.tx+(i%d.cols)*d.s,p.ty+Math.floor(i/d.cols)*d.s,true);displaceUnits(m);if(mg.k==='yard'){m.ysite=1;m.birds=[];}else m.bsite=1;ms.push(m);}
+  const an=ms[0];for(const m of ms){m.siteA=an.id;if(m!==an)m.mergeWait=an.id;}
+  an.mergeJob={k:mg.k,ids:ms.map(m=>m.id),old:olds.map(e=>e.id),cost:c,T,site:1};an.upT=T;for(const e of olds)e.mgOld=an.id;
+  const vs=sel.filter(u=>u.type==='villager'&&u.owner===0&&!u.dead);if(vs.length){for(const u of vs){u.shep=0;u.order={type:'upgrade',id:an.id};u.path=null;}}else sendBuilder(an);
+  G.place=null;toast((mg.k==='yard'?'Poultry yard':'Steam bakery')+' started'+(near?' next to the old ones: half price, half the time':'')+'. The old ones keep working until it is done');panelKeyLast='';}
+function mgCancel(an){const J=an&&an.mergeJob;const ids=J?J.ids:[];for(const id of ids){const m=G.byId.get(id);if(m&&!m.dead){m.ysite=m.bsite=0;kill(m);}}if(J)for(const id of J.old||[]){const e=G.byId.get(id);if(e)e.mgOld=0;}}
+function siteCheck(b){const A=G.byId.get(b.siteA);const J=A&&!A.dead&&A.mergeJob;if(!J||!J.site||J.ids.some(id=>{const m=G.byId.get(id);return !m||m.dead;})){
+  if(J&&J.site)mgCancel(A);else{b.ysite=b.bsite=0;kill(b);for(const e of G.ents)if(e.mgOld===b.siteA)e.mgOld=0;}}}
+function mgFinish(an,J){for(const id of J.ids){const m=G.byId.get(id);if(m){m.ysite=0;m.bsite=0;m.siteA=0;}}const olds=(J.old||[]).map(id=>G.byId.get(id)).filter(e=>e&&!e.dead);
+  if(J.k==='yard'){const birds=[];for(const o of olds)for(const t of (o.birds||[]))birds.push(t);const ms=J.ids.map(id=>G.byId.get(id)).filter(Boolean);ms.forEach((m,i)=>{m.birds=birds.slice(i*6,i*6+6);});if(!birds.length&&ms[0])ms[0].birds=[-999];}
+  else for(const o of olds)steamPass(o,an);
+  for(const o of olds){o.mgOld=0;kill(o);}}
+try{finishYard=(function(prev){return function(b){const J=b.mergeJob;const r=prev.apply(this,arguments);try{if(J&&J.site)mgFinish(b,J);}catch(err){}return r}})(finishYard)}catch(err){}
+try{finishSteam=(function(prev){return function(a){const J=a.mergeJob;const r=prev.apply(this,arguments);try{if(J&&J.site)mgFinish(a,J);}catch(err){}return r}})(finishSteam)}catch(err){}
+try{updBld=(function(prev){return function(b,dt){if(b.ysite||b.bsite){siteCheck(b);return;}return prev.apply(this,arguments)}})(updBld)}catch(err){}
+try{coopCount=(function(prev){return function(o){let n=0;const ys=new Set();for(const e of G.ents){if(e.type!=='coop'||e.owner!==o||e.dead||e.ysite)continue;if(e.yard)ys.add(e.yard.anchor);else n++;}return n+ys.size}})(coopCount)}catch(err){}
+try{yardFree=(function(prev){return function(c){return prev(c)&&!c.mgOld&&!c.ysite}})(yardFree)}catch(err){}
+try{steamFree=(function(prev){return function(b){return prev(b)&&!b.mgOld&&!b.bsite}})(steamFree)}catch(err){}
+try{setPlace=(function(prev){return function(wx,wy){const mg=G.place&&G.place.mg;if(!mg)return prev.apply(this,arguments);G.place.tx=Math.round(wx/TILE-mg.w/2);G.place.ty=Math.round(wy/TILE-mg.h/2);}})(setPlace)}catch(err){}
+try{placeWhy=(function(prev){return function(type,tx,ty,o,needExp,m){const mg=G.place&&G.place.mg;if(mg&&o===0&&type===G.place.type&&tx===G.place.tx&&ty===G.place.ty)return mergeWhy(mg,tx,ty,needExp);return prev.apply(this,arguments)}})(placeWhy)}catch(err){}
+try{drawBuilding=(function(prev){return function(c,e,now){if(e.ysite)return;if(e.bsite){c.save();c.globalAlpha*=.42;try{c.filter='grayscale(.75) brightness(.9)';}catch(err){}try{prev.apply(this,arguments);}finally{c.restore();}return;}return prev.apply(this,arguments)}})(drawBuilding)}catch(err){}
+function coopNb(b){if(!b||b.yard||b.ysite)return 1;if(b._nbT>G.t)return b._nb;let n=0;for(const e of G.ents)if(e!==b&&e.type==='coop'&&e.owner===b.owner&&!e.dead&&e.built&&!e.ysite&&!e.yard&&bldGap(b,e)<=1)n++;b._nbT=G.t+2;return b._nb=1+.1*Math.min(3,n);}
+function bakeNb(b){if(!b||b.steam||b.steamOf)return 1;if(b._nbT>G.t)return b._nb;let ok=false;for(const e of G.ents)if(e!==b&&e.type==='bakery'&&e.owner===b.owner&&!e.dead&&e.built&&!e.bsite&&!e.steamOf&&bldGap(b,e)<=1){ok=true;break;}b._nbT=G.t+2;return b._nb=ok?1.15:1;}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{const p=G.place,mg=p&&p.mg;if(mg){const z=cam.z||1,B=mgBox(mg.olds);
+  c.save();c.setLineDash([6/z+3,4/z+2]);c.lineWidth=1.5/Math.min(1,z);c.strokeStyle='rgba(255,214,110,.85)';c.strokeRect((B.x0-MG_NEAR)*TILE,(B.y0-MG_NEAR)*TILE,(B.x1-B.x0+2*MG_NEAR)*TILE,(B.y1-B.y0+2*MG_NEAR)*TILE);
+  const ok=!mergeWhy(mg,p.tx,p.ty,true),near=mgNear(mg,p.tx,p.ty);c.setLineDash([]);c.fillStyle=ok?'rgba(120,220,120,.22)':'rgba(230,80,60,.25)';c.fillRect(p.tx*TILE,p.ty*TILE,mg.w*TILE,mg.h*TILE);c.strokeStyle=ok?'#9fe08a':'#ff8a7a';c.lineWidth=2/Math.min(1,z);c.strokeRect(p.tx*TILE,p.ty*TILE,mg.w*TILE,mg.h*TILE);
+  if(mg.k==='yard'&&ok){c.globalAlpha=.5;try{drawPoultryYard(c,{id:-1,type:'coop',owner:0,x:(p.tx+mg.w/2)*TILE,y:(p.ty+mg.h/2)*TILE,tx:p.tx,ty:p.ty,size:DEF.coop.size,built:true,yard:{k:'yard',ids:[],anchor:-1,x0:p.tx,y0:p.ty,x1:p.tx+mg.w,y1:p.ty+mg.h}},now);}catch(err){}c.globalAlpha=1;}
+  c.font='bold 11px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.75)';const tx=(mg.k==='yard'?'Poultry yard':'Steam bakery')+(near?' · half price here':'');c.strokeText(tx,(p.tx+mg.w/2)*TILE,p.ty*TILE-6);c.fillStyle=near?'#ffe08a':'#fff3d6';c.fillText(tx,(p.tx+mg.w/2)*TILE,p.ty*TILE-6);c.restore();}}catch(err){}return r}})(drawBirds)}catch(err){}
+/* ===== Animals walk INSIDE the wheat (Josh, Oct 15: "when the bull walks on the farm... the effect that it is INSIDE going through the wheat"):
+   after an animal standing on a grown field is drawn, the field's own picture is drawn again over the animal's legs only (a band from just
+   above the hooves down), so the stalks in front hide the legs. Only while the crop is at least 40% grown. ===== */
+const WHEAT_AN=new Set(['ox','cow','donkey','deer','sheep','caravan']);
+function farmUnder(x,y){for(const f of G.ents){if(f.type!=='farm'||f.dead||!f.built)continue;const s=(f.size||2)*TILE;if(x>f.tx*TILE+3&&x<f.tx*TILE+s-3&&y>f.ty*TILE+3&&y<f.ty*TILE+s-2)return f;}return null;}
+try{drawUnitR=(function(prev){return function(c,e,x,y,now){const r=prev.apply(this,arguments);try{if(e&&WHEAT_AN.has(e.type)&&!e.dead){const f=farmUnder(x,y);
+  if(f&&!f.fallow&&(f.amt||0)>=farmCap(f)*.4){const d=f.frow&&G.byId.get(f.frow.anchor)||f,k=raiseK(e),w=(e.type==='ox'||e.type==='cow'?30:22)*k;
+    c.save();c.beginPath();c.rect(x-w,y-5*k,w*2,18*k);c.clip();drawBuilding(c,d,now);c.restore();}}}catch(err){}return r}})(drawUnitR)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -8300,6 +8363,9 @@ function renderPanel(sel){
     if(t==='wall'){const wt=wallTiles(),n=wt.filter(x=>x.ok).length,cost={s:n*DEF.wall.cost.s};
       info='<img alt="" src="'+THUMB[t]+'"><div style="min-width:0"><div class="nm">Stone wall</div><div class="sub">'+wallMsg(n)+'</div></div>';
       acts=btn('place','Place',n?costHtml(cost):'','',!n||!canAfford(P,cost),0,'wide')+btn('unplace','Cancel','','',false);}
+    else if(G.place.mg){const mg=G.place.mg,mc=mgCost(mg,G.place.tx,G.place.ty),why=mergeWhy(mg,G.place.tx,G.place.ty,true);
+      info='<img alt="" src="'+THUMB[t]+'"><div style="min-width:0"><div class="nm">'+(mg.k==='yard'?'Poultry yard':'Steam bakery')+'</div><div class="sub">'+(why||(mc.near?'Next to the old ones: half price and half the time':'Tap the map to move it. Double-tap to build'))+'</div></div>';
+      acts=btn('place','Place',costHtml(mc.c),'',!!why||!canAfford(P,mc.c),0,'wide')+btn('unplace','Cancel','','',false);}
     else{
     info='<img alt="" src="'+THUMB[t]+'"><div style="min-width:0"><div class="nm">'+bname(t,0)+'</div><div class="sub">'+(placeWhy(t,G.place.tx,G.place.ty,0,true,0)||'Tap the map to move it. Double-tap to build')+'</div></div>';
     acts=btn('place','Place',costHtml(DEF[t].cost),'',!placeValid()||!canAfford(P,DEF[t].cost),0,'wide')+btn('unplace','Cancel','','',false);}
@@ -8457,14 +8523,14 @@ $('panel').addEventListener('click',e=>{
   if(act==='mir'){const Pm=G.players[0];if(!Pm.mirReady){toast('The Miracle is not ready yet');return;}if(arg==='storm'){G.mirAim='storm';toast('Tap where the storm should strike');return;}castMiracle(0,arg);panelKeyLast='';return;}
   if(act==='mkswing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.pen.cost)){toast(shortMsg?shortMsg(DEF.pen.cost):'Not enough wood');return;}const p={type:'pen',tx:one.tx+one.size,ty:one.ty+1,swing:one.id};G.place=p;swingSnap(p);if(swingWhy(one,p.tx,p.ty,0,true))toast('No room beside the ranch: clear the trees, rocks or buildings next to it');panelKeyLast='';return;}
   if(act==='swingb'&&one&&one.type==='ranch'){const W=one.swing&&G.byId.get(one.swing);if(W&&!W.built){const n=wingBuilders(W,2);toast(n?n+' villagers sent to build the sheep wing':'No free villagers');}panelKeyLast='';return;}
-  if(act==='mksteam'&&one&&one.type==='bakery'){const pr=steamPair(one);if(!pr){toast('Build a second bakery right beside this one first');return;}if(!canAfford(P,STEAM_COST)){toast(shortMsg?shortMsg(STEAM_COST):'Not enough resources');return;}startSteam([one,pr]);toast('Joining the 2 bakeries into a steam bakery: a builder is on the way');panelKeyLast='';return;}
+  if(act==='mksteam'&&one&&one.type==='bakery'){const pr=mgBakery(one);if(!pr){toast('Build a second bakery first');return;}beginMerge('steam',[one,pr]);panelKeyLast='';return;}
   if(act==='steamb'&&one){const a=one.mergeJob?one:G.byId.get(one.mergeWait);if(a&&a.upT>0){sendBuilder(a);toast('Builder sent');}panelKeyLast='';return;}
   if(act==='mkwing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.dairy.cost)){toast(shortMsg?shortMsg(DEF.dairy.cost):'Not enough wood');return;}const p={type:'dairy',tx:one.tx+3,ty:one.ty+3,wing:one.id};G.place=p;wingSnap(p);if(wingWhy(one,p.tx,p.ty,0,true))toast('No room at the ranch gates: clear the trees, rocks or buildings beside a gate');panelKeyLast='';return;}
   if(act==='wingb'&&one&&one.type==='ranch'){const W=one.wing&&G.byId.get(one.wing);if(W&&!W.built){const n=wingBuilders(W,2);toast(n?n+' villagers sent to build the dairy wing':'No free villagers');}panelKeyLast='';return;}
   if(act==='shepherds'&&one){const s=G.ents.filter(e=>e.shep===penLead(one).id&&!e.dead);if(s.length)setSel(s);else toast('Select villagers, then tap the pen to make them shepherds');panelKeyLast='';return;}
   if(act==='locked'){const P0=G.players[0],tab=G.buildTab||'eco';const lk=BTABS.find(t=>t[0]===tab)[2].filter(b=>(DEF[b].age||0)<=P0.age&&!bReqMet(0,b));toast(lk.map(b=>DEF[b].name+': '+UNLOCK_HINT[b].toLowerCase()).join('  |  '));return;}
   if(act==='build'){const c=centerTile();G.place=arg==='wall'?{type:'wall',ta:0,tb:0}:{type:arg,tx:c.x-(DEF[arg].size>>1),ty:c.y-(DEF[arg].size>>1)};}
-  else if(act==='mkyard'&&one&&one.type==='coop'){const g=yardFor(one);if(g){if(!startYard(g))toast('Not enough to build a Poultry yard');}panelKeyLast='';}
+  else if(act==='mkyard'&&one&&one.type==='coop'){const g=mgCoops(one);if(g)beginMerge('yard',g);else toast('You need 6 coops to make a Poultry yard');panelKeyLast='';}
   else if(act==='mkrow'&&one&&one.type==='house'){const r=rowFor(one);if(r)startMerge('row',r);panelKeyLast='';}
   else if(act==='mkapt'&&one&&one.type==='house'){const a=aptFor(one);if(a)startMerge('apt',a);panelKeyLast='';}
   else if(act==='hup'&&one&&one.type==='house'&&!(one.upT>0)&&!one.mergeWait){const c=(one.lvl||0)===0?{w:50,s:20}:{w:60,s:40};if(canAfford(P,c)){pay(P,c);one.upT=25;sendBuilder(one);}panelKeyLast='';}
@@ -8486,6 +8552,7 @@ $('panel').addEventListener('click',e=>{
   else if(act==='rebuildwall'&&one&&one.span){rebuildHoles(0,wallHoles(0,one.span),(G.prevSel||[]).map(id=>G.byId.get(id)));panelKeyLast='';return;}
   else if(act==='demolish'&&one){if(G.demo===one.id){G.demo=0;if(!one.built)refund(P,{f:(DEF[one.type].cost.f||0)/2,w:(DEF[one.type].cost.w||0)/2,s:(DEF[one.type].cost.s||0)/2,g:0});kill(one);G.sel=[];}else{G.demo=one.id;toast(one.built?'Tap the bin again to demolish':'Tap the bin again to cancel the build');setTimeout(()=>{if(G&&G.demo===one.id){G.demo=0;panelKeyLast='';}},3000);}}
   else if(act==='unplace')G.place=null;
+  else if(act==='place'&&G.place&&G.place.mg){placeMerge(sel);}
   else if(act==='place'){
     const p=G.place,d=DEF[p.type];
     if(p.type==='wall'){const ok=wallTiles().filter(t=>t.ok),n=Math.min(ok.length,Math.floor(P.s/DEF.wall.cost.s));{const A=G.byId.get(p.ta),B=G.byId.get(p.tb);if(alive(A)&&alive(B)){const sp=wallSpan(A,B);for(const t of sp){const w=ownWallAt(t.x,t.y,0);if(w)w.span=[p.ta,p.tb];}if(G.rubble)G.rubble=G.rubble.filter(r=>!sp.some(t=>t.x===r.x&&t.y===r.y));}}if(!n&&!wallTiles().length){G.place=null;toast('This wall is already complete');return;}if(n){const bs=[];for(const t of ok.slice(0,n)){pay(P,d.cost);const bl=mkBld('wall',0,t.x,t.y,false);bl.span=[p.ta,p.tb];displaceUnits(bl);bs.push(bl);}
