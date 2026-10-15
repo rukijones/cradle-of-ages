@@ -984,6 +984,34 @@ function guideFor(b){const own=t=>G.ents.filter(e=>e.owner===0&&e.type===t&&!e.d
   if(b.type==='shaft'){const v=G.ents.some(e=>e.type==='vein'&&!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<2.6*TILE),home=inTerritory(0,b.tx,b.ty,b.size)||G.ents.some(e=>e.type==='depot'&&e.owner===0&&e.rail&&Math.hypot(e.x-b.x,e.y-b.y)<6*TILE);
     return guideHtml('Mine shaft.',[[v,'The vein is used up'],[(b.gar||[]).length>0,'Add miners here'],[home,'Ore is piling up here: build an outpost or a rail depot nearby to bring it home']],(b.gar||[]).length+' miners digging');}
   return '';}
+/* ---- Poultry yard (Josh, Oct 14): 6 coops in a 2x3 (or 3x2) block upgrade in place into one yard: eggs +25%, and the yard counts as 1 coop toward the limit of 6 ---- */
+const YARD_COST={w:200,g:100},YARD_T=40,YARD_K=1.25;
+function yardFree(c){return !!c&&c.type==='coop'&&!c.dead&&c.built&&!c.yard&&!c.mergeJob&&!c.mergeWait&&!(c.upT>0);}
+function yardFor(c){if(!yardFree(c))return null;const cs=G.ents.filter(e=>e.owner===c.owner&&yardFree(e));if(cs.length<6)return null;
+  const step=(a,dx,dy)=>cs.find(e=>e!==a&&(dx?(e.tx-a.tx>=3&&e.tx-a.tx<=5&&Math.abs(e.ty-a.ty)<=1):(e.ty-a.ty>=3&&e.ty-a.ty<=5&&Math.abs(e.tx-a.tx)<=1)));
+  for(const A of cs){for(const [cols,rows] of [[3,2],[2,3]]){const g=[];let ok=true,rowA=A;
+      for(let r=0;r<rows&&ok;r++){if(r>0){rowA=step(rowA,0,1);if(!rowA){ok=false;break;}if(Math.abs(rowA.tx-A.tx)>1){ok=false;break;}}let cur=rowA;g.push(cur);
+        for(let k=1;k<cols;k++){cur=step(cur,1,0);if(!cur){ok=false;break;}if(r>0&&Math.abs(cur.tx-g[k].tx)>1){ok=false;break;}g.push(cur);}}
+      if(ok&&g.length===6&&new Set(g).size===6&&g.includes(c))return g;}}return null;}
+function startYard(cs){const o=cs[0].owner,P=G.players[o];if(!canAfford(P,YARD_COST))return false;pay(P,YARD_COST);cs=cs.slice().sort((a,b)=>a.ty-b.ty||a.tx-b.tx);const an=cs[0];
+  an.mergeJob={k:'yard',ids:cs.map(c=>c.id),cost:YARD_COST};an.upT=YARD_T;for(const c of cs)if(c!==an)c.mergeWait=an.id;sendBuilder(an);return true;}
+function finishYard(b){const J=b.mergeJob;b.mergeJob=null;const cs=J.ids.map(id=>G.byId.get(id));for(const c of cs)if(c)c.mergeWait=0;
+  if(cs.some(c=>!c||c.dead||c.owner!==b.owner))return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of cs){x0=Math.min(x0,c.tx);y0=Math.min(y0,c.ty);x1=Math.max(x1,c.tx+c.size);y1=Math.max(y1,c.ty+c.size);}
+  const g={k:'yard',ids:J.ids.slice(),anchor:b.id,x0,y0,x1,y1};for(const c of cs){c.yard=g;c.maxHp+=50;c.hp+=50;}
+  if(b.owner===0){toast('Poultry yard finished: eggs +25%, and you can build more coops');panelKeyLast='';try{sfx('done',b.x,b.y);}catch(e){}}}
+function yardTick(b){const ok=x=>x&&!x.dead&&x.built&&x.owner===b.owner&&x.type==='coop';
+  if(b.mergeJob&&b.mergeJob.ids.some(id=>!ok(G.byId.get(id)))){for(const id of b.mergeJob.ids){const x=G.byId.get(id);if(x)x.mergeWait=0;}b.mergeJob=null;b.upT=0;}
+  if(b.mergeWait){const a=G.byId.get(b.mergeWait);if(!ok(a)||!a.mergeJob)b.mergeWait=0;}
+  if(b.yard&&b.yard.ids.some(id=>!ok(G.byId.get(id)))){for(const id of b.yard.ids){const x=G.byId.get(id);if(x)x.yard=null;}b.yard=null;}}
+function coopCount(o){let n=0;const ys=new Set();for(const e of G.ents){if(e.type!=='coop'||e.owner!==o||e.dead)continue;if(e.yard){ys.add(e.yard.anchor);}else n++;}return n+ys.size;}
+function yardUI(c,P){if(c.owner!==0)return '';
+  if(c.yard){let h=0,ch=0,eg=0;for(const id of c.yard.ids){const x=G.byId.get(id);if(x){h+=x.hens||0;ch+=x.chicks||0;eg+=x.eggs||0;}}
+    return '<div class="hint"><b>Poultry yard: 6 coops</b><br>'+h+' hens'+(ch?', '+ch+' chicks':'')+(eg?', '+eg+' eggs':'')+' · eggs +25%. Counts as 1 coop</div>';}
+  if(c.mergeWait){const a=G.byId.get(c.mergeWait);return '<div class="hint">Being joined into a Poultry yard'+(a&&a.upT>0?': '+Math.ceil(a.upT)+'s left':'')+'</div>';}
+  if(c.mergeJob){const busy=G.ents.some(u=>u.order&&u.order.type==='upgrade'&&u.order.id===c.id);return '<div class="hint">Building the Poultry yard: '+Math.ceil(c.upT)+'s left</div>'+(busy?'':btn('hbuild','Send a builder','','',false,0,'wide'));}
+  if(P.age<2)return '';const g=yardFor(c);
+  if(g)return btn('mkyard','Poultry yard',costHtml(YARD_COST),bldIcon('coop',THUMB.coop),!canAfford(P,YARD_COST),0,'wide',PILL('up','Upgrade'))+'<div class="hint" style="max-width:200px">Joins these 6 coops into one yard: eggs +25%, and it counts as 1 coop, so you can build more</div>';
+  return coopCount(0)>=4?'<div class="hint" style="max-width:210px">Tip: 6 coops in a block of 2 rows of 3 (1–2 tiles apart) can become a Poultry yard</div>':'';}
 const WAREV={wool:9,cheese:15,beer:10};
 /* Josh (Oct 14): the donkey caravan upgrades to the trade cart in the Renaissance (like soldier upgrades): it keeps hauling wool/cheese/beer, and trades from the market */
 function caravanUp(o){let n=0;for(const u of G.ents){if(u.type!=='caravan'||u.owner!==o||u.dead)continue;const f=u.hp/(u.maxHp||DEF.caravan.hp);u.type='tradecart';u.maxHp=DEF.tradecart.hp;u.hp=Math.max(1,Math.round(f*u.maxHp));delete u.raise;u.home=0;u.penned=0;if(u.order&&u.order.wander)u.order=null;u.anim=u.anim||{};n++;}
@@ -1545,7 +1573,7 @@ function updUnit(u,dt){
     o.t=(o.t||0)+dt;u.offduty=true;if(o.t>=10){u.offduty=false;if(pb.beer>=1){pb.beer-=1;bEv(pb,'pour');const sol=!NONMIL.has(u.type);u.buff={type:sol?'morale':'rest',until:G.t+(sol?120:180)};u.pubCd=G.t+300;if(!sol&&!o.prev){const rd=readyAt(pb).length;if(rd<9){u.order={type:'ready',id:pb.id,slot:rd};u.path=null;return;}}if(u.owner===0&&V0(u))G.fx.push({type:'float',x:u.x,y:u.y-24,t:1.6,text:sol?'Morale up!':'Cheers!',col:'#ffd34a'});}u.order=o.prev||null;u.path=null;}return;}
   if(o.type==='upgrade'){const b=G.byId.get(o.id);if(!alive(b)||!(b.upT>0)){u.order=null;return;}const r=approachWork(u,b,TILE*.8);if(r==='fail'){u.order=null;return;}
     if(r===true){u.working=true;u.face=Math.atan2(b.y-u.y,b.x-u.x);b.upT-=dt*(u.owner===0&&G.cheat.quick?10:1);
-      if(b.upT<=0){b.upT=0;if(b.mergeJob){finishMerge(b);u.order=null;return;}b.morph={from:bldSpr(b),t0:G.t,dur:1.1};b.lvl=(b.lvl||0)+1;b.maxHp+=100;b.hp+=100;if(b.owner===0){toast(b.lvl>=2?'Townhouse finished: room for 12':'New floor finished: room for 8');panelKeyLast='';}u.order=null;}}return;}
+      if(b.upT<=0){b.upT=0;if(b.mergeJob){if(b.mergeJob.k==='yard')finishYard(b);else finishMerge(b);u.order=null;return;}b.morph={from:bldSpr(b),t0:G.t,dur:1.1};b.lvl=(b.lvl||0)+1;b.maxHp+=100;b.hp+=100;if(b.owner===0){toast(b.lvl>=2?'Townhouse finished: room for 12':'New floor finished: room for 8');panelKeyLast='';}u.order=null;}}return;}
   if(o.type==='slaughter'){const t=G.byId.get(o.id);if(!alive(t)||t.owner!==u.owner){u.order=null;return;}t.order=null;const r=approach(u,t,TILE*.8);if(r==='fail'){u.order=null;return;}if(r===true){kill(t);}return;}
   if(o.type==='build'){
     const b=G.byId.get(o.id);
@@ -1664,6 +1692,7 @@ function updBld(b,dt){
   if(!b.built)return;
   if((b.type==='pen'||b.type==='corral')&&G._pgT!==G.t)penGrpCalc();
   if(b.type==='house'&&(b.grp||b.mergeJob||b.mergeWait))houseGrpTick(b);
+  if(b.type==='coop'&&(b.yard||b.mergeJob||b.mergeWait))yardTick(b);
   if(isCor(b))corralRaiseTick(b,dt);
   if(b.anim)b.anim.ev={};
   const d=DEF[b.type];
@@ -1684,11 +1713,11 @@ function updBld(b,dt){
     if(ok&&W.fuel){for(const k in W.fuel)if(P[k]<W.fuel[k]*n*dt){ok=false;b.stall=b.type==='factory'?'Needs wood and stone for the machines':'Needs wood for the ovens';}}
     if(ok&&b.type==='weaver'){const sh=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&!(e.born&&G.t-e.born<60)).length;if(sh<4){ok=false;b.stall='Needs 4 adult sheep for wool';}}
     b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){if((b.wool||0)>=amt/4){b.wool-=amt/4;if(expAt(b,'textile',amt/5))continue;P.g+=amt*1.6*(b.owner===1?G.aiMult:1);inc(b.owner,'g',amt*1.6,'textiles');continue;}b.stall='Needs wool: set a livestock pen to Wool (runs at half speed without it)';if(expAt(b,'cloth',amt/12))continue;P[k]+=amt*.5*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt*.5,b.type);continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
-  if(b.type==='coop'){if(!b.birds)b.birds=[-999];b.layT=(b.layT||0)+dt;if(b.birds.length<6&&b.layT>=45){b.layT=0;b.birds.push(G.t);}
+  if(b.type==='coop'){if(!b.birds)b.birds=[-999];b.layT=(b.layT||0)+dt*(b.yard?YARD_K:1);if(b.birds.length<6&&b.layT>=45){b.layT=0;b.birds.push(G.t);}
     let h=0,ch=0,eg=0;for(const t0 of b.birds){const a=G.t-t0;if(a>=60)h++;else if(a>=20)ch++;else eg++;}
     if(b.owner===0&&b.hens&&h>b.hens&&G.t-(G.lastHenMsg||-99)>25){G.lastHenMsg=G.t;toast('A chick grew into a laying hen');}
     if(b.owner===0&&b.eggs&&eg<b.eggs&&G.t-(G.lastHatchMsg||-99)>25){G.lastHatchMsg=G.t;toast('An egg hatched');}
-    b.hens=h;b.chicks=ch;b.eggs=eg;if(b.useT>0)b.useT-=dt;else if(useOf(b)==='eggs'){const pm=G.players[b.owner].age>=6?3:1;const bk=G.players[b.owner].tech.grandbake&&G.ents.find(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(e.eggs||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk&&h){bk.eggs=(bk.eggs||0)+.025*h*dt*pm;b.toBakery=true;}else{b.toBakery=false;G.players[b.owner].f+=.05*h*dt*pm;inc(b.owner,'f',.05*h*dt*pm,'coop');}}}
+    b.hens=h;b.chicks=ch;b.eggs=eg;if(b.useT>0)b.useT-=dt;else if(useOf(b)==='eggs'){const pm=G.players[b.owner].age>=6?3:1;const bk=G.players[b.owner].tech.grandbake&&G.ents.find(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(e.eggs||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);const yk=b.yard?YARD_K:1;if(bk&&h){bk.eggs=(bk.eggs||0)+.025*h*dt*pm*yk;b.toBakery=true;}else{b.toBakery=false;G.players[b.owner].f+=.05*h*dt*pm*yk;inc(b.owner,'f',.05*h*dt*pm*yk,'coop');}}}
   if(b.type==='pen'&&penLead(b)!==b){b.flock=0;b.sickN=0;}
   if(b.type==='ranch'){try{ranchCowTick(b,dt);}catch(err){}}
   if(isPen(b)&&penLead(b)===b){const pnN=penN(b),pIds=b.mgrp?b.mgrp.ids:[b.id],fl=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&inPenArea(b,e,.8)),n=fl.filter(e=>!e.sick&&!(e.born&&G.t-e.born<60)).length;b.flock=fl.length;b.sickN=fl.filter(e=>e.sick).length;const P=G.players[b.owner];
@@ -1933,6 +1962,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   const B=(t,near,r0)=>aiBuild(t,near||base,vills,r0||3,o);ai.fail=ai.fail||{};const ok=t=>!ai.fail[t]||G.t-ai.fail[t]>45,T=(t,near,r0)=>{if(!B(t,near,r0))ai.fail[t]=G.t;};
   if(age>=2&&P.w>300&&P.s>80){const h=blds.find(b=>b.type==='house'&&b.built&&!(b.upT>0)&&(b.lvl||0)<(age>=3?2:1));if(h){const c2=(h.lvl||0)===0?{w:50,s:20}:{w:60,s:40};if(canAfford(P,c2)){pay(P,c2);h.upT=25;sendBuilder(h);}}}
   for(const h of blds)if(h.upT>0&&!vills.some(v=>v.order&&v.order.type==='upgrade'&&v.order.id===h.id))sendBuilder(h);
+  if(P.w>300&&P.g>150&&!blds.some(b=>b.mergeJob)){for(const c of blds){if(c.type!=='coop')continue;const g=yardFor(c);if(g){startYard(g);break;}}}
   if(age>=4&&P.s>250&&P.w>250&&!blds.some(b=>b.mergeJob)){const hs=blds.filter(b=>b.type==='house'&&b.built);let r=null;for(const h of hs){r=rowFor(h);if(r)break;}if(r)startMerge('row',r);}
   if(cap<POPMAX&&cap-used<=3&&!housing){if(!aiRowHouse(o,vills))B('house');}
   else if(vills.length>=7&&!has('barracks'))B('barracks',0,4);
@@ -5241,9 +5271,10 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
    Modern Age (age 6, art/c/nb_mod.webp): the 9 core looks (key \'x\'; bunker, vehicle depot, machine shop, artillery factory), command fortress (castle x),
    motor pool (corral x), poultry farm (coop x), power plant, pylon, Tesla coil, airfield, helipad, AA gun (bare keys), and the apartment block
    (a merged 6x4 house group h.grp.k===\'apt\': the anchor house draws the whole block, the others draw nothing). Castle/corral/coop/apt are also
-   hooked at draw time (bldSpr0, sprFor) because other blocks draw those types at draw time. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks). ===== */
+   hooked at draw time (bldSpr0, sprFor) because other blocks draw those types at draw time.
+   House floor levels nL1/nL2 (Industrial) and xL1/xL2 (Modern) and the Modern station/depot/textile mill (station|depot|factory+o+\'x\', drawn from age 6): art/c/nb_mod2.webp, GFX.lvCore. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks). ===== */
 (function(){try{
-  const ATL=[{f:'nb_core',lay:{tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]},gap:0},{f:'nb_ind2',lay:{"tower":[0,0,209,466],"factory":[424,0,358,443],"barracks":[1146,0,402,438],"workshop":[0,468,384,413],"stable":[774,468,339,395],"station":[0,883,469,388],"forge":[944,883,354,367],"range":[0,1273,327,361],"depot":[660,1273,308,303]},gap:2},{f:'nb_mod',lay:{"pylon":[0,0,263,473],"towncenter":[530,0,382,472],"castle":[0,475,394,436],"workshop":[792,475,397,419],"tesla":[0,913,268,409],"apt":[540,913,451,406],"storage":[0,1324,334,366],"tower":[672,1324,348,366],"forge":[0,1692,364,350],"power":[732,1692,425,334],"house":[0,2044,285,330],"stable":[574,2044,337,305],"corral":[0,2376,440,304],"airfield":[884,2376,410,304],"barracks":[0,2682,432,290],"aagun":[868,2682,317,286],"range":[0,2974,432,270],"helipad":[868,2974,317,256],"coop":[0,3246,423,245]},gap:2}];
+  const ATL=[{f:'nb_core',lay:{tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]},gap:0},{f:'nb_ind2',lay:{"tower":[0,0,209,466],"factory":[424,0,358,443],"barracks":[1146,0,402,438],"workshop":[0,468,384,413],"stable":[774,468,339,395],"station":[0,883,469,388],"forge":[944,883,354,367],"range":[0,1273,327,361],"depot":[660,1273,308,303]},gap:2},{f:'nb_mod',lay:{"pylon":[0,0,263,473],"towncenter":[530,0,382,472],"castle":[0,475,394,436],"workshop":[792,475,397,419],"tesla":[0,913,268,409],"apt":[540,913,451,406],"storage":[0,1324,334,366],"tower":[672,1324,348,366],"forge":[0,1692,364,350],"power":[732,1692,425,334],"house":[0,2044,285,330],"stable":[574,2044,337,305],"corral":[0,2376,440,304],"airfield":[884,2376,410,304],"barracks":[0,2682,432,290],"aagun":[868,2682,317,286],"range":[0,2974,432,270],"helipad":[868,2974,317,256],"coop":[0,3246,423,245]},gap:2},{f:'nb_mod2',lay:{"nL2":[0,0,223,457],"xL2":[450,0,255,387],"xL1":[964,0,380,345],"nL1":[0,459,227,336],"depot":[458,459,389,335],"factory":[0,797,368,334],"station":[740,797,432,302]},gap:2}];
   const TY={towncenter:['nb_tc',0,'tc',1.15,.04],house:['nb_house',0,'house',.98,.05],storage:['nb_storage',0,'storage',1.1,.04],
     barracks:['nb_barracks',1,'barracks',1.1,.04],tower:['nb_tower',1,'tower',.95,.04],range:['nb_range',1,'range',1.08,.04],stable:['nb_stable',1,'stable',1.08,.04],
     forge:['nb_forge',1,'forge',1.08,.04],workshop:['nb_workshop',1,'workshop',1.1,.04],station:['nb_station',1,'station',1.1,.03],depot:['nb_depot',1,'depot',1.08,.04],factory:['nb_factory',1,'factory',1.02,.04]};
@@ -5252,8 +5283,11 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
     tower:['nx_tower','tower',1.05,.04],range:['nx_range','range',1.1,.04],stable:['nx_stable','stable',1.08,.04],forge:['nx_forge','forge',1.08,.04],workshop:['nx_workshop','workshop',1.1,.04],
     castle:['nx_castle','castle',1.08,.04],corral:['nx_corral','corral',1.08,.04],coop:['nx_coop','coop',1.1,.04],power:['nx_power','power',1.1,.04],pylon:['nx_pylon','pylon',1.0,.04],
     tesla:['nx_tesla','tesla',1.0,.04],airfield:['nx_airfield','airfield',1.08,.04],helipad:['nx_helipad','helipad',1.08,.04],aagun:['nx_aagun','aagun',1.08,.04]};
-  const BARE6=new Set(['power','pylon','tesla','airfield','helipad','aagun']),DRAW6=new Set(['castle','corral','coop']);
-  const SMK={nb_tc:[[379,47],[153,154]],nb_house:[[124,7]],nb_factory:[[137,23],[177,9]],nb_forge:[[148,8]],nb_workshop:[[309,72]],nx_power:[[262,8],[311,30]],nx_house:[[165,40]],nx_forge:[[322,45]],nx_workshop:[[22,108]]};
+  const BARE6=new Set(['power','pylon','tesla','airfield','helipad','aagun']),DRAW6=new Set(['castle','corral','coop','station','depot','factory']);
+  /* house floor levels (Industrial n, Modern x) and Modern station/depot/mill: art/c/nb_mod2.webp; [art, key, tier, width, down] */
+  const LV7={nL1:['ny_nL1','house',5,.9,.05],nL2:['ny_nL2','house',5,.88,.05],xL1:['ny_xL1','house',6,1,.05],xL2:['ny_xL2','house',6,.9,.05],
+    x_station:['ny_station','station',6,1.12,.03],x_depot:['ny_depot','depot',6,1.1,.04],x_factory:['ny_factory','factory',6,1.05,.04]};
+  const SMK={nb_tc:[[379,47],[153,154]],nb_house:[[124,7]],nb_factory:[[137,23],[177,9]],nb_forge:[[148,8]],nb_workshop:[[309,72]],nx_power:[[262,8],[311,30]],nx_house:[[165,40]],nx_forge:[[322,45]],nx_workshop:[[22,108]],ny_factory:[[85,45]],ny_nL1:[[152,18]],ny_nL2:[[165,24]],ny_xL1:[[266,38]]};
   const IM=ATL.map(()=>new Image()),cut=ATL.map(()=>false);const OLD={};
   function ready(i){if(cut[i])return true;const im=IM[i];if(!(im.complete&&im.naturalWidth))return false;const A=ATL[i];
     for(const t in TY){const [nm,ai,k]=TY[t];if(ai!==i)continue;const [x,y,w,h]=A.lay[k];
@@ -5262,6 +5296,9 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
     if(i===2){const L6=Object.values(TY6).map(v=>[v[0],v[1]]).concat([['nx_apt','apt']]);for(const [nm,k] of L6){const [x,y,w,h]=A.lay[k];
       for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
       if(!GFX_ART[nm])GFX_ART[nm]={age:6,culture:'both',smoke:SMK[nm]||null}}}
+    if(i===3){for(const q in LV7){const nm=LV7[q][0],k=nm.slice(3),[x,y,w,h]=A.lay[k];
+      for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
+      if(!GFX_ART[nm])GFX_ART[nm]={age:LV7[q][2],culture:'both',smoke:SMK[nm]||null}}}
     return cut[i]=true}
   GFX.indCore=function(o){if(GFX.mode!=='V23D'||!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(5)))return false;let n=0;
     for(const t in TY){const [nm,ai,,wf,dn]=TY[t];if(!ready(ai)||!DEF[t])continue;const S=DEF[t].size*TILE,
@@ -5273,6 +5310,11 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
         keys=t==='house'?['house'+o+'x','house'+o+'xL1','house'+o+'xL2']:BARE6.has(t)?[t+o]:[t+o+'x'];
       for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=GFX.spr(nm,o,S,wf,dn);sp._nb=1;SPR.bld[k]=sp;n++}}
     if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
+  GFX.lvCore=function(o){if(GFX.mode!=='V23D'||!ready(3))return false;let n=0;
+    for(const q in LV7){const [nm,t,tier,wf,dn]=LV7[q];if(!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(tier))||!DEF[t])continue;
+      const k=q[0]==='x'&&q[1]==='_'?t+o+'x':'house'+o+q,cur=SPR.bld[k];if(cur&&cur._lv)continue;if(cur&&!cur._nb)OLD[k]=cur;
+      const sp=GFX.spr(nm,o,DEF[t].size*TILE,wf,dn);sp._nb=1;sp._lv=1;SPR.bld[k]=sp;n++}
+    if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
   const BL=document.createElement('canvas');BL.width=BL.height=1;BL.w=1;BL.h=1;BL.ov=0;BL.dx=0;const AC={};
   GFX.aptSpr=function(g,o){if(!ready(2))return null;const gw=(g.x1-g.x0)*TILE,gh=(g.y1-g.y0)*TILE,key=o+'_'+gw+'_'+gh;if(AC[key])return AC[key];
@@ -5283,10 +5325,10 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
   const _sf=sprFor;sprFor=function(type,o){try{if(DRAW6.has(type)&&o<2&&GFX.mode==='V23D'&&ageOf(o)>=6){const s=SPR.bld[type+o+'x'];if(s&&s._nb)return s}}catch(err){}return _sf(type,o)};
   /* Modern poultry farm: its painted yard has its own fence, so the 3x3 coop's front fence (art chat 1's yard) is skipped from age 6 */
   try{const _cc=drawCoopChickens;drawCoopChickens=function(c,e,now){if(GFX.mode==='V23D'&&e&&e.owner<2&&ageOf(e.owner)>=6&&GFX.cpFenceEdges){const f=GFX.cpFenceEdges;GFX.cpFenceEdges=function(){};try{return _cc(c,e,now)}finally{GFX.cpFenceEdges=f}}return _cc(c,e,now)}}catch(err){}
-  const _g=genTier;genTier=function(o,t){const r=_g(o,t);if(t===5){try{GFX.indCore(o)}catch(e){}}if(t===6){try{GFX.modCore(o)}catch(e){}}return r};
+  const _g=genTier;genTier=function(o,t){const r=_g(o,t);if(t===5){try{GFX.indCore(o)}catch(e){}}if(t===6){try{GFX.modCore(o)}catch(e){}}if(t===5||t===6){try{GFX.lvCore(o)}catch(e){}}return r};
   const _d=dropTier;dropTier=function(o,t){if(t===5||t===6)for(const k in OLD)if(tierOfKey(k,o)===t)delete OLD[k];return _d(o,t)};
-  const _a=GFX.apply;GFX.apply=function(){const r=_a.apply(this,arguments);try{if(GFX.mode==='V23D'){GFX.indCore(0);GFX.indCore(1);GFX.modCore(0);GFX.modCore(1)}else for(const k in OLD){if(SPR.bld[k]&&SPR.bld[k]._nb)SPR.bld[k]=OLD[k]}}catch(e){}return r};
-  ATL.forEach((A,i)=>{IM[i].onload=function(){try{const a=GFX.indCore(0)|GFX.modCore(0),b=GFX.indCore(1)|GFX.modCore(1);if((a||b)&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};
+  const _a=GFX.apply;GFX.apply=function(){const r=_a.apply(this,arguments);try{if(GFX.mode==='V23D'){GFX.indCore(0);GFX.indCore(1);GFX.modCore(0);GFX.modCore(1);GFX.lvCore(0);GFX.lvCore(1)}else{for(const k in OLD){if(SPR.bld[k]&&SPR.bld[k]._nb)SPR.bld[k]=OLD[k]}for(const k in SPR.bld)if(SPR.bld[k]&&SPR.bld[k]._lv&&!OLD[k])delete SPR.bld[k]}}catch(e){}return r};
+  ATL.forEach((A,i)=>{IM[i].onload=function(){try{const a=GFX.indCore(0)|GFX.modCore(0)|GFX.lvCore(0),b=GFX.indCore(1)|GFX.modCore(1)|GFX.lvCore(1);if((a||b)&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};
     IM[i].src=GFX.ART+A.f+'.webp?v='+GFX.ARTV});
 }catch(err){}})();
 /* ===== END art chat 3: indcore ===== */
@@ -6366,7 +6408,7 @@ function cmdToBuilding(mine,hit){
       if(canRepair(hit,0)&&v.length&&!WORK[hit.type]&&!isPen(hit)&&!(hit.type==='house'&&hit.upT>0)){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.type==='ranch'&&hit.built&&isDairy(hit)){const cw=mine.filter(u=>u.type==='cow');if(cw.length){for(const q of cw)q.dairyId=hit.id;const z=penSpot(hit,'c');orderMove(cw,(z[0]+.5)*TILE,(z[1]+.5)*TILE);mark(hit.x,hit.y,'#ffd25a');toast(cw.length>1?cw.length+' cows heading into the ranch':'Cow heading into the ranch');return true;}}
       if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){vv.forEach(u=>{u.order=null;u.path=null;u.shep=penLead(hit).id;});mark(hit.x,hit.y,'#ffd25a');toast(vv.length>1?vv.length+' shepherds assigned':'Shepherd assigned');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
-      if(hit.type==='house'&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
+      if((hit.type==='house'||hit.type==='coop')&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&isLodge(hit)&&hit.owner===0&&v.length){let n=foresterN(hit),k=0;for(const u of v){if(n>=FORESTERS)break;if(u.forester===hit.id)continue;u.forester=hit.id;u.order=null;u.path=null;u.shep=0;n++;k++;}toast(k?k+' forester'+(k>1?'s':'')+' at work':'The lodge already has '+FORESTERS+' foresters');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&WORK[hit.type]&&v.length){const n=assignWorkers(hit,v);toast(n?n+' assigned to the '+DEF[hit.type].name.toLowerCase():'The '+DEF[hit.type].name.toLowerCase()+' is full');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')&&v.length){if(hit.type==='goldmine'&&!G.players[0].tech.picks){toast('Research Copper picks to mine gold');return true;}v.forEach(u=>orderGather(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
@@ -6470,7 +6512,7 @@ function placeWhy(type,tx,ty,o,needExp,m){const s=DEF[type].size;
   if(type==='smelter'){const cx=(tx+s/2)*TILE,cy=(ty+s/2)*TILE;if(!G.ents.some(e=>e.type==='copper'&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<4.5*TILE))return 'Place it next to a copper deposit';}
   if(!fits(tx,ty,s,m||0,needExp))return 'Blocked. Pick open, explored ground';{const FREE=new Set(['wall','gate','farm','pylon','outpost']);if(!FREE.has(type)&&!(DEF[type]&&DEF[type].walkable)){for(const e of G.ents){if(e.kind!=='bld'||e.dead||FREE.has(e.type)||(DEF[e.type]&&DEF[e.type].walkable))continue;if((type==='pen'||type==='corral')&&e.type===type&&e.owner===o)continue;const es=e.size||DEF[e.type].size;if(tx-1<e.tx+es&&tx+s+1>e.tx&&ty-1<e.ty+es&&ty+s+1>e.ty)return 'Leave 1 tile of space next to other buildings so people can walk between them'}}}
   if(type==='towncenter'){for(const e of G.ents)if(e.type==='towncenter'&&!e.dead&&Math.hypot(e.x-(tx+1.5)*TILE,e.y-(ty+1.5)*TILE)<20*TILE)return 'Too close to another town center. New towns need about 20 tiles of space';if(inTerritory(1-o,tx,ty,s))return 'Inside enemy territory';return '';}
-  if(type==='coop'&&G.ents.filter(e=>e.type==='coop'&&e.owner===o&&!e.dead).length>=6)return 'You can have up to 6 chicken coops';
+  if(type==='coop'&&coopCount(o)>=6)return 'You can have up to 6 chicken coops (a Poultry yard counts as 1)';
   if(type==='outpost')return inTerritory(1-o,tx,ty,s)?'Inside enemy territory':'';
   if((type==='mine'||type==='goldmine'||type==='stonemine'||type==='depot'||type==='shaft')&&!inTerritory(o,tx,ty,s)&&inTerritory(1-o,tx,ty,s))return 'Inside enemy territory';
   if((type==='mine'||type==='goldmine'||type==='stonemine')&&!inTerritory(o,tx,ty,s))return bAvail(o,'outpost')?'Too far from your territory. Build an outpost near this deposit first':'Too far from your territory. Train a scout to unlock outposts, then build one near this deposit';
@@ -6817,7 +6859,7 @@ function uiFrame(){
   const sel=selEnts();
   if(sel.length!==G.sel.length)setSel(sel);
   const aff=Object.keys(DEF).concat(Object.keys(TECH)).map(k=>canAfford(P,itemOf(k).cost)?1:0).join('');
-  const key=JSON.stringify([(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='pub'?[r.inn,Math.ceil(r.innUpT||0),r.innOn]:0;})(),[...nextBuilds(0)].join(),(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='ranch'?[r.cuse,r.cFlock,r.milked,r.cowsA,G.players[0].tech.dairyfarm,G.rtab,raisingN(r),r.rfull,r.sickN]:0;})(),G.sel,G.buildTab,G.aground,G.prospect,G.strikeN,G.reconAim,G.sel.length===1&&G.byId.get(G.sel[0])&&[G.byId.get(G.sel[0]).planes,G.byId.get(G.sel[0]).rearmT>G.t],G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).export,G.prevSelFor,G.showMore,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).fallow,G.sel.length===1&&G.byId.get(G.sel[0])&&USES[G.byId.get(G.sel[0]).type]?(()=>{const b=G.byId.get(G.sel[0]);return [b.use,b.useT>0?Math.ceil(b.useT):0,b.useOK,b.useWhy];})():0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='house'?[G.byId.get(G.sel[0]).lvl,G.byId.get(G.sel[0]).upT>0?Math.ceil(G.byId.get(G.sel[0]).upT):0,G.ents.filter(e=>e.order&&e.order.type==='upgrade'&&e.order.id===G.sel[0]).length]:0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='dairy'?[G.byId.get(G.sel[0]).cheese,G.byId.get(G.sel[0]).flock,G.byId.get(G.sel[0]).cowsA]:0,G.prices&&Math.round(G.prices.f+G.prices.w*7+G.prices.s*13),G.selForm,activeGroup(),BUILDS.filter(b=>bAvail(0,b)).join(),G.place&&G.place.type,G.place&&placeValid(),G.place&&(G.place.type==='wall'?JSON.stringify(wallTiles()):placeWhy(G.place.type,G.place.tx,G.place.ty,0,true,0)),G.demo,G.boxMode,idleVills().length,armyUnits().length,
+  const key=JSON.stringify([(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='coop'?[!!r.yard,!!r.mergeJob,r.upT>0?Math.ceil(r.upT):0,r.mergeWait||0,!!yardFor(r),G.ents.some(u=>u.order&&u.order.type==='upgrade'&&u.order.id===r.id)]:0;})(),(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='pub'?[r.inn,Math.ceil(r.innUpT||0),r.innOn]:0;})(),[...nextBuilds(0)].join(),(()=>{const r=G.sel.length===1&&G.byId.get(G.sel[0]);return r&&r.type==='ranch'?[r.cuse,r.cFlock,r.milked,r.cowsA,G.players[0].tech.dairyfarm,G.rtab,raisingN(r),r.rfull,r.sickN]:0;})(),G.sel,G.buildTab,G.aground,G.prospect,G.strikeN,G.reconAim,G.sel.length===1&&G.byId.get(G.sel[0])&&[G.byId.get(G.sel[0]).planes,G.byId.get(G.sel[0]).rearmT>G.t],G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).export,G.prevSelFor,G.showMore,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).fallow,G.sel.length===1&&G.byId.get(G.sel[0])&&USES[G.byId.get(G.sel[0]).type]?(()=>{const b=G.byId.get(G.sel[0]);return [b.use,b.useT>0?Math.ceil(b.useT):0,b.useOK,b.useWhy];})():0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='house'?[G.byId.get(G.sel[0]).lvl,G.byId.get(G.sel[0]).upT>0?Math.ceil(G.byId.get(G.sel[0]).upT):0,G.ents.filter(e=>e.order&&e.order.type==='upgrade'&&e.order.id===G.sel[0]).length]:0,G.sel.length===1&&G.byId.get(G.sel[0])&&G.byId.get(G.sel[0]).type==='dairy'?[G.byId.get(G.sel[0]).cheese,G.byId.get(G.sel[0]).flock,G.byId.get(G.sel[0]).cowsA]:0,G.prices&&Math.round(G.prices.f+G.prices.w*7+G.prices.s*13),G.selForm,activeGroup(),BUILDS.filter(b=>bAvail(0,b)).join(),G.place&&G.place.type,G.place&&placeValid(),G.place&&(G.place.type==='wall'?JSON.stringify(wallTiles()):placeWhy(G.place.type,G.place.tx,G.place.ty,0,true,0)),G.demo,G.boxMode,idleVills().length,armyUnits().length,
     aff,P.age,Object.keys(P.tech).join(),sel.map(e=>e.kind==='bld'?[e.built,e.queue.join(),reqMissing(0,'bronze')?1:0,e.sickN||0,e.flock||0,isPen(e)?Math.floor(G.t/5)+':'+G.ents.filter(x=>x.shep===e.id).length:0,e.gar?e.gar.length:0,e.type==='towncenter'?shelteredN(e.owner)+':'+G.ents.some(u=>u.owner===e.owner&&u.order&&u.order.type==='garrison'):G.ents.some(u=>u.order&&u.order.type==='garrison'&&u.order.id===e.id)]:e.type)]);
   if(key!==panelKeyLast){panelKeyLast=key;renderPanel(sel);}
   const one=sel.length===1?sel[0]:null;
@@ -6852,10 +6894,10 @@ function renderPanel(sel){
     info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site')+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec')+'</div></div>';
     acts='<div class="hint">'+(one.type==='tradepost'?'In the Renaissance Age, trade carts from your market travel here and bring back gold. The farther your market, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';
   }else if(one&&one.kind!=='unit'){
-    const nm=one.kind==='res'?RES[one.type].name:(one.type==='pub'&&hasInn(one)?'Pub & Inn':bname(one.type,one.owner))+(one.owner===1?' (enemy)':'');
+    const nm=one.kind==='res'?RES[one.type].name:(one.type==='pub'&&hasInn(one)?'Pub & Inn':one.type==='coop'&&one.yard?'Poultry yard':bname(one.type,one.owner))+(one.owner===1?' (enemy)':'');
     const ag=one.kind==='bld'?G.players[one.owner].age:0,tk=ag>=6&&THUMB[one.type+'x']?one.type+'x':ag>=5&&THUMB[one.type+'n']?one.type+'n':ag>=4&&THUMB[one.type+'r']?one.type+'r':ag>=3&&THUMB[one.type+'m']?one.type+'m':ag>=2&&THUMB[one.type+'i']?one.type+'i':ag>=1&&THUMB[one.type+'b']?one.type+'b':one.type;
     info='<img alt="" src="'+THUMB[tk]+'"><div style="min-width:0;flex:1"><div class="nm">'+nm+'</div><div class="bar"><i id="ihp"></i></div><div class="sub" id="ihpt"></div></div>';
-    if(one.kind==='bld'&&one.owner===0&&G.prevSelFor===one.id){const pv=(G.prevSel||[]).map(id=>G.byId.get(id)).filter(u=>u&&!u.dead);const lab=!one.built?'Help build':canRepair(one,0)?'Repair':one.type==='house'&&one.upT>0?'Build the upgrade':WORK[one.type]?'Put to work here':one.type==='farm'?'Farm here':(one.type==='goldmine'||one.type==='stonemine')?'Mine here':isPen(one)?'Make shepherds':(one.type==='storage'&&isLodge(one))?'Make foresters':null;
+    if(one.kind==='bld'&&one.owner===0&&G.prevSelFor===one.id){const pv=(G.prevSel||[]).map(id=>G.byId.get(id)).filter(u=>u&&!u.dead);const lab=!one.built?'Help build':canRepair(one,0)?'Repair':(one.type==='house'||one.type==='coop')&&one.upT>0?'Build the upgrade':WORK[one.type]?'Put to work here':one.type==='farm'?'Farm here':(one.type==='goldmine'||one.type==='stonemine')?'Mine here':isPen(one)?'Make shepherds':(one.type==='storage'&&isLodge(one))?'Make foresters':null;
       if(pv.length&&lab)acts+=btn('sendsel',lab,'<span class="cost">Send '+pv.length+' selected villager'+(pv.length>1?'s':'')+'</span>',THUMB.villager,false,0,'wide');}
     if(one.kind==='bld'&&one.owner===0&&one.built){
       const d=DEF[one.type];
@@ -6869,7 +6911,7 @@ function renderPanel(sel){
       if(one.type==='towncenter'&&P.age>=MAX_AGE)acts+=btn('age',AGES[P.age+1],'<span class="cost">next update</span>','',true);
       if(one.queue.length){acts+='<div class="hint" style="min-width:130px"><span id="qtxt"></span><div class="bar q"><i id="qbar"></i></div></div>'+btn('cancel','Cancel','<span class="cost">last in queue</span>','',false);}
       else if(d.trains&&!isCor(one))acts+='<div class="hint">Tap the map to set where new units gather.</div>';
-      if(d.techs&&!d.trains&&!acts)acts+='<div class="hint">All upgrades researched.</div>';
+      if(d.techs&&d.techs.length&&!d.trains&&!acts)acts+='<div class="hint">All upgrades researched.</div>';
       
       if(one.type==='farm'&&one.built&&one.fallow)acts=btn('replant','Replant',costHtml({w:farmReplantW(one)}),THUMB.farm,!canAfford(P,{w:farmReplantW(one)}),0,'wide',PILL('up','Needed'))+'<div class="hint">This field is harvested out. Replanting puts its farmers back to work</div>'+acts;
       if(one.built&&one.owner===0&&isPen(one)&&!G.ents.some(e=>e.type==='sheep'&&e.owner===0&&!e.dead)){const wild=G.ents.filter(e=>e.type==='sheep'&&e.owner>1&&!e.dead&&G.exp[0][ti(tl(e.x),tl(e.y))]).sort((a,b)=>Math.hypot(a.x-one.x,a.y-one.y)-Math.hypot(b.x-one.x,b.y-one.y))[0];acts+='<div class="hint"><b>Empty pen: find wild sheep.</b> Send a villager next to wild sheep: they get your collar and stay where they are. Then give the pen a shepherd (select a villager, tap the pen, tap Make shepherds) and tap Call sheep. '+(wild?'Nearest flock you have seen: '+Math.round(Math.hypot(wild.x-one.x,wild.y-one.y)/TILE)+' tiles '+dirName(wild.x-one.x,wild.y-one.y)+'.':'You have not seen any yet. Explore with a scout or soldier.')+'</div>';}
@@ -6898,6 +6940,7 @@ function renderPanel(sel){
       if(one.type==='corral'&&one.owner===0&&(ranchPen(one)||G.players[0].age>=3))acts+='<div class="hint">'+(ranchPen(one)?'Next to a livestock pen: trains 10% faster':'Build it next to a livestock pen to train 10% faster')+'</div>';
       if(one.type==='mill')acts+='<div class="hint">Grinds grain from up to 18 farms within 8 tiles ('+millCount(one)+' now).</div>';
       if(one.type==='castle')acts+='<div class="hint">Fires 3 arrows at a time and claims a large territory around it.</div>';
+      if(one.type==='coop'&&one.owner===0&&one.built)acts+=yardUI(one,P);
       if(one.type==='coop')acts+='<div class="hint" style="min-width:170px"><b id="coopinfo"></b><div class="bar q"><i id="coopbar"></i></div><span id="coopnext"></span></div>';
       if(one.type==='farm')acts+='<div class="hint">Villagers farm this for food. Select villagers, tap the farm, then tap Farm here.</div>';
       if(isPen(one)&&one.sickN)acts+=btn('medicine','Give medicine',costHtml({g:25*one.sickN}),THUMB.sheep,!canAfford(P,{g:25*one.sickN}),one.sickN,'wide danger',PILL('up','Sick'));
@@ -6994,6 +7037,7 @@ $('panel').addEventListener('click',e=>{
   if(act==='shepherds'&&one){const s=G.ents.filter(e=>e.shep===penLead(one).id&&!e.dead);if(s.length)setSel(s);else toast('Select villagers, then tap the pen to make them shepherds');panelKeyLast='';return;}
   if(act==='locked'){const P0=G.players[0],tab=G.buildTab||'eco';const lk=BTABS.find(t=>t[0]===tab)[2].filter(b=>(DEF[b].age||0)<=P0.age&&!bReqMet(0,b));toast(lk.map(b=>DEF[b].name+': '+UNLOCK_HINT[b].toLowerCase()).join('  |  '));return;}
   if(act==='build'){const c=centerTile();G.place=arg==='wall'?{type:'wall',ta:0,tb:0}:{type:arg,tx:c.x-(DEF[arg].size>>1),ty:c.y-(DEF[arg].size>>1)};}
+  else if(act==='mkyard'&&one&&one.type==='coop'){const g=yardFor(one);if(g){if(!startYard(g))toast('Not enough to build a Poultry yard');}panelKeyLast='';}
   else if(act==='mkrow'&&one&&one.type==='house'){const r=rowFor(one);if(r)startMerge('row',r);panelKeyLast='';}
   else if(act==='mkapt'&&one&&one.type==='house'){const a=aptFor(one);if(a)startMerge('apt',a);panelKeyLast='';}
   else if(act==='hup'&&one&&one.type==='house'&&!(one.upT>0)&&!one.mergeWait){const c=(one.lvl||0)===0?{w:50,s:20}:{w:60,s:40};if(canAfford(P,c)){pay(P,c);one.upT=25;sendBuilder(one);}panelKeyLast='';}
