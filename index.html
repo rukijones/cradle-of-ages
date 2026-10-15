@@ -6040,7 +6040,7 @@ try{(function(){
   /* ---- Poultry yard (Josh picked A): one long hen house with nesting boxes and two ramps, egg crates, feed trough, dust bath,
      fenced run, drawn over the whole c.yard box. All the yard's hens and chicks roam the run (3D birds), and now and then a bird
      (chicks most often) walks up a ramp and goes in at the door, stays inside a while, then comes back out. ---- */
-  const YA={"yard":[0,0,700,537],"yard_m":[702,0,700,537],"wing":[0,539,600,489],"wing_m":[602,539,600,489],"ruin":[0,1030,473,391],"chc":[475,1030,90,90],"cho":[567,1030,129,135]};let YL=null,yat=null;
+  const YA={"yard":[0,0,700,537],"yard_m":[702,0,700,537],"wing":[0,539,600,489],"wing_m":[602,539,600,489],"ruin":[0,1030,473,391],"chc":[475,1030,90,90],"cho":[567,1030,129,135],"rgR":[698,1030,102,108],"rgL":[906,1030,71,131],"rgR_e":[802,1030,102,108],"rgL_e":[979,1030,71,131]};let YL=null,yat=null;
   function yload(){if(yat)return;yat=new Image();yat.onload=()=>{try{const m={};for(const k in YA){const [x,y,w,h]=YA[k],c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(yat,x,y,w,h,0,0,w,h);m[k]=c}YL=m}catch(err){}yat.onload=yat.onerror=null;yat.src=''};
     yat.onerror=()=>{setTimeout(()=>{yat=null},5000)};yat.src=GFX.ART+'a1_poi.webp?v='+GFX.ARTV}
   const ytint={};const yardPic=o=>{if(!YL){yload();return null}o=o>1?0:o;if(ytint[o])return ytint[o];return ytint[o]=GFX.tint(YL.yard,YL.yard_m,o)};GFX.yardPic=()=>!!YL;
@@ -6097,7 +6097,7 @@ try{(function(){
     return {slot:WLAY.slot.map(([x,y])=>[900-x,y]),face:5*Math.PI/4,dr:[900-WLAY.dr[0],WLAY.dr[1]],ch:[900-WLAY.ch[0],WLAY.ch[1]],sx:-WLAY.sx,sy:WLAY.sy,px:-WLAY.px,md:7}};
   try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='dairy'&&e.ranch){const s=GFX.wingSpr(e);if(s)return s}return prev(e)}})(bldSpr0)}catch(err){}
   // the lane between the ranch gate and the dairy yard (ground layer, under both pictures)
-  const RGATE={r:[[630,455],[700,505]],l:[[345,470],[285,520]]},WEDGE=[[22,449],[435,209]];
+  const RGATE={r:[[688,470],[702,500]],l:[[290,500],[291,546]]},WEDGE=[[22,449],[435,209]];
   GFX.wingLane=function(e){const R=wingRanch(e),sw=GFX.wingSpr(e);if(!R||!sw||!R.built)return null;let sr=null;try{sr=bldSpr0(R)}catch(err){}if(!sr||!sr.w)return null;
     const left=e.tx<R.tx,kR=sr.w/933,rp=([x,y])=>[R.tx*TILE-sr.dx+x*kR,R.ty*TILE-sr.ov+y*kR],kW=sw.w/900,wp=([x,y])=>[e.tx*TILE-sw.dx+(left?900-x:x)*kW,e.ty*TILE-sw.ov+y*kW];
     const G2=RGATE[left?'l':'r'],A=rp(G2[0]),B=rp(G2[1]),E0=wp(WEDGE[0]),E1=wp(WEDGE[1]);
@@ -6147,6 +6147,14 @@ try{(function(){
   /* ---- Stumps, saplings and regrowing trees under a building are not drawn (Josh, Oct 15: "if something is built on top of tree stumps,
      the stumps need to disappear"). Test: the stump's tile is held by a building (G.occ). Game state unchanged. ---- */
   try{const _drs=GFX.drawRes;GFX.drawRes=function(c,e){try{if(e&&e.type==='tree'&&(e.stump||e.sapling||e.copd||e.deadStump)){const o=G.occ[ti(tl(e.x),tl(e.y))],b=o&&o!==e.id&&G.byId.get(o);if(b&&b.kind==='bld'&&!b.dead)return true}}catch(err){}return _drs?_drs(c,e):false}}catch(err){}
+
+  // the ranch gate that faces its dairy wing is drawn open (rails and gate leaves removed, the ranch path runs out through it)
+  const RGB={R:[579,378,749,558],L:[231,380,350,598]};const RGC=new WeakMap();
+  try{bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(e&&e.type==='ranch'&&e.wing&&GFX.mode==='V23D'&&s&&s.w){if(!YL){yload();return s}const w=G.byId.get(e.wing);if(w&&!w.dead&&w.type==='dairy'){
+      const k=w.tx<e.tx?'L':'R';let m=RGC.get(s);if(!m){m={};RGC.set(s,m)}if(m[k])return m[k];
+      const c=document.createElement('canvas');c.width=s.width;c.height=s.height;const g=c.getContext('2d');g.drawImage(s,0,0);const f=s.width/933,b=RGB[k],X=b[0]*f,Y=b[1]*f,Wd=(b[2]-b[0])*f,Hd=(b[3]-b[1])*f;
+      g.globalCompositeOperation='destination-out';g.drawImage(YL['rg'+k+'_e'],X,Y,Wd,Hd);g.globalCompositeOperation='source-over';g.drawImage(YL['rg'+k],X,Y,Wd,Hd);
+      for(const key of Object.keys(s))c[key]=s[key];return m[k]=c}}}catch(err){}return s}})(bldSpr0)}catch(err){}
 })()}catch(err){}
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
@@ -7999,6 +8007,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
