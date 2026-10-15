@@ -632,7 +632,7 @@ function loadGame(){let raw=null;try{raw=localStorage.getItem(SAVE_KEY);}catch(e
   if(o.cam){cam.z=clampZ(o.cam.z||1);cam.x=o.cam.x;cam.y=o.cam.y;}
   panelKeyLast='';G.lastSaveT=G.t;$('start').hidden=true;$('end').hidden=true;$('pause').hidden=true;toast('Game resumed');return true;}
 const TIPS=['Three oxen fields touching in a straight row need only one farmer: he guides the oxen on all three.',
-  'A windmill grinds grain from up to 18 farms within about 8 tiles. Plan a block of farm rows around it.',
+  'A windmill grinds grain from up to 18 farms within 5 tiles of it. Plan a block of farm rows around it.',
   'Build the bakery right next to the windmill and the flour goes straight in: no donkey, no walking.',
   'A bakery away from the windmill needs a pack donkey from the ranch to haul flour. Without one, a baker walks for it.',
   'Keep the barracks, archery range and stable close together: soldiers train 10% faster in a military quarter.',
@@ -954,7 +954,7 @@ function planPreview(c,type,cx,cy,z,now){c.save();const R=REACH[type];if(R){c.be
   c.restore();}
 function townPlan(){const own=t=>G.ents.filter(e=>e.owner===0&&e.type===t&&!e.dead&&e.built);const houses=own('house'),mills=own('mill'),farms=own('farm'),bakes=own('bakery'),pubs=own('pub');const issues=[];let score=100;
   const noisy=houses.filter(h=>(h.popMod||0)<0).length,lively=houses.filter(h=>(h.popMod||0)>0).length;if(noisy){issues.push(noisy+' house'+(noisy>1?'s':'')+' next to industry: '+(noisy*2)+' fewer people');score-=noisy*3;}
-  if(mills.length){const far=farms.filter(f=>!millOf(f)).length;if(far){issues.push(far+' farm'+(far>1?'s':'')+' not in a windmill block (within 8 tiles, 18 farms each): no +25%, no grain for bread');score-=far*2;}}
+  if(mills.length){const far=farms.filter(f=>!millOf(f)).length;if(far){issues.push(far+' farm'+(far>1?'s':'')+' not in a windmill block (within 5 tiles, 18 farms each): no +25%, no grain for bread');score-=far*2;}}
   for(const b of bakes)if(!mills.some(m=>Math.hypot(m.x-b.x,m.y-b.y)<15*TILE)){issues.push('A bakery is out of reach of every windmill');score-=6;}
   for(const pb of pubs)if(!mills.some(m=>Math.hypot(m.x-pb.x,m.y-pb.y)<15*TILE)){issues.push('A pub is out of reach of every windmill');score-=5;}
   const vs=G.ents.filter(u=>u.owner===0&&u.type==='villager'&&!u.dead&&u.order&&u.order.type==='gather');let walk=0,n=0;for(const v of vs){let m=1e9;for(const e of G.ents)if(e.owner===0&&e.kind==='bld'&&e.built&&!e.dead&&DEF[e.type].drop){const d=Math.hypot(e.x-v.x,e.y-v.y);if(d<m)m=d;}if(m<1e9){walk+=m/TILE;n++;}}
@@ -1032,7 +1032,7 @@ function bakeryRun(b,dt,P,n){const T=P.tech,ne=T.bakeworks?(n+2)*1.5:n;b.stall='
 function breadStatus(bk){const mills=G.ents.filter(e=>e.type==='mill'&&e.owner===0&&e.built&&!e.dead),farms=G.ents.filter(e=>e.type==='farm'&&e.owner===0&&e.built&&!e.dead);
   const ok=x=>'<span style="color:#9fd07a">✓</span> '+x,no=x=>'<span style="color:#e8603a">✗</span> '+x;
   const near=farms.filter(f=>millOf(f)).length,wheat=mills.some(m=>useOf(m)!=='flax'),grain=mills.reduce((a,m)=>a+(m.grain||0)+(m.flour||0),0);
-  const steps=[[mills.length>0,'Build a windmill next to your farms'],[wheat,'Set the windmill to Wheat (not Flax)'],[mills.some(m=>Math.hypot(m.x-bk.x,m.y-bk.y)<15*TILE),'This bakery must be within 15 tiles of a windmill'],[near>0,'Build farms within 8 tiles of the windmill'],[grain>1||(bk.flour||0)>1,'Put farmers on the farms near the windmill'],[(bk.gar||[]).length>0||G.players[0].tech.bakeworks,'Add bakers here']];
+  const steps=[[mills.length>0,'Build a windmill next to your farms'],[wheat,'Set the windmill to Wheat (not Flax)'],[mills.some(m=>Math.hypot(m.x-bk.x,m.y-bk.y)<15*TILE),'This bakery must be within 15 tiles of a windmill'],[near>0,'Build farms within 5 tiles of the windmill'],[grain>1||(bk.flour||0)>1,'Put farmers on the farms near the windmill'],[(bk.gar||[]).length>0||G.players[0].tech.bakeworks,'Add bakers here']];
   const nx=steps.find(x=>!x[0]);return '<b>Bread chain: farms → windmill → bakery'+(G.players[0].tech.grandbake?' (+ eggs from coops within 15 tiles)':'')+(G.players[0].tech.bakeworks?' (+ milk from a dairy set to Milk)':'')+'.</b> '+(nx?'<span style="color:#e8603a">Next step:</span> '+nx[1]:'<span style="color:#9fd07a">Working.</span> '+(bk.gar||[]).length+' bakers, '+Math.floor(bk.flour||0)+' flour here. '+(chuteMill(bk)?'Flour comes straight in from the windmill next door.':bakeDonkey(bk)?'A pack donkey hauls the flour.':'Bakers carry the flour by hand. A pack donkey from the corral would haul it.'));}
 function statSnap(o){const m={};for(const e of G.ents)if(e.owner===o&&e.kind==='unit'&&!e.dead&&!NONMIL.has(e.type)&&!m[e.type])m[e.type]=[atkOf(e),armOf(e),Math.round(rangeOf(e)/TILE*10)/10,e.maxHp];return m;}
 function statDiff(a,b,k){if(!a||!b)return;const L=[];for(const t in b){const x=a[t],y=b[t];if(!x)continue;const parts=[];if(y[0]!==x[0])parts.push('attack '+x[0]+' → '+y[0]);if(y[1]!==x[1])parts.push('armor '+x[1]+' → '+y[1]);if(y[2]!==x[2])parts.push('range '+x[2]+' → '+y[2]);if(y[3]!==x[3])parts.push('health '+x[3]+' → '+y[3]);if(parts.length)L.push(DEF[t].plural+': '+parts.join(', '));}
@@ -1101,10 +1101,10 @@ function exportTo(o,k,crates){const m=G.ents.find(e=>e.type==='market'&&e.owner=
 function loadCart(u,m){u.goods={};if(!m.goods)return;let room=6;for(const k of['pastry','cake','textile','cloth','cheese','beer','bread']){const take=Math.min(room,Math.floor(m.goods[k]||0));if(take>0){m.goods[k]-=take;u.goods[k]=take;room-=take;bEv(m,'load');}}}
 function oxAlive(f){const ox=f.ox&&G.byId.get(f.ox);return ox&&!ox.dead&&ox.owner===f.owner?ox:null;}
 /* ---- planned-city rules (Josh): farm rows, windmill block, flour chute, military quarter ---- */
-const MILL_R=8,MILL_N=18;
+const MILL_R=8,MILL_N=18,MILL_GAP=5;
 function millMap(){const C=G._fm;if(C&&G.t-C.t<2)return C.m;const pairs=[],m=new Map(),cnt=new Map();
   const mills=G.ents.filter(e=>e.type==='mill'&&e.built&&!e.dead&&e.owner>=0&&e.owner<2);
-  if(mills.length)for(const f of G.ents){if(f.type!=='farm'||!f.built||f.dead)continue;for(const ml of mills){if(ml.owner!==f.owner)continue;const d=Math.hypot(ml.x-f.x,ml.y-f.y);if(d<MILL_R*TILE)pairs.push([d,f.id,ml.id]);}}
+  if(mills.length)for(const f of G.ents){if(f.type!=='farm'||!f.built||f.dead)continue;for(const ml of mills){if(ml.owner!==f.owner)continue;const d=Math.hypot(ml.x-f.x,ml.y-f.y);if(bldGap(ml,f)<=MILL_GAP)pairs.push([d,f.id,ml.id]);}}
   pairs.sort((a,b)=>a[0]-b[0]);for(const[d,fid,mid]of pairs){if(m.has(fid))continue;const c=cnt.get(mid)||0;if(c>=MILL_N)continue;m.set(fid,mid);cnt.set(mid,c+1);}
   G._fm={t:G.t,m,cnt};return m;}
 function millOf(f){const id=millMap().get(f.id),ml=id&&G.byId.get(id);return ml&&!ml.dead&&ml.built?ml:null;}
@@ -2928,7 +2928,7 @@ function townDecor(c,now,E,V,list,inView){
   for(const f of G.ents){if(f.type!=='farm'||f.dead||!f.built||f.fallow||f.noFuel)continue;const P=G.players[f.owner];if(!P||!P.tech.harvesters)continue;if(f.owner!==0&&!V[ti(tl(f.x),tl(f.y))])continue;if(!inView(f.x,f.y,60))continue;const S=f.size*TILE,ph=((now/1000*.07+f.id*.37)%1)*4,row=Math.floor(ph),k=ph-row,dir=row%2,x=f.tx*TILE+8+(dir?1-k:k)*(S-16),y=f.ty*TILE+10+row*(S-20)/3;list.push([y+140,{kind:'decor',d:'tractor',x,y,o:f.owner,dir:dir?-1:1}]);}
   for(const b of G.ents){if(b.type==='bakery'&&b.dtrip&&!b.dead){const t=b.dtrip,k=Math.min(1,t.t/t.dur),x=b.x+(t.tx-b.x)*k,y=b.y+20+(t.ty-b.y-20)*k;if(b.owner===0||V[ti(tl(x),tl(y))])if(inView(x,y,40))list.push([y+4,{kind:'decor',d:'flourcart',x,y,o:b.owner,face:Math.atan2(t.ty-b.y,t.tx-b.x),cargo:t.cargo,truck:G.players[b.owner].age>=6}]);}}
   for(const b of G.ents){if((b.type!=='bakery'&&b.type!=='pub'&&b.type!=='inn')||!b.trip||b.dead)continue;const t=b.trip,k=Math.min(1,t.t/t.dur),x=t.fx+(b.x-t.fx)*k,y=t.fy+(b.y+10-t.fy)*k;if(b.owner!==0&&!V[ti(tl(x),tl(y))])continue;if(!inView(x,y,40))continue;list.push([y+4,{kind:'decor',d:'flourcart',x,y,o:b.owner,face:Math.atan2(b.y-t.fy,b.x-t.fx),cargo:t.cargo||'flour'}]);}
-  drawPits(c,E);try{drawWallMarks(c,E);}catch(err){}
+  drawPits(c,E);try{drawWallMarks(c,E);}catch(err){}try{drawYards(c,E,inView);}catch(err){console.warn(err)}
   for(const d of G.ents){if(d.type!=='depot'||!d.rail||d.dead)continue;if(d.owner!==0&&!E[ti(tl(d.x),tl(d.y))])continue;drawRails(c,d.rail);const tr=d.tr;if(!tr)continue;const L=d.rail.length-1,i=Math.max(0,Math.min(L-1,Math.floor(tr.pos))),f=tr.pos-i,a=d.rail[i],b=d.rail[Math.min(L,i+1)];const x=a[0]+(b[0]-a[0])*f,y=a[1]+(b[1]-a[1])*f;if(d.owner!==0&&!V[ti(tl(x),tl(y))])continue;if(!inView(x,y,80))continue;let ang=Math.atan2(b[1]-a[1],b[0]-a[0]);if(tr.dir<0)ang+=Math.PI;const ld=tr.dir>0?Object.values(tr.cargo||{}).some(v=>v>0):false;list.push([y+6,{kind:'decor',d:'train',x,y,a:ang,o:d.owner,loaded:ld}]);}
   if(!G.road)return;
   const x0=Math.max(0,tl(cam.x)-1),y0=Math.max(0,tl(cam.y)-1),x1=Math.min(MW-1,tl(cam.x+W/cam.z)+1),y1=Math.min(MH-1,tl(cam.y+H/cam.z)+1);
@@ -5686,6 +5686,23 @@ function gateSpr(o){try{if(!THUMB.gate&&THUMB.wall)THUMB.gate=THUMB.wall;}catch(
   x.strokeStyle='#3a3a3e';x.lineWidth=1.6;for(const yy of[top+9,bot-6]){x.beginPath();x.moveTo(l,yy);x.lineTo(r,yy);x.stroke();}
   x.fillStyle=PCOL[o];x.fillRect(mid-1.2,top+11,2.4,5);x.fillStyle='#c9b27a';x.beginPath();x.arc(mid+3,(top+bot)/2+3,1.1,0,7);x.fill();
   for(const kk of['w','h','ov','dx'])if(sp[kk]!==undefined)c[kk]=sp[kk];GATESPR.set(sp,c);return c;}
+/* Poultry yard ground (gameplay placeholder until art chat 1 paints the yard): one straw-and-earth yard under all 6 coops, a low fence round the whole block, a gate and a team pennant */
+function drawYards(c,E,inView){const seen=new Set();for(const b of G.ents){const g=b.type==='coop'&&!b.dead&&b.yard;if(!g||seen.has(g.anchor))continue;seen.add(g.anchor);
+    const cx=Math.floor((g.x0+g.x1)/2),cy=Math.floor((g.y0+g.y1)/2);if(b.owner!==0&&!E[ti(cx,cy)])continue;
+    const x0=g.x0*TILE-6,y0=g.y0*TILE-6,w=(g.x1-g.x0)*TILE+12,h=(g.y1-g.y0)*TILE+12;if(!inView(x0+w/2,y0+h/2,Math.max(w,h)))continue;
+    c.save();c.fillStyle='rgba(122,92,52,.55)';rrect(c,x0,y0,w,h,10);c.fill();
+    let sd=g.anchor*9301+49297;const R=()=>((sd=(sd*233280+49297)%2147483647)/2147483647);c.fillStyle='rgba(222,196,120,.55)';
+    for(let i=0;i<w*h/180;i++){const x=x0+6+R()*(w-12),y=y0+6+R()*(h-12);c.fillRect(x,y,3+R()*3,1.2);}
+    c.fillStyle='rgba(245,232,190,.7)';for(let i=0;i<w*h/900;i++){c.beginPath();c.arc(x0+8+R()*(w-16),y0+8+R()*(h-16),1,0,7);c.fill();}
+    const gx=x0+w/2;c.strokeStyle='#7a5230';c.lineWidth=2;c.beginPath();
+    c.moveTo(gx-14,y0+h);c.lineTo(x0,y0+h);c.lineTo(x0,y0);c.lineTo(x0+w,y0);c.lineTo(x0+w,y0+h);c.lineTo(gx+14,y0+h);
+    c.moveTo(gx-14,y0+h-5);c.lineTo(x0+1,y0+h-5);c.moveTo(x0+w-1,y0+h-5);c.lineTo(gx+14,y0+h-5);c.stroke();
+    c.fillStyle='#5e3c1e';for(let x=x0;x<=x0+w+.1;x+=16){if(Math.abs(x-gx)<14)continue;c.fillRect(x-1.5,y0+h-8,3,9);c.fillRect(x-1.5,y0-8,3,9);}
+    for(let y=y0;y<=y0+h+.1;y+=16){c.fillRect(x0-1.5,y-8,3,9);c.fillRect(x0+w-1.5,y-8,3,9);}
+    c.fillStyle='#6b4423';c.fillRect(gx-16,y0+h-22,3,24);c.fillRect(gx+13,y0+h-22,3,24);
+    const px=x0+12,py=y0+h-2;c.fillStyle='#5e3c1e';c.fillRect(px-1,py-30,2.5,30);c.fillStyle=PCOL[b.owner]||'#888';
+    const t=performance.now()/600;c.beginPath();c.moveTo(px+1.5,py-30);c.quadraticCurveTo(px+8,py-29+Math.sin(t)*1.5,px+15,py-26+Math.sin(t+1)*2);c.lineTo(px+1.5,py-21);c.closePath();c.fill();
+    c.restore();}}
 function drawWallMarks(c,E){for(const r of G.rubble||[]){const i=ti(r.x,r.y);if(!E[i]||G.occ[i])continue;const x0=r.x*TILE,y0=r.y*TILE;let sd=(r.x*73856093^r.y*19349663)>>>0;const R=()=>((sd=(sd*1103515245+12345)>>>0)/4294967296);
     c.fillStyle='rgba(30,25,18,.25)';ell(c,x0+16,y0+20,14,6);c.fill();for(let k=0;k<6;k++){const px=x0+5+R()*22,py=y0+10+R()*16,s=2+R()*3.5;c.fillStyle='#5a554c';ell(c,px+.6,py+.8,s,s*.7);c.fill();c.fillStyle=R()<.5?'#9a958a':'#b4ada0';ell(c,px,py,s,s*.7);c.fill();}}
   const p=G.place;if(p&&p.type==='tower'&&p.tx!==undefined){const F={tx:p.tx,ty:p.ty,size:DEF.tower.size,x:(p.tx+1)*TILE,y:(p.ty+1)*TILE};wallGuide(c,F,0,true);}
@@ -6945,10 +6962,11 @@ function renderPanel(sel){
       if(one.type==='house')acts+=mergeUI(one,P);
       if(isCor(one)&&one.owner===0){const n=raisingN(penLead(one)),cp=RAISE_CAP*penN(one);acts+='<div class="hint">Raising '+n+' of '+cp+' young'+(one.rfull?': full, the next one waits':'')+'</div>';}
       if(one.type==='corral'&&one.owner===0&&(ranchPen(one)||G.players[0].age>=3))acts+='<div class="hint">'+(ranchPen(one)?'Next to a livestock pen: trains 10% faster':'Build it next to a livestock pen to train 10% faster')+'</div>';
-      if(one.type==='mill')acts+='<div class="hint">Grinds grain from up to 18 farms within 8 tiles ('+millCount(one)+' now).</div>';
+      if(one.type==='mill')acts+='<div class="hint">Grinds grain from up to 18 farms within 5 tiles ('+millCount(one)+' now).</div>';
       if(one.type==='castle')acts+='<div class="hint">Fires 3 arrows at a time and claims a large territory around it.</div>';
       if(one.type==='coop'&&one.owner===0&&one.built)acts+=yardUI(one,P);
       if(one.type==='coop')acts+='<div class="hint" style="min-width:170px"><b id="coopinfo"></b><div class="bar q"><i id="coopbar"></i></div><span id="coopnext"></span></div>';
+      if(one.type==='farm'&&one.owner===0&&one.built&&G.ents.some(e=>e.type==='mill'&&e.owner===0&&e.built&&!e.dead))acts+=millOf(one)?'<div class="hint">Grain goes to the windmill</div>':'<div class="hint" style="color:#f0b36a;max-width:220px">Too far from a windmill: its grain goes to storage as plain food. Keep farms within 5 tiles of a windmill</div>';
       if(one.type==='farm')acts+='<div class="hint">Villagers farm this for food. Select villagers, tap the farm, then tap Farm here.</div>';
       if(isPen(one)&&one.sickN)acts+=btn('medicine','Give medicine',costHtml({g:25*one.sickN}),THUMB.sheep,!canAfford(P,{g:25*one.sickN}),one.sickN,'wide danger',PILL('up','Sick'));
       if(isPen(one)){const PL=penLead(one),n=G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&inPenArea(PL,e)).length,sh=G.ents.filter(e=>e.shep===PL.id).length;const lambs=G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&e.born&&G.t-e.born<60&&inPenArea(PL,e)).length;if(penN(one)>1)acts+='<div class="hint"><b>'+penN(one)+' pens joined:</b> room for '+10*penN(one)+' sheep</div>';acts+=btn('shepherds',sh?(sh>1?sh+' shepherds':'1 shepherd'):'No shepherd','<span class="cost">'+(sh?'Tap to select':'Not assigned')+'</span>',THUMB.villager,false,0,'wide',sh?PILL('res','Working'):'');acts+=btn('herd','Call sheep','<span class="cost">'+(sh?'':'Needs a shepherd. ')+(n-lambs)+' adult'+(n-lambs===1?'':'s')+(lambs?', '+lambs+' lamb'+(lambs>1?'s':''):'')+'</span>',THUMB.sheep,false,0,'wide')+'<div class="hint">A lamb every 50 seconds, uses some wood for hay. Treat sick sheep fast. '+(sh?'':'Select villagers, tap the pen, then tap Make shepherds.')+(PL.hayless?' Out of wood: breeding paused.':'')+'</div>';}
