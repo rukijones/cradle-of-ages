@@ -5513,6 +5513,13 @@ try{(function(){const MY={
   m_forge:{m:[[256,431,2.2]],s:[[85.5,72.5,1]]},
   r_forge:{m:[[363,674,2.4]],s:[[590.4,73.8,1]]}};
   const p=GFX.spr;GFX.spr=function(n){try{if(MY[n]&&GFX.FX&&!GFX.FX[n])GFX.FX[n]=MY[n]}catch(err){}return p.apply(this,arguments)}})()}catch(err){}
+/* halberdier re-baked (Oct 15, Josh: "Is the halberdier's axe backwards?"): the halberd blade now faces forward (it faced back/sideways),
+   and the attack is a two-handed overhead chop turned to land in front of him; the ready stance points the halberd at the enemy.
+   Sheet hb4d (art/c/hb4d_p1 walk+run+idle, hb4d_p2 ready+attack+die) replaces hb3d_p1/p2; same framing and timing (impact at phase .5). */
+try{(function(){const B=GFX.IRON3D&&GFX.IRON3D.hb3d;if(!B||!GFX.IRONMAP)return;const D=Object.assign({},B,{file:'hb4d'});
+  Object.defineProperty(D,'pack',{value:{walk:{f:'hb4d_p1',x:0,n:12},run:{f:'hb4d_p1',x:12,n:12},idle:{f:'hb4d_p1',x:24,n:8},
+    ready:{f:'hb4d_p2',x:0,n:8},attack:{f:'hb4d_p2',x:8,n:12},die:{f:'hb4d_p2',x:20,n:6}},enumerable:false,configurable:true,writable:true});
+  GFX.IRON3D.hb4d=D;GFX.IRONMAP.halberdier='hb4d'})()}catch(err){}
 /* ===== END art chat 2: renunits ===== */
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
    Every flame painted into a Stone/Bronze/Iron building (braziers, fire pits, forge and kiln mouths) now flickers with live flames,
@@ -8131,6 +8138,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
