@@ -5830,7 +5830,8 @@ try{(function(){
   const NF={};window.NF=NF;
   /* atlas layout [x,y,w,h] of each picture (mask at x+w+2); W = width of the source cut the overlay points below were measured on */
   NF.LAY={"ibake":[0,0,640,622],"xbake":[0,624,640,488],"imill":[0,1114,560,711],"xmill":[0,1827,560,532],"icoop":[0,2361,420,309]};
-  NF.SRCW={ibake:905,imill:772,icoop:860,xbake:865,xmill:837};
+  NF.SRCW={ibake:905,imill:772,icoop:860,xbake:865,xmill:837,isteam:833,xsteam:1057};
+  NF.LAY2={"isteam":[0,0,833,759],"xsteam":[0,761,1057,761]};
   /* sprite fit: [width factor, down] (how wide the picture is drawn relative to the lot, how far its bottom hangs below the lot) */
   NF.FIT={ibake:[1.08,.05],xbake:[1.1,.05],imill:[1.0,.04],xmill:[1.08,.04],icoop:[1.15,.05]};
   /* animated parts, in source-cut pixels */
@@ -5847,10 +5848,16 @@ try{(function(){
       smoke:[[140,160,1]],steam:[[215,640]]},
     xmill:{elev:{a:[545,590],b:[545,240],w:18},dust:[[420,640],[480,660],[540,640],[640,470]],
       pour:[[[96,488],[80,530],'#d9b45c'],[[658,630],[656,660],'#f7f2e6']],smoke:[]},
+    isteam:{belts:[{a:[172,577],b:[540,382],h:[12,9],col:'#3a2f28',item:'dough',gap:34,v:22,iw:34},{a:[398,622],b:[300,676],h:[10,8],col:'#3a2f28',item:'loaf',gap:30,v:16,iw:30}],
+      glows:[[395,598,34],[505,606,14],[612,500,10],[668,470,10],[720,445,10]],wheel:{c:[356,400],rx:27,ry:40,n:8,col:'#8a2a22'},straps:[[[262,300],[340,380]],[[455,218],[372,370]]],
+      smoke:[[60,262,1],[120,212,1]],steam:[[150,345],[205,300]],men:{knead:[200,640,1],carry:[[340,700],[80,575]],knead2:[300,560,0]}},
+    xsteam:{belts:[{a:[215,452],b:[372,527],h:[-7,13],col:'#4a4440',item:'pan',gap:44,v:20,iw:34},{a:[240,425],b:[392,357],h:[7,13],col:'#4a4440',item:'pan',gap:44,v:20,iw:34}],
+      glows:[[372,345,32]],spiral:{c:[560,0],tiers:[[318,55,18],[385,55,18],[448,55,18]]},fans:[[412,122,30,14],[552,190,30,14],[690,265,30,14],[830,340,30,14]],
+      smoke:[[225,10,.8]],men:{knead:[180,480,1],carry:[[640,650],[790,610]],knead2:[440,610,0]}},
     icoop:{belts:[{a:[468,426],b:[628,506],h:[-6,10],bare:1,item:'egg',gap:18,v:14,iw:8}],wheel:{c:[443,410],rx:21,ry:27,n:6,col:'#5a3a1c',bare:1},smoke:[[750,236,.5]]}
   };
   /* flour line ports: where the line leaves the mill / enters the bakery (nearest pair is used) */
-  NF.PORT={imill:[[40,470],[735,385],[300,175]],xmill:[[810,385],[600,230],[260,330]],ibake:[[40,405],[420,215],[870,380]],xbake:[[30,285],[470,30],[850,250]]};
+  NF.PORT={imill:[[40,470],[735,385],[300,175]],xmill:[[810,385],[600,230],[260,330]],ibake:[[40,405],[420,215],[870,380]],xbake:[[30,285],[470,30],[850,250]],isteam:[[30,420],[420,120],[800,330]],xsteam:[[20,300],[380,60],[950,330]]};
   const T=(p,q)=>[p[0]*q,p[1]*q];
   function belt(c,B,t,on){const [ax,ay]=B.a,[bx,by]=B.b,[hx,hy]=B.h,dx=bx-ax,dy=by-ay,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
     if(!B.bare){c.fillStyle=B.col;c.beginPath();c.moveTo(ax-hx,ay-hy);c.lineTo(bx-hx,by-hy);c.lineTo(bx+hx,by+hy);c.lineTo(ax+hx,ay+hy);c.closePath();c.fill();
@@ -5861,6 +5868,8 @@ try{(function(){
     for(let s=o2;s<L-2;s+=B.gap){const x=ax+ux*s,y=ay+uy*s,f=s/L;let al=1;if(f>.86)al=Math.max(0,(1-f)/.14);if(f<.06)al=f/.06;if(al<=0)continue;c.globalAlpha=al;item(c,B.item,x,y,B.iw,ang,f)}c.globalAlpha=1}
   function item(c,k,x,y,w,ang,f){c.save();c.translate(x,y);
     if(k==='egg'){c.fillStyle='#f6efe0';c.strokeStyle='rgba(90,60,30,.6)';c.lineWidth=.8;c.beginPath();c.ellipse(0,-w*.6,w*.5,w*.62,0,0,7);c.fill();c.stroke()}
+    else if(k==='pan'){c.rotate(ang);c.fillStyle='#c7ccd1';c.strokeStyle='rgba(60,60,70,.7)';c.lineWidth=1;c.beginPath();c.rect(-w*.32,-w*.36,w*.64,w*.3);c.fill();c.stroke();
+      c.fillStyle='#d08a3c';c.beginPath();c.ellipse(0,-w*.27,w*.26,w*.11,0,0,7);c.fill();c.fillStyle='rgba(255,240,200,.35)';c.beginPath();c.ellipse(-w*.05,-w*.31,w*.16,w*.04,0,0,7);c.fill()}
     else if(k==='sack'){c.fillStyle='#e9dcc0';c.strokeStyle='rgba(80,60,30,.7)';c.lineWidth=1;c.beginPath();c.moveTo(-w*.45,0);c.quadraticCurveTo(-w*.6,-w*.9,-w*.2,-w*1.05);c.lineTo(w*.2,-w*1.05);c.quadraticCurveTo(w*.6,-w*.9,w*.45,0);c.closePath();c.fill();c.stroke();
       c.strokeStyle='rgba(80,60,30,.6)';c.beginPath();c.moveTo(-w*.2,-w*1.05);c.lineTo(0,-w*1.25);c.lineTo(w*.2,-w*1.05);c.stroke()}
     else{c.rotate(ang);const d=k==='dough';const col=d?(f>.6?'#e2b778':'#efdcae'):'#c27a34';c.fillStyle=col;c.strokeStyle=d?'rgba(120,90,50,.55)':'rgba(80,40,10,.7)';c.lineWidth=1;
@@ -5886,7 +5895,7 @@ try{(function(){
     c.strokeStyle='#2c2e31';c.lineWidth=1.5;c.beginPath();c.moveTo(x-w/2-1,y0);c.lineTo(x-w/2-1,y1);c.moveTo(x+w/2+1,y0);c.lineTo(x+w/2+1,y1);c.stroke();c.restore()}
   function pour(c,P,t,on){if(!on)return;const [a,b,col]=P;c.save();c.fillStyle=col;for(let i=0;i<14;i++){const f=((t*1.6+i/14)%1),x=a[0]+(b[0]-a[0])*f+Math.sin(i*7.3)*2,y=a[1]+(b[1]-a[1])*f*f;c.globalAlpha=.85;c.fillRect(x-1.2,y-1.2,2.4,2.4)}c.restore()}
   /* one scene for a building: (X,Y) = top-left of the drawn picture, q = world px per source px */
-  NF.scene=function(c,key,X,Y,q,t,b,act){const P=NF.P[key];if(!P)return;const seed=(b&&b.id||0)%11;c.save();c.translate(X,Y);c.scale(q,q);
+  NF.scene=function(c,key,X,Y,q,t,b,act,mir){const P=NF.P[key];if(!P)return;const seed=(b&&b.id||0)%11;c.save();if(mir){c.translate(X+NF.SRCW[key]*q,Y);c.scale(-q,q)}else{c.translate(X,Y);c.scale(q,q)}
     for(const B of P.belts||[])belt(c,B,t,act);
     for(let i=0;i<(P.glows||[]).length;i++)glow(c,P.glows[i],t,act,i*1.3+seed);
     if(P.wheel){b&&(b._nfA=(b._nfA||0)+(act?1:0)*Math.min(.1,Math.max(0,t-(b._nfT||t)))*3.2);if(b)b._nfT=t;wheel(c,P.wheel,t,act,b?b._nfA:t*3.2)}
@@ -5902,8 +5911,8 @@ try{(function(){
       for(const s of P.smoke||[])puffs(c,s[0],s[1],t,.6*s[2],['#cfcac2','#b4aea5'],6,170,17,seed)}
     c.restore()};
   /* bakers (art chat 1's baker sprite, villager scale) */
-  NF.men=function(c,key,X,Y,q,t,b,act){const M=NF.P[key]&&NF.P[key].men;if(!M||!GFX.bkMan||!GFX.bkImg||!GFX.bkImg('baker'))return;const S=GFX_BK3D.baker,SG=S.seg,n=b.gar?b.gar.length:(act?2:0);if(!n)return;
-    const W=p=>[X+p[0]*q,Y+p[1]*q],D=[],tm=t+((b.id||0)%7)*1.3,idle=ph=>Math.floor((tm*.9+ph)%SG.idle.n),stall=!act&&!!b.stall;
+  NF.men=function(c,key,X,Y,q,t,b,act,mir){const M=NF.P[key]&&NF.P[key].men;if(!M||!GFX.bkMan||!GFX.bkImg||!GFX.bkImg('baker'))return;const S=GFX_BK3D.baker,SG=S.seg,n=b.gar?b.gar.length:(act?2:0);if(!n)return;
+    const W=p=>[X+(mir?NF.SRCW[key]-p[0]:p[0])*q,Y+p[1]*q],D=[],tm=t+((b.id||0)%7)*1.3,idle=ph=>Math.floor((tm*.9+ph)%SG.idle.n),stall=!act&&!!b.stall;
     {const p=W(M.knead),row=act?SG.knead.row+(M.knead[2]?0:1):SG.idle.row+1,col=act?Math.floor((tm%4.958)/4.958*SG.knead.n):idle(0);D.push([p[1],()=>{const H=GFX.bkMan(c,row,col,p[0],p[1]);if(stall&&H&&GFX.bkNeed)GFX.bkNeed(c,p[0],H.top,b,t*1000)}])}
     if(n>=2){const A=W(M.carry[0]),B=W(M.carry[1]),cyc=(tm*.22)%2,go=cyc<1,k=go?cyc:2-cyc;let x,y,row,col,carry=null;
       if(act){const f=Math.min(1,Math.max(0,(k-.1)/.8));x=A[0]+(B[0]-A[0])*f;y=A[1]+(B[1]-A[1])*f;const moving=k>.1&&k<.9;
@@ -5923,20 +5932,36 @@ try{(function(){
     if(type==='bakery')return a>=6?'xbake':'ibake';if(type==='mill')return a>=6?'xmill':'imill';if(type==='coop'&&a===5&&!yard)return 'icoop';return null}
   function sprK(k,o,sz){if(!ready())return null;const ck=k+o+'_'+sz;if(C[ck])return C[ck];const S=sz*TILE,[wf,dn]=NF.FIT[k];const sp=GFX.spr('nf_'+k,o,S,wf,dn);sp._nf=k;sp.smoke=null;sp.smoke2=null;sp.fire=null;return C[ck]=sp}
   NF.spr=sprK;NF.keyFor=keyFor;
-  bldSpr0=(function(prev){return function(e){if(e&&(e.type==='bakery'||e.type==='mill'||e.type==='coop')){let s=null;try{const k=keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait);if(k)s=sprK(k,e.owner,e.size||DEF[e.type].size)}catch(err){}if(s)return s}return prev(e)}})(bldSpr0);
+  /* steam bakery (gameplay 7def: two bakeries joined, b.steam runs it, b.steamOf is the other half, b.sgrp = tile box on both): one painted factory over the
+     whole box from the Industrial Age; a column join (4x8) shows the same factory turned the other way (mirrored) and drawn narrower. */
+  const IM2=new Image();let cut2=false;
+  function ready2(){if(cut2)return true;if(!(IM2.complete&&IM2.naturalWidth))return false;for(const k in NF.LAY2){const [x,y,w,h]=NF.LAY2[k];
+      for(const [suf,dx] of [['',0],['_m',w+2]])for(const fl of [0,1]){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');if(fl){g.translate(w,0);g.scale(-1,1)}g.drawImage(IM2,x+dx,y,w,h,0,0,w,h);
+        GFX.imgs['nf_'+k+(fl?'_f':'')+suf]=cv}
+      for(const fl of ['','_f'])try{if(!GFX_ART['nf_'+k+fl])GFX_ART['nf_'+k+fl]={age:k[0]==='x'?6:5,culture:'both'}}catch(e){}}return cut2=true}
+  const BL=document.createElement('canvas');BL.width=BL.height=1;BL.w=1;BL.h=1;BL.ov=0;BL.dx=0;BL._nfBlank=1;
+  function steamG(e){if(!e||e.type!=='bakery'||GFX.mode!=='V23D'||e.owner==null||e.owner<0||e.owner>1)return null;const g=e.sgrp;if(!g||!g.ids||g.ids.length<2||ageOf(e.owner)<5)return null;if(!(e.steam||e.steamOf))return null;return g}
+  const SC={};
+  function steamSpr(e){const g=steamG(e);if(!g||!ready2())return null;if(e.steamOf&&!e.steam)return BL;const o=e.owner,k=ageOf(o)>=6?'xsteam':'isteam',W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,tall=H>W*1.2;
+    const ck=[k,o,W,H,e.tx-g.x0,e.ty-g.y0].join('_');if(SC[ck])return SC[ck];const nm='nf_'+k+(tall?'_f':''),wf=tall?1.9:1.04;
+    let sp=GFX.spr(nm,o,W,wf,0);if(GFX.hdUp)sp=GFX.hdUp(sp,GFX.imgs[nm],GFX.imgs[nm+'_m'],o,'');const left=g.x0*TILE-(sp.w-W)/2,top=g.y1*TILE+H*(tall?.02:.04)-sp.h;
+    sp.dx=e.tx*TILE-left;sp.ov=e.ty*TILE-top;sp._nf=k;sp._mir=tall;sp.smoke=null;sp.smoke2=null;sp.fire=null;return SC[ck]=sp}
+  NF.steamSpr=steamSpr;
+  bldSpr0=(function(prev){return function(e){if(e&&(e.type==='bakery'||e.type==='mill'||e.type==='coop')){let s=null;try{s=steamSpr(e)}catch(err){}if(s)return s;try{const k=keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait);if(k)s=sprK(k,e.owner,e.size||DEF[e.type].size)}catch(err){}if(s)return s}return prev(e)}})(bldSpr0);
   try{sprFor=(function(prev){return function(type,o){if(type==='bakery'||type==='mill'||type==='coop'){let s=null;try{const k=keyFor(type,o,false);if(k)s=sprK(k,o,DEF[type].size)}catch(err){}if(s)return s}return prev(type,o)}})(sprFor)}catch(err){}
   const mine=e=>{try{return e&&keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait)&&ready()}catch(err){return false}};
   try{const bs=GFX.bkScene;if(bs)GFX.bkScene=function(c,b,now){if(mine(b))return;return bs.apply(this,arguments)}}catch(err){}
   try{const _cc=drawCoopChickens;drawCoopChickens=function(c,e,now){if(mine(e)&&GFX.cpFenceEdges){const f=GFX.cpFenceEdges;GFX.cpFenceEdges=function(){};try{return _cc(c,e,now)}finally{GFX.cpFenceEdges=f}}return _cc(c,e,now)}}catch(err){}
-  function geo(e){const k=keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait);if(!k)return null;const sp=sprK(k,e.owner,e.size||DEF[e.type].size);if(!sp)return null;return {k,X:e.tx*TILE-(sp.dx||0),Y:e.ty*TILE-sp.ov,q:sp.w/NF.SRCW[k]}}
-  function run(c,b,now){const g=geo(b);if(!g)return false;const t=now/1000,act=!!(b.anim&&b.anim.active)||!!b.working;NF.scene(c,g.k,g.X,g.Y,g.q,t,b,act);
-    if(b.type==='bakery')NF.men(c,g.k,g.X,g.Y,g.q,t,b,!!b.working);
+  function geo(e){{let sp=null;try{sp=steamSpr(e)}catch(err){}if(sp&&sp._nf)return {k:sp._nf,X:e.tx*TILE-(sp.dx||0),Y:e.ty*TILE-sp.ov,q:sp.w/NF.SRCW[sp._nf],mir:!!sp._mir};if(sp&&sp._nfBlank)return null}
+    const k=keyFor(e.type,e.owner,e.yard||e.mergeJob||e.mergeWait);if(!k)return null;const sp=sprK(k,e.owner,e.size||DEF[e.type].size);if(!sp)return null;return {k,X:e.tx*TILE-(sp.dx||0),Y:e.ty*TILE-sp.ov,q:sp.w/NF.SRCW[k]}}
+  function run(c,b,now){const g=geo(b);if(!g)return false;const t=now/1000,act=!!(b.anim&&b.anim.active)||!!b.working;NF.scene(c,g.k,g.X,g.Y,g.q,t,b,act,g.mir);
+    if(b.type==='bakery')NF.men(c,g.k,g.X,g.Y,g.q,t,b,!!b.working,g.mir);
     if(b.type==='mill'){try{for(const bk of G.ents){if(bk.type!=='bakery'||bk.chute!==b.id||bk.dead||!bk.built)continue;const h=geo(bk);if(h)line(c,g,h,t,!!bk.working,b.id)}}catch(err){}}
     return true}
   NF.run=run;
   /* the flour line from a painted mill to its chute bakery: an enclosed iron conveyor (Industrial) or a steel pneumatic pipe (Modern) on trestles */
   function line(c,g,h,t,on,seed){const A=NF.PORT[g.k],B=NF.PORT[h.k];if(!A||!B)return;let best=null;
-    for(const a of A)for(const b of B){const p=[g.X+a[0]*g.q,g.Y+a[1]*g.q],q=[h.X+b[0]*h.q,h.Y+b[1]*h.q],d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(!best||d<best[2])best=[p,q,d]}
+    const PX=(G2,a)=>[G2.X+(G2.mir?NF.SRCW[G2.k]-a[0]:a[0])*G2.q,G2.Y+a[1]*G2.q];for(const a of A)for(const b of B){const p=PX(g,a),q=PX(h,b),d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(!best||d<best[2])best=[p,q,d]}
     const [p,q]=best,mod=g.k[0]==='x',dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,r=mod?2.6:3.2;
     const gy=Math.max(p[1],q[1])+26;c.save();c.lineCap='round';
     const n=Math.max(1,Math.round(L/40));for(let i=1;i<=n;i++){const f=i/(n+1),x=p[0]+dx*f,y=p[1]+dy*f,yb=y+Math.max(14,gy-y-10*(1-Math.abs(f-.5)));
@@ -5952,8 +5977,9 @@ try{(function(){
         else{c.fillStyle='rgba(245,236,214,.85)';c.beginPath();c.arc(x,y-r-1-Math.abs(Math.sin(f*40))*1.2,1.2,0,7);c.fill()}}}
     if(L>18)for(const e of [p,q]){c.fillStyle=mod?'#6f767d':'#2e241b';c.beginPath();c.ellipse(e[0],e[1],r*1.5,r*1.7,0,0,7);c.fill();c.fillStyle=mod?'#b9bfc5':'#5c4836';c.beginPath();c.ellipse(e[0],e[1]-.4,r*1.1,r*1.3,0,0,7);c.fill()}
     c.restore()}
-  for(const ty of ['bakery','mill','coop'])BANIM[ty]=(function(prev){return function(c,b,now){if(GFX.mode==='V23D'&&mine(b)){try{if(run(c,b,now)){if(ty==='bakery'&&prev)prev(c,b,now);return}}catch(err){}}if(prev)prev(c,b,now)}})(BANIM[ty]);
+  for(const ty of ['bakery','mill','coop'])BANIM[ty]=(function(prev){return function(c,b,now){if(ty==='bakery'){let g=null;try{g=steamG(b)}catch(err){}if(g&&b.steamOf&&!b.steam)return}if(GFX.mode==='V23D'&&mine(b)){try{if(run(c,b,now)){if(ty==='bakery'&&prev)prev(c,b,now);return}}catch(err){}}if(prev)prev(c,b,now)}})(BANIM[ty]);
   IM.onload=function(){try{if(ready()&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};IM.src=GFX.ART+'nf_food.webp?v='+GFX.ARTV;
+  IM2.onload=function(){try{if(ready2()){for(const k in SC)delete SC[k]}}catch(e){}};IM2.src=GFX.ART+'nf_steam.webp?v='+GFX.ARTV;
 }catch(err){}})();
 /* ===== END art chat 3: food ===== */
 /* ===== V23D Industrial/Modern market, university, mine shaft (art chat 3, Josh Oct 15 2026): Josh's picks from free concepts (Tripo image tool):
@@ -8587,6 +8613,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
