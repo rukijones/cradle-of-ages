@@ -5539,6 +5539,21 @@ try{(function(){const V={"g": {"u": "data:image/webp;base64,UklGRvR5AABXRUJQVlA4
       c.beginPath();c.moveTo(x,y-r*1.6);c.lineTo(x+r*.28,y-r*.28);c.lineTo(x+r*1.6,y);c.lineTo(x+r*.28,y+r*.28);c.lineTo(x,y+r*1.6);c.lineTo(x-r*.28,y+r*.28);c.lineTo(x-r*1.6,y);c.lineTo(x-r*.28,y-r*.28);c.closePath();c.fill()}
     c.restore()}catch(err){}};
 })()}catch(err){}
+/* Medieval Poultry yard (Josh, 8d1c: "Can the color of the large chicken coop fence match the Medieval Age darker brown wood color?"):
+   from the Medieval Age on, the yard's orange timber (fence, gate, hen-house frame, ramps, crates) is drawn in the darker Medieval brown.
+   Art chat 1's yard code is untouched: a drawPoultryYard wrapper (installed after page load, outermost) hands it a context whose drawImage
+   swaps the yard picture and its front-fence copy (both 700x537) for a recoloured copy made once per picture. Straw, ground, roof keep their colour. */
+try{(function(){const DK=new WeakMap();
+  const dark=src=>{let d=DK.get(src);if(d)return d;const c=document.createElement('canvas');c.width=src.width;c.height=src.height;const g=c.getContext('2d');g.drawImage(src,0,0);
+    try{const I=g.getImageData(0,0,c.width,c.height),p=I.data;for(let i=0;i<p.length;i+=4){if(!p[i+3])continue;const r=p[i]/255,gg=p[i+1]/255,b=p[i+2]/255,mx=Math.max(r,gg,b),mn=Math.min(r,gg,b),dd=mx-mn;if(dd<.05)continue;
+      const s=dd/mx;let h=mx===r?((gg-b)/dd+6)%6:mx===gg?(b-r)/dd+2:(r-gg)/dd+4;h*=60;const w=Math.min(1,Math.max(0,(s-.38)/.12))*Math.max(0,1-Math.abs(h-21)/14);if(w<=0)continue;
+      const v2=mx*(1-.36*w),s2=s*(1-.1*w),h2=(h*(1-w)+Math.min(26,Math.max(14,h))*w)/60,k=Math.floor(h2)%6,f=h2-Math.floor(h2),P=v2*(1-s2),Q=v2*(1-s2*f),T=v2*(1-s2*(1-f));
+      const R=[v2,Q,P,P,T,v2][k],G2=[T,v2,v2,Q,P,P][k],B=[P,P,T,v2,v2,Q][k];p[i]=R*255;p[i+1]=G2*255;p[i+2]=B*255}g.putImageData(I,0,0)}catch(err){}
+    DK.set(src,c);return c};
+  let PX=null;const prox=c=>{if(PX&&PX.t===c)return PX.p;const p=new Proxy(c,{get(t,k){if(k==='drawImage')return function(im,...a){if(im&&im.width===700&&im.height===537&&(im instanceof HTMLCanvasElement))im=dark(im);return t.drawImage(im,...a)};
+    const v=t[k];return typeof v==='function'?v.bind(t):v},set(t,k,v){t[k]=v;return true}});PX={t:c,p};return p};
+  setTimeout(()=>{try{const _py=drawPoultryYard;drawPoultryYard=function(c,e,now){try{if(GFX.mode==='V23D'&&e&&G.players[e.owner<2?e.owner:0].age>=3)return _py(prox(c),e,now)}catch(err){}return _py(c,e,now)}}catch(err){}},0);
+})()}catch(err){}
 /* ===== END art chat 2: renunits ===== */
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
    Every flame painted into a Stone/Bronze/Iron building (braziers, fire pits, forge and kiln mouths) now flickers with live flames,
