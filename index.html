@@ -7718,8 +7718,8 @@ function ranchSettle(R,dt){if(!R.built)return;const tied=typeof GFX!=='undefined
       const dx=L[i][0]*TILE-u.x,dy=L[i][1]*TILE-u.y,d=Math.hypot(dx,dy);
       if(d>1.5){const st=Math.min(d,speedOf(u)*.5*dt);u.x+=dx/d*st;u.y+=dy/d*st;u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt;u._gl=1;}
       else if(u._gl){u._gl=0;u.moving=false;}}}}
-/* cows standing in the dairy wing's yard are drawn in front of the wing picture (the yard is part of it) */
-try{zOverOf=(function(prev){return function(e){const z=prev(e);if(e.type!=='cow')return z;for(const W of G.ents){if(W.type!=='dairy'||!W.ranch||W.dead)continue;
+/* anyone standing in the dairy wing's yard (cows, ranch hands, passers-by) is drawn in front of the wing picture (the yard is part of it) */
+try{zOverOf=(function(prev){return function(e){const z=prev(e);if(e.air)return z;for(const W of G.ents){if(W.type!=='dairy'||!W.ranch||W.dead)continue;
   if(e.x>=W.tx*TILE&&e.x<(W.tx+W.size)*TILE&&e.y>=W.ty*TILE&&e.y<(W.ty+W.size)*TILE)return Math.max(z,(W.ty+W.size)*TILE);}return z;}})(zOverOf)}catch(err){}
 function addHand(R){if(G.ents.filter(e=>e.shep===R.id&&!e.dead).length>=RHAND_MAX)return null;let best=null,bd=1e9;
   for(const u of idleVills()){const d=Math.hypot(u.x-R.x,u.y-R.y);if(d<bd){bd=d;best=u;}}
