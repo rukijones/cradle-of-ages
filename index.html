@@ -6727,6 +6727,104 @@ try{(function(){
   try{const _sl6=shadowLayer;shadowLayer=function(c){_sl6(c);try{if(GFX.mode!=='V23D'||!YL)return;for(const e of G.ents){if(e.type!=='pen'||e.dead||!e.built||!e.sranch)continue;if(e.owner!==0&&!(G.exp&&G.exp[0][ti(e.tx,e.ty)]))continue;
       if(Math.abs(e.x-(cam.x+W/cam.z/2))>W/cam.z/2+260||Math.abs(e.y-(cam.y+H/cam.z/2))>H/cam.z/2+260)continue;const R=swRanch(e);if(!R||!R.built)continue;let sr=null;try{sr=bldSpr0(R)}catch(err){}const rt=sr&&GFX.swRoute(e,sr);if(rt)lanePoly(c,rt.P)}}catch(err){}}}catch(err){}
 })()}catch(err){}
+/* ===== V23D ranch 8x8 + dairy wing 5x5 at true scale (art chat 1, Oct 15 2026; Josh's picks: ranch A, dairy wing A).
+   Gameplay asked for pictures where people and animals fit what is drawn: villager ~28 px tall, cow ~38 px long at zoom 1. The ranch has an
+   open-fronted barn (oxen/donkeys stand under the roof, hay rack and trough at the walls) and a herder's cottage whose door is ~1.3 villagers
+   tall; the main gate (lower right) is always open. The dairy wing has a two-stall milking shed (a whole cow per stall) and a round cheese
+   house with a person-sized door. Both pictures scale with e.size (made for 8x8 and 5x5). All spots are in picture px and mapped through
+   the sprite, so they follow the building's size: rSpots 'a' and 'c', rGates, rZone, the wing layout, the lanes and the sheep-wing route.
+   Ranch openings: R (main gate, always open), L (lower-left fence: dairy wing on the left, or the sheep wing), NW (upper-left fence: sheep). ===== */
+(function(){try{
+  if(typeof GFX==='undefined')return;
+  const RW=1092,WW=1092;
+  const NA={"ranch":[0,0,1092,770],"wing":[0,772,1092,778],"gL":[1094,0,68,122],"gNW":[1094,124,72,128]};
+  let NL=null,nat=null;function nload(){if(nat)return;nat=new Image();nat.onload=()=>{try{const m={};for(const k in NA){const [x,y,w,h]=NA[k],c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(nat,x,y,w,h,0,0,w,h);m[k]=c}
+      const fl=document.createElement('canvas');fl.width=m.wing.width;fl.height=m.wing.height;const g=fl.getContext('2d');g.translate(fl.width,0);g.scale(-1,1);g.drawImage(m.wing,0,0);m.wingL=fl;NL=m}catch(err){}nat.onload=nat.onerror=null;nat.src=''};
+    nat.onerror=()=>{setTimeout(()=>{nat=null},5000)};nat.src=GFX.ART+'a1_r8.webp?v='+GFX.ARTV}
+  const on=()=>GFX.mode==='V23D'&&GFX.RANCH8!==false;
+  const ready=()=>{if(!on())return false;if(!NL){nload();return false}return true};
+  GFX.ranch8=()=>ready();
+  const EMC={};const empty=(n,c0)=>EMC[n]||(EMC[n]=(()=>{const c=document.createElement('canvas');c.width=c0.width;c.height=c0.height;return c})());
+  const ARTDEF=n=>{try{if(!GFX_ART[n])GFX_ART[n]={age:2,culture:'both',smoke:null}}catch(err){}};
+  // picture geometry (px in the 1092-wide frames)
+  const RG={R:{i:[668,540],o:[706,624]},L:{i:[268,480],o:[238,592]},NW:{i:[198,398],o:[176,352]}},RGBX={L:[241,489,309,611],NW:[155,306,227,434]};
+  const RDIA=[[35,465],[480,710],[990,450],[505,215]];
+  const RSPA=[[395,372],[470,345],[215,445],[300,500],[420,520],[535,460],[360,440]];
+  const RDOOR=[690,440];
+  const WDIA=[[40,470],[510,735],[980,480],[490,215]],WEDGE=[[130,521],[395,670]];
+  const WSPC=[[440,590],[575,545],[690,555],[540,655]];
+  const WL={slot:[[630,440],[800,445]],dr:[375,560],ch:[470,520]};
+  const owner=o=>o>1?0:o;
+  // ---- sprites ----
+  const RC={};
+  function rbase(o,S){o=owner(o);const k=o+'_'+S;if(RC[k])return RC[k];const nm='a1_ranch8';GFX.imgs[nm]=NL.ranch;GFX.imgs[nm+'_m']=empty(nm,NL.ranch);ARTDEF(nm);
+    let s=GFX.spr(nm,o,S,1.12,0);try{if(GFX.hdUp)s=GFX.hdUp(s,NL.ranch,GFX.imgs[nm+'_m'],o)||s}catch(err){}return RC[k]=s}
+  const RO=new WeakMap();
+  function ropen(s,keys){if(!keys.length)return s;const kk=keys.sort().join('+');let m=RO.get(s);if(!m){m={};RO.set(s,m)}if(m[kk])return m[kk];
+    const c=document.createElement('canvas');c.width=s.width;c.height=s.height;const g=c.getContext('2d');g.drawImage(s,0,0);const f=s.width/RW;
+    for(const k of keys){const b=RGBX[k],X=b[0]*f,Y=b[1]*f,Wd=(b[2]-b[0])*f,Hd=(b[3]-b[1])*f;g.clearRect(X,Y,Wd,Hd);g.drawImage(NL['g'+k],X,Y,Wd,Hd)}
+    for(const key of Object.keys(s))c[key]=s[key];return m[kk]=c}
+  const wingOf=R=>{const W=R&&R.wing&&G.byId.get(R.wing);return W&&!W.dead&&W.type==='dairy'?W:null};
+  const swingOfR=R=>{const W=R&&R.swing&&G.byId.get(R.swing);return W&&!W.dead&&W.type==='pen'?W:null};
+  function ranchSpr(R){if(!ready())return null;const s=rbase(R.owner,(R.size||8)*TILE);const keys=[];const W=wingOf(R);if(W&&W.tx<R.tx)keys.push('L');
+    const P=swingOfR(R);if(P&&P.built){const rt=GFX.swRoute&&GFX.swRoute(P,s);if(rt&&rt.rk!=='R'&&!keys.includes(rt.rk))keys.push(rt.rk)}return ropen(s,keys)}
+  GFX.ranch8Spr=ranchSpr;
+  try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='ranch'&&e.owner<2){const s=ranchSpr(e);if(s)return s}return prev(e)}})(bldSpr0)}catch(err){}
+  try{sprFor=(function(prev){return function(type,o){if(type==='ranch'&&ready()){let S=8;try{S=DEF.ranch.size||8}catch(err){}const s=rbase(o,S*TILE);if(s)return s}return prev(type,o)}})(sprFor)}catch(err){}
+  const WC={};
+  const wingRanch=e=>{const R=e&&e.type==='dairy'&&e.ranch&&G.byId.get(e.ranch);return R&&!R.dead&&R.type==='ranch'?R:null};
+  const _ws=GFX.wingSpr;
+  GFX.wingSpr=function(e){const R=wingRanch(e);if(!R||!ready())return _ws?_ws(e):null;const left=e.tx<R.tx,o=owner(e.owner),sz=e.size||5,k=o+'_'+(left?1:0)+'_'+sz;if(WC[k])return WC[k];
+    const nm='a1_wing8'+(left?'L':'R'),im=left?NL.wingL:NL.wing;GFX.imgs[nm]=im;GFX.imgs[nm+'_m']=empty(nm,im);ARTDEF(nm);
+    let s=GFX.spr(nm,o,sz*TILE,1.14,0);try{if(GFX.hdUp)s=GFX.hdUp(s,im,GFX.imgs[nm+'_m'],o)||s}catch(err){}return WC[k]=s};
+  const _wl=GFX.wingLay,q9=900/WW;
+  GFX.wingLay=function(e){if(!wingRanch(e)||!ready())return _wl?_wl(e):null;if(!GFX.wingSpr(e))return null;const left=GFX.wingLeft(e),X=x=>(left?WW-x:x)*q9;
+    return {slot:WL.slot.map(([x,y])=>[X(x),y*q9]),face:left?5*Math.PI/4:7*Math.PI/4,dr:[X(WL.dr[0]),WL.dr[1]*q9],ch:[X(WL.ch[0]),WL.ch[1]*q9],sx:left?-6:6,sy:3.6,px:left?3:-3,md:left?7:5,cs:1}};
+  // ---- picture px -> world px / tiles ----
+  const rpt=(R,s,[x,y])=>{const k=s.w/RW;return [R.tx*TILE-(s.dx||0)+x*k,R.ty*TILE-s.ov+y*k]};
+  const wpt=(W,s,[x,y],left)=>{const k=s.w/WW;return [W.tx*TILE-(s.dx||0)+(left?WW-x:x)*k,W.ty*TILE-s.ov+y*k]};
+  const T=p=>[p[0]/TILE,p[1]/TILE];
+  GFX.ranch8Pt=function(R,x,y){const s=ready()&&rbase(R.owner,(R.size||8)*TILE);return s?rpt(R,s,[x,y]):null};
+  GFX.wing8Pt=function(W,x,y){const s=ready()&&GFX.wingSpr(W);return s?wpt(W,s,[x,y],GFX.wingLeft(W)):null};
+  // ---- gameplay hooks: spots, gates, zones ----
+  try{rSpots=(function(prev){return function(R,k){if(!R||R.type!=='ranch'||!ready()||R.owner>1)return prev(R,k);
+    if(k==='a'){const s=rbase(R.owner,(R.size||8)*TILE);return RSPA.map(p=>T(rpt(R,s,p)))}
+    if(k==='c'){const W=wingOf(R);if(!W||!W.built)return null;const s=GFX.wingSpr(W);if(!s)return prev(R,k);const left=W.tx<R.tx;return WSPC.map(p=>T(wpt(W,s,p,left)))}
+    return prev(R,k)}})(rSpots)}catch(err){}
+  try{rGates=(function(prev){return function(R){if(!R||!ready()||R.owner>1)return prev(R);const s=rbase(R.owner,(R.size||8)*TILE);
+    const mk=(g)=>{const i=T(rpt(R,s,g.i)),o0=T(rpt(R,s,g.o)),dx=o0[0]-i[0],dy=o0[1]-i[1],d=Math.hypot(dx,dy)||1;return {i,o:[i[0]+dx/d*1.1,i[1]+dy/d*1.1]}};
+    const Gs=[mk(RG.R)];const W=wingOf(R);if(W&&W.tx<R.tx)Gs.push(mk(RG.L));return Gs}})(rGates)}catch(err){}
+  try{rZone=(function(prev){return function(b,k){if(b&&b.type==='ranch'&&ready()&&b.owner<2&&(k==='a'||!k)){const L=rSpots(b,'a');if(L){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of L){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])}return [x0-.5,y0-.5,x1+.5,y1+.5]}}return prev(b,k)}})(rZone)}catch(err){}
+  GFX.ranch8Door=function(R){const s=ready()&&rbase(R.owner,(R.size||8)*TILE);return s?T(rpt(R,s,RDOOR)):null};
+  // ---- lane from the ranch gate into the dairy yard (drawn on the ground by the wing's shadow layer) ----
+  const _wln=GFX.wingLane;
+  GFX.wingLane=function(e){const R=wingRanch(e);if(!R||!ready())return _wln?_wln(e):null;const sw=GFX.wingSpr(e);if(!sw||!R.built)return null;const sr=rbase(R.owner,(R.size||8)*TILE);
+    const left=e.tx<R.tx,g=left?RG.L:RG.R,A=rpt(R,sr,g.i),B=rpt(R,sr,g.o),E0=wpt(e,sw,WEDGE[0],left),E1=wpt(e,sw,WEDGE[1],left);
+    const ex=E1[0]-E0[0],ey=E1[1]-E0[1],L2=ex*ex+ey*ey;let t=((B[0]-E0[0])*ex+(B[1]-E0[1])*ey)/L2;t=Math.max(.2,Math.min(.8,t));
+    const C=[E0[0]+ex*t,E0[1]+ey*t],cx=e.tx*TILE+e.size*TILE/2,cy=e.ty*TILE+e.size*TILE*.68,dl=Math.hypot(cx-C[0],cy-C[1])||1,D=[C[0]+(cx-C[0])/dl*16,C[1]+(cy-C[1])/dl*16];
+    return [A,B,C,D]};
+  // ---- sheep wing route with the new ranch openings ----
+  const SWFW=853,SWFDIA=[[9,374],[426,616],[851,369],[434,127]],SWFG={SW:{i:[225,458],o:[187,523]},SE:{i:[612,468],o:[650,533]}};
+  const dia=(pts)=>{const cx=(pts[0][0]+pts[2][0])/2,cy=(pts[1][1]+pts[3][1])/2,hw=(pts[2][0]-pts[0][0])/2,hh=(pts[1][1]-pts[3][1])/2;return (x,y,k)=>Math.abs(x-cx)/(hw*k)+Math.abs(y-cy)/(hh*k)<1};
+  const SRC=new WeakMap();const _swr=GFX.swRoute;
+  GFX.swRoute=function(w,sr0){const R=w&&w.type==='pen'&&w.sranch&&G.byId.get(w.sranch);if(!R||R.dead||R.type!=='ranch'||!ready())return _swr?_swr(w,sr0):null;
+    const fb=GFX.foldBase&&GFX.foldBase(w.owner);if(!fb)return null;const sr=rbase(R.owner,(R.size||8)*TILE);
+    const key=R.tx+','+R.ty+','+w.tx+','+w.ty+','+sr.w+','+(R.wing||0);let q=SRC.get(w);if(q&&q.key===key)return q;
+    const rp=p=>rpt(R,sr,p),kF=fb.w/SWFW,fp=([x,y])=>[w.tx*TILE-fb.dx+x*kF,w.ty*TILE-fb.ov+y*kF];
+    const inR=dia(RDIA.map(rp)),inF=dia(SWFDIA.map(fp));
+    const blk=(P,Q)=>{for(let i=1;i<16;i++){const t=i/16,x=P[0]+(Q[0]-P[0])*t,y=P[1]+(Q[1]-P[1])*t;if(inR(x,y,.9)||inF(x,y,.9))return true}return false};
+    const ext=(I,O,d)=>{const L=Math.hypot(O[0]-I[0],O[1]-I[1])||1;return [O[0]+(O[0]-I[0])/L*d,O[1]+(O[1]-I[1])/L*d]};
+    const out=(pts,d)=>{const cx=(pts[0][0]+pts[2][0])/2,cy=(pts[1][1]+pts[3][1])/2;return pts.map(([x,y])=>{const L=Math.hypot(x-cx,y-cy)||1;return [x+(x-cx)/L*d,y+(y-cy)/L*d]})};
+    const rD=RDIA.map(rp),fD=SWFDIA.map(fp),WR=out(rD,14),WF=out(fD,12);
+    const len=P=>{let s=0;for(let i=1;i<P.length;i++)s+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return s};
+    const W=wingOf(R),lw=W&&W.tx<R.tx;let best=null;
+    for(const rk of ['L','R','NW'])for(const fk of ['SW','SE']){const Ai=rp(RG[rk].i),Ao=ext(Ai,rp(RG[rk].o),8),Fi=fp(SWFG[fk].i),Fo=ext(Fi,fp(SWFG[fk].o),8);
+      const cands=[[]];for(const a of WR)cands.push([a]);for(const b of WF)cands.push([b]);for(const a of WR)for(const b of WF)cands.push([a,b]);
+      for(const mid of cands){const P=[Ao,...mid,Fo];let ok=true;for(let i=1;i<P.length;i++)if(blk(P[i-1],P[i])){ok=false;break}if(!ok)continue;
+        const L=len(P)+(rk==='NW'?20:0)+(rk==='R'&&W&&!lw?60:0);if(!best||L<best.L)best={L,rk,fk,P:[Ai,...P,Fi]}}}
+    if(!best){const Ai=rp(RG.R.i),Fi=fp(SWFG.SW.i);best={L:0,rk:'R',fk:'SW',P:[Ai,Fi]}}
+    best.key=key;SRC.set(w,best);return best};
+}catch(err){}})();
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
   SPR.ruin=ruinSprite();
