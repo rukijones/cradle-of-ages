@@ -5614,8 +5614,9 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
 (function(){
   const sc=(L,q)=>L?L.map(p=>[p[0]*q,p[1]*q,p[2]]):null;
   const ps=GFX.spr;GFX.spr=function(name,o,S,wf,down){const c=ps.apply(this,arguments);try{const F=GFX.FX[name],im=GFX.imgs[name];
-    if(F&&c&&im){const q=c.w/im.width;c.fxF=sc(F.f,q);c.fxM=sc(F.m,q);c.fxL=sc(F.l,q);c.fxS=sc(F.s,q);c.fxQ=q;c.smoke=null;c.smoke2=null;c.fire=null}}catch(err){}return c};
-  const FXK=['fxF','fxM','fxL','fxS','fxQ'];GFX.FXK=FXK;
+    if(F&&c&&im){const q=c.w/im.width;c.fxF=sc(F.f,q);c.fxM=sc(F.m,q);c.fxL=sc(F.l,q);c.fxS=sc(F.s,q);c.fxQ=q;if(F.f||F.m||F.l||F.s){c.smoke=null;c.smoke2=null;c.fire=null}
+      if(F.w){c.fxN=name;c.fxW=F.w.map(r=>[r[0]/im.width,r[1]/im.height,r[2]/im.width,r[3]/im.height,r[4]||'l',r[5]||1,r[6]])}}}catch(err){}return c};
+  const FXK=['fxF','fxM','fxL','fxS','fxQ','fxW','fxN'];GFX.FXK=FXK;
   try{const pu=GFX.padUnder;GFX.padUnder=function(sp){const C=pu.apply(this,arguments);for(const k of FXK)if(sp[k]!==undefined)C[k]=sp[k];return C}}catch(err){}
   // the lit copy and in-place rescale of sprites only carry the old smoke/fire keys; carry ours too
   try{const pl=litOf;litOf=function(sp){const c=pl.apply(this,arguments);if(c&&sp&&c!==sp&&sp.fxQ&&!c.fxQ)for(const k of FXK)if(sp[k]!==undefined)c[k]=sp[k];return c}}catch(err){}
@@ -5628,7 +5629,7 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
     const s=document.createElement('canvas');s.width=sp.width;s.height=sp.height;s.getContext('2d').drawImage(sp,0,0);
     s.w=sp.w*k;s.h=sp.h*k;s.dx=(sp.dx||0)+sp.w*(k-1)/2;s.ov=sp.ov+sp.h*(k-1);
     for(const q of ['smoke','smoke2','fire','hub'])if(sp[q])s[q]=[sp[q][0]*k,sp[q][1]*k];
-    for(const q of ['fxF','fxM','fxL','fxS'])if(sp[q])s[q]=sp[q].map(p=>[p[0]*k,p[1]*k,p[2]]);if(sp.fxQ)s.fxQ=sp.fxQ*k;
+    for(const q of ['fxF','fxM','fxL','fxS'])if(sp[q])s[q]=sp[q].map(p=>[p[0]*k,p[1]*k,p[2]]);if(sp.fxQ)s.fxQ=sp.fxQ*k;if(sp.fxW){s.fxW=sp.fxW;s.fxN=sp.fxN}
     return m[k]=s}})(bldSpr0)}catch(err){}
   // flames: layered tongues that lick and sway, a warm glow, the odd spark
   function flame(c,x,y,r,t,seed){
@@ -5656,13 +5657,71 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
     c.fillStyle=dark?'rgba(120,116,110,'+(.55*(1-p)).toFixed(3)+')':'rgba(206,203,197,'+(.56*(1-p)).toFixed(3)+')';
     c.beginPath();c.arc(x+Math.sin(p*5+k+seed)*r*1.4+p*r*6,y-p*r*20,rr,0,7);c.fill()}}
   GFX.fxFlame=flame;GFX.fxLamp=lamp;
-  GFX.fxDraw=function(c,e,now){if(!e||!e.built||GFX.mode!=='V23D'||(e.morph&&G.t<e.morph.t0+e.morph.dur))return;const sp=bldSpr(e);if(!sp||!(sp.fxF||sp.fxM||sp.fxL||sp.fxS))return;
+  GFX.fxDraw=function(c,e,now){if(!e||!e.built||GFX.mode!=='V23D'||(e.morph&&G.t<e.morph.t0+e.morph.dur))return;const sp=bldSpr(e);if(!sp)return;if(sp.fxW&&GFX.wvDraw)GFX.wvDraw(c,e,sp,now);if(!(sp.fxF||sp.fxM||sp.fxL||sp.fxS))return;
     const x0=e.tx*TILE,y0=e.ty*TILE-sp.ov,xs=x0-(sp.dx||0),t=now/1000,q=(sp.fxQ||.25)/.25,s0=e.id*1.7;
     if(sp.fxM)sp.fxM.forEach((p,i)=>mouth(c,xs+p[0],y0+p[1],1.6*q*(p[2]||1),t,s0+i));
     if(sp.fxL)sp.fxL.forEach((p,i)=>lamp(c,xs+p[0],y0+p[1],1.5*q*(p[2]||1),t,s0+i*3));
     if(sp.fxF)sp.fxF.forEach((p,i)=>flame(c,xs+p[0],y0+p[1],1.3*q*(p[2]||1),t,s0+i*2.3));
     if(sp.fxS)sp.fxS.forEach((p,i)=>puff(c,xs+p[0],y0+p[1],t,e.id+i*7,1.6*Math.max(.8,Math.min(1.3,q)),p[2]))};
   try{const _p=drawBuilding;drawBuilding=function(c,e,now){_p(c,e,now);try{GFX.fxDraw(c,e,now)}catch(err){}}}catch(err){}
+})();
+/* ===== V23D moving cloth (art chat 1, Oct 15 2026). Gameplay nudge f689 / Josh: "the flags aren't moving".
+   Shared effect for every painted flag, pennant and hanging banner. List cloth in GFX.FX[artName].w as
+   [x0,y0,x1,y1,side,amp,fill] in source-image px: side 'l' = pole on the left, 'r' = pole on the right, 't' = hangs from the top;
+   amp = multiplier (default 1); fill = 1 to patch the wall behind (default on for 't'). The cloth is cut out of the sprite using the
+   art's team mask inside that box, so the box can be loose; the cut cloth is redrawn every frame with a travelling wave and moving light. ===== */
+(function(){
+  const W={tower:[[100,6,216,53,'l']],stonecamp:[[245,28,336,102,'l']],b_tower:[[121,1,208,58,'l']],range:[[223,16,323,64,'l']],dock:[[270,12,371,62,'l']],
+    i_workshop:[[221,12,283,47,'l']],i_tower:[[184,18,276,74,'l']],goldmine:[[206,0,281,89,'l']],outpost:[[107,30,254,107,'l']],lumber:[[190,31,256,130,'l']],
+    i_forge:[[288,85,339,142,'t',.8,0]],a1_tw1:[[0,19,75,91,'r']],mill3d:[[164,3,218,31,'l']],
+    tc:[[10,293,54,383,'t']],barracks:[[152,83,178,117,'t'],[61,101,90,186,'t'],[134,130,173,231,'t']],
+    b_tc:[[386,148,413,215,'t'],[7,164,34,231,'t'],[212,278,232,338,'t']],hut:[[117,179,242,245,'t',.5]],b_house:[[81,174,166,279,'t',.4]],
+    i_tc:[[52,116,85,176,'t'],[155,117,174,172,'t'],[249,118,269,172,'t'],[378,136,411,198,'t'],[196,138,227,194,'t'],[320,183,342,242,'t'],[108,245,137,292,'t']]};
+  for(const k in W){GFX.FX[k]=GFX.FX[k]||{};if(!GFX.FX[k].w)GFX.FX[k].w=W[k]}
+  const CL=new WeakMap();
+  function cv(w,h){const c=document.createElement('canvas');c.width=Math.max(1,w);c.height=Math.max(1,h);return c}
+  // cut cloth pieces out of a lit sprite; returns {holed, P:[{c,x,y,w,h,side,amp}]}
+  function prep(sp){let R=CL.get(sp);if(R!==undefined)return R;R=null;
+    try{const mk=GFX.imgs[sp.fxN+'_m'];if(mk&&(mk.width||mk.naturalWidth)){const Wd=sp.width,Ht=sp.height,kc=Wd/sp.w,d=Math.max(1,.6*kc);
+      const holed=cv(Wd,Ht),hg=holed.getContext('2d');hg.drawImage(sp,0,0);const P=[];
+      for(const r of sp.fxW){const pad=Math.ceil(d)+2,x=Math.max(0,Math.floor(r[0]*Wd)-pad),y=Math.max(0,Math.floor(r[1]*Ht)-pad),
+          w=Math.min(Wd,Math.ceil(r[2]*Wd)+pad)-x,h=Math.min(Ht,Math.ceil(r[3]*Ht)+pad)-y;if(w<3||h<3)continue;
+        // mask crop (the box, cut tight around the real cloth) dilated a little to take the cloth's dark edge too
+        const m0=cv(w,h),mg0=m0.getContext('2d');mg0.drawImage(mk,0,0,mk.width||mk.naturalWidth,mk.height||mk.naturalHeight,-x,-y,Wd,Ht);
+        mg0.globalCompositeOperation='destination-in';mg0.fillStyle='#000';mg0.fillRect(r[0]*Wd-x,r[1]*Ht-y,(r[2]-r[0])*Wd,(r[3]-r[1])*Ht);
+        const m=cv(w,h),mg=m.getContext('2d');for(let a=0;a<8;a++)mg.drawImage(m0,Math.cos(a*Math.PI/4)*d,Math.sin(a*Math.PI/4)*d);mg.drawImage(m0,0,0);
+        // solidify the soft mask so the cut is clean
+        const id=mg.getImageData(0,0,w,h),q=id.data;let n=0;for(let i=3;i<q.length;i+=4){q[i]=q[i]>40?255:0;if(q[i])n++}mg.putImageData(id,0,0);if(n<6)continue;
+        const cl=cv(w,h),cg=cl.getContext('2d');cg.drawImage(sp,-x,-y);cg.globalCompositeOperation='destination-in';cg.drawImage(m,0,0);
+        hg.save();hg.globalCompositeOperation='destination-out';hg.drawImage(m,x,y);hg.restore();
+        const fill=r[6]!==undefined?r[6]:(r[4]==='t'?1:0);
+        if(fill){// patch the hole with the nearest wall on either side (and above/below), only inside the hole
+          const f=cv(w,h),fg=f.getContext('2d'),src=cv(w,h),sg=src.getContext('2d');sg.drawImage(holed,-x,-y);
+          for(let s=Math.round(w);s>=1;s=Math.floor(s*.7)){for(const[ox,oy]of[[s,0],[-s,0]])fg.drawImage(src,ox,oy);if(s===1)break}
+          fg.drawImage(src,0,0);fg.globalCompositeOperation='destination-in';fg.drawImage(m,0,0);
+          fg.globalCompositeOperation='source-atop';fg.fillStyle='rgba(30,22,14,.22)';fg.fillRect(0,0,w,h);// a soft shadow the banner casts
+          hg.drawImage(f,x,y)}
+        const k=r[4]==='t'?Math.min(.12*w,1.6*kc):Math.min(.18*h,3*kc);
+        P.push({c:cl,x,y,w,h,side:r[4],amp:k*(r[5]||1),s:cv(w+Math.ceil(2*k)+4,h+Math.ceil(2*k)+4)})}
+      for(const k of Object.keys(sp))holed[k]=sp[k];holed._wvSrc=sp;R={holed,P,kc}}}catch(err){R=null}
+    CL.set(sp,R);return R}
+  // litOf wrapper: while a building is being drawn with live cloth, hand back the sprite with the cloth cut out
+  try{const pl=litOf;litOf=function(sp){const c=pl.apply(this,arguments);if(GFX._wv&&c&&c.fxW){const R=prep(c);if(R)return R.holed}return c}}catch(err){}
+  GFX.wvOn=function(e){return !!(e&&e.built&&GFX.mode==='V23D'&&!(e.morph&&G.t<e.morph.t0+e.morph.dur)&&cam.z>=.55&&GFX.wave!==false)};
+  try{const _p=drawBuilding;drawBuilding=function(c,e,now){if(!GFX.wvOn(e))return _p(c,e,now);GFX._wv=1;try{_p(c,e,now)}finally{GFX._wv=0}}}catch(err){}
+  function piece(c,p,X,Y,kc,t,seed){const A=p.amp,S=p.s,g=S.getContext('2d'),o=Math.ceil(A)+2,w=p.w,h=p.h;g.clearRect(0,0,S.width,S.height);
+    const side=p.side,flag=side!=='t',L=flag?w:h,n=Math.max(4,Math.min(24,Math.round(L/(1.6*kc)))),st=L/n,sp=flag?6.2:3.4,kk=flag?7.5:4.2;
+    const sh=[];for(let i=0;i<n;i++){const u=(i+.5)/n,dd=flag?(side==='r'?1-u:u):u,env=flag?Math.pow(dd,1.15):Math.pow(dd,1.35)*.9+.1*dd,
+        ph=t*sp-dd*kk+seed,off=A*env*(Math.sin(ph)+.28*Math.sin(ph*2.1+1.3)),sl=Math.cos(ph)*env;sh.push(sl);
+      if(flag){const sx=i*st;g.drawImage(p.c,sx,0,st+.6,h,o+sx,o+off,st+.6,h)}else{const sy=i*st;g.drawImage(p.c,0,sy,w,st+.6,o+off,o+sy,w,st+.6)}}
+    // travelling light and shade across the folds
+    g.globalCompositeOperation='source-atop';for(let i=0;i<n;i++){const v=sh[i];if(Math.abs(v)<.05)continue;
+      g.fillStyle=v>0?'rgba(255,248,225,'+(.16*v).toFixed(3)+')':'rgba(20,16,30,'+(-.24*v).toFixed(3)+')';
+      if(flag)g.fillRect(o+i*st,0,st+.6,S.height);else g.fillRect(0,o+i*st,S.width,st+.6)}
+    g.globalCompositeOperation='source-over';
+    c.drawImage(S,X+(p.x-o)/kc,Y+(p.y-o)/kc,S.width/kc,S.height/kc)}
+  GFX.wvDraw=function(c,e,sp,now){if(!GFX.wvOn(e))return;const R=prep(sp._wvSrc||sp);if(!R)return;const x0=e.tx*TILE,y0=e.ty*TILE-sp.ov,xs=x0-(sp.dx||0),t=now/1000;
+    R.P.forEach((p,i)=>piece(c,p,xs,y0,R.kc,t,e.id*2.31+i*1.7))};
 })();
 /* ===== END art chat 1: fx ===== */
 /* ===== V23D Industrial core buildings (art chat 3, Josh Oct 14 2026): painted Industrial Age (age 5) looks (Tripo image tool):
