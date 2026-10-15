@@ -5055,7 +5055,11 @@ try{(function(){
    map scroll) on the villager motions (walk, idle, die; other villager poses fall back to these), key ex3d in GFX.IRON3D + GFX.IRONMAP.
    Files: art/c/bomb3d.webp, art/c/cart3d.webp, art/c/ex3d_p1.webp (walk+idle+die packed, cut by the seg3 pack wrapper).
    Trading post (neutral, Josh picked A): painted Renaissance merchant house; before anyone reaches the Renaissance only a roped-off
-   plot with a coin signpost marks where it will open. Pictures are data URIs (no files). ===== */
+   plot with a coin signpost marks where it will open. Pictures are data URIs (no files).
+   Crossbowman (Josh: "the crossbow is backwards"): re-baked as xb4d with the Tripo crossbow the right way round (prod forward), slung on the
+   back for walk/run, held prod-up at idle, shouldered for the kneeling aim/shot. Files art/c/xb4d_p1/_p2 replace xb3d_p1/_p2.
+   Trebuchet (Josh: bigger throw, proper swing): on each shot the arm swings up fast from loaded to thrown, the frame jolts and rocks, dust kicks
+   up; then it winches back down over the reload. It hurls a big flaming stone on a high arc that bursts in fire, sparks and dust. ===== */
 try{(function(){
   const BM={"file":"bomb3d","fw":210,"fh":200,"upx":166.67,"foot":127.3,"seg":{"walk":[0,4],"attack":[4,8],"idle":[12,1]},"rows5":1,"nc":13,"v":2,"mz":[[105.0,127.9],[166.3,113.3],[191.7,78.2],[166.3,43.0],[105.0,28.4]],"pack":{"walk":{"f":"bomb3d","x":0,"n":4},"attack":{"f":"bomb3d","x":4,"n":8},"idle":{"f":"bomb3d","x":12,"n":1}},"size":46},CT={"file":"cart3d","fw":210,"fh":210,"upx":166.67,"foot":143.2,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"cart3d","x":0,"n":8},"idle":{"f":"cart3d","x":8,"n":1}},"size":40};
   const V=GFX.VIL3D&&GFX.VIL3D.mm3d;
@@ -5100,6 +5104,48 @@ try{(function(){
       const w=on?76:52,h=w*im.naturalHeight/im.naturalWidth,x=e.x,y=e.y+(on?15:12);
       c.save();c.fillStyle=on?'rgba(15,20,8,.26)':'rgba(15,20,8,.14)';ell(c,x+3,y-(on?7:9),w*(on?.4:.34),w*(on?.12:.1));c.fill();c.drawImage(im,x-w/2,y-h,w,h);
       c.restore()}}
+  if(GFX.IRON3D&&GFX.IRON3D.aq3d&&GFX.IRONMAP){const A=GFX.IRON3D.aq3d,m=Object.assign({},A);m.file='xb4d';m.pack={};
+    [['walk','run','idle'],['ready','attack','die']].forEach((g,i)=>{let x=0;for(const s of g){m.pack[s]={f:'xb4d_p'+(i+1),x,n:m.seg[s][1]};x+=m.seg[s][1]}});
+    GFX.IRON3D.xb4d=m;GFX.IRONMAP.crossbow='xb4d'}
+  setTimeout(function(){try{
+    const TB=[],BURST=[];
+    const tag=f=>function(src){const n=G.projs.length;const r=f.apply(this,arguments);if(src&&src.type==='trebuchet'&&G.projs.length>n){const p=G.projs[G.projs.length-1];p.tb=1;TB.push(p)}return r};
+    shoot=tag(shoot);shootAt=tag(shootAt);GFX.tbTag=p=>{p.tb=1;TB.push(p)};
+    const _dp=drawParts;drawParts=function(c){const r=_dp.apply(this,arguments);try{if(GFX.mode!=='V23D')return r;const now=performance.now(),V=G.vis&&G.vis[0],live=new Set(G.projs);
+      for(let i=TB.length-1;i>=0;i--){const p=TB[i];if(!live.has(p)){BURST.push({x:p.x,y:p.y,t0:now});try{emit('dust',p.x,p.y,10);emit('spark',p.x,p.y,12,'#ffb040')}catch(e){}TB.splice(i,1);continue}
+        if(V&&!V[ti(tl(p.x),tl(p.y))])continue;
+        const f=Math.min(1,p.trav/p.d0),lift=Math.sin(f*Math.PI)*Math.min(52,p.d0*.32)+10*(1-f),bx=p.x,by=p.y-lift,R=6.2;
+        c.fillStyle='rgba(0,0,0,.3)';ell(c,p.x,p.y+4,5.5,2.2);c.fill();
+        const sy=Math.cos(f*Math.PI)*1.6;
+        for(let k=9;k>=4;k--){const tx=bx-p.vx*k*4.2,ty=by-p.vy*k*4.2+k*sy*1.6+k*.6,a=(1-k/10);c.fillStyle='rgba(95,88,80,'+(a*.5).toFixed(2)+')';circ(c,tx,ty,R*(.5+k*.13));c.fill()}
+        c.save();c.globalCompositeOperation='lighter';
+        for(let k=5;k>=0;k--){const j=Math.sin(now/45+k*1.7)*1.2,tx=bx-p.vx*k*3.6+j,ty=by-p.vy*k*3.6+k*sy*1.6-k*.8,a=1-k/6;
+          c.fillStyle=k>3?'rgba(220,70,20,'+(a*.7).toFixed(2)+')':k>1?'rgba(255,140,30,'+(a*.85).toFixed(2)+')':'rgba(255,220,110,.9)';circ(c,tx,ty,R*(1.15-k*.1));c.fill()}
+        c.restore();
+        c.save();c.globalCompositeOperation='lighter';const gl=c.createRadialGradient(bx,by,1,bx,by,R*2.2);gl.addColorStop(0,'rgba(255,200,90,.55)');gl.addColorStop(1,'rgba(255,120,30,0)');c.fillStyle=gl;circ(c,bx,by,R*2.2);c.fill();c.restore();
+        const g=c.createRadialGradient(bx-2,by-2.4,.6,bx,by,R);g.addColorStop(0,'#c9b8a0');g.addColorStop(.55,'#7d7266');g.addColorStop(1,'#3e3832');c.fillStyle=g;circ(c,bx,by,R);c.fill();c.strokeStyle='rgba(35,30,26,.85)';c.lineWidth=.8;c.stroke();
+        c.save();c.globalCompositeOperation='lighter';for(let k=0;k<3;k++){const ph=now/60+k*2.1,fy=by-R*.6-k*2.2-Math.abs(Math.sin(ph))*2;c.fillStyle=k===0?'rgba(255,230,140,.8)':k===1?'rgba(255,150,40,.7)':'rgba(230,80,20,.6)';
+          c.beginPath();c.moveTo(bx-R*.7+k,by-R*.2);c.quadraticCurveTo(bx-p.vx*4+Math.sin(ph)*2,fy-R*(1-k*.2),bx+R*.7-k,by-R*.2);c.closePath();c.fill()}c.restore()}
+      for(let i=BURST.length-1;i>=0;i--){const B=BURST[i],t=(now-B.t0)/700;if(t>=1){BURST.splice(i,1);continue}
+        c.save();c.globalCompositeOperation='lighter';c.globalAlpha=1-t;const rr=6+t*22,g2=c.createRadialGradient(B.x,B.y-4,1,B.x,B.y-4,rr);g2.addColorStop(0,'rgba(255,230,140,.9)');g2.addColorStop(.5,'rgba(255,130,30,.6)');g2.addColorStop(1,'rgba(200,60,10,0)');c.fillStyle=g2;ell(c,B.x,B.y-4,rr,rr*.7);c.fill();c.restore();
+        c.save();c.globalAlpha=(1-t)*.5;c.fillStyle='#6d655c';for(let k=0;k<5;k++){const a=k*1.26;circ(c,B.x+Math.cos(a)*t*16,B.y-6-t*14+Math.sin(a)*t*6,3+t*7);c.fill()}c.restore()}}catch(err){}return r};
+    const SWING=.45;
+    GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='trebuchet'||GFX.mode!=='V23D'||u.owner>1||typeof GFX_TB3D==='undefined')return prev(c,u,x,y,now);
+      const S=GFX_TB3D,sg=S.seg,D=(DEF.trebuchet&&DEF.trebuchet.cd)||7,t=u.working&&u.cd>0?D-u.cd:-1;
+      let seg=u.moving?'walk':(u.working?'attack':'idle');let L=GFX.seg3(S,seg);if(!L)return prev(c,u,x,y,now);GFX.seg3(S,'attack');
+      const n=sg[seg][1];let f=0;if(seg==='walk')f=Math.floor(now/180)%n;
+      else if(seg==='attack'){if(t>=0&&t<SWING){const k=t/SWING;f=Math.round((n-1)*(1-k*k))}else{const p=t<0?1:Math.min(1,(t-SWING)/(D-SWING));f=Math.min(n-1,Math.floor(p*n))}}
+      const d=((Math.round((u.face||0)/(Math.PI/4))%8)+8)%8,RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]][d],row=RM[0],mir=RM[1];
+      const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return prev(c,u,x,y,now);
+      const sc=(S.size||76)/S.upx,w=S.fw*sc,h=S.fh*sc;let ox=0,oy=0,tilt=0;
+      if(t>=SWING*.6&&t<SWING+1.6){const tt=t-SWING*.6,e=Math.exp(-tt*3.2),fc=Math.cos(u.face||0),fs=Math.sin(u.face||0);ox=-fc*3.5*e;oy=-fs*2*e-Math.abs(Math.sin(tt*14))*2.2*e;tilt=.06*Math.sin(tt*16)*e*(mir?-1:1)}
+      c.save();c.fillStyle='rgba(15,20,8,.3)';ell(c,x,y+4,34,9);c.fill();
+      if(t>=SWING*.6&&t<SWING+.8){const k=(t-SWING*.6)/(.8+SWING*.4);c.fillStyle='rgba(196,176,132,'+(.45*(1-k)).toFixed(2)+')';for(let i=0;i<5;i++){circ(c,x+(i-2)*12+Math.sin(i*2)*3,y+3-k*6,4+k*9);c.fill()}}
+      c.translate(x+ox,y+5+oy);c.rotate(tilt);if(mir)c.scale(-1,1);const dy=-S.foot*sc;
+      c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h);
+      if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h)}
+      c.restore();return true}})(GFX.drawUnitSpr);
+  }catch(err){}},0);
   GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){
     if(GFX.mode==='V23D'&&u.owner<2&&!u.dead){try{if(u.type==='bombard'&&bombard(c,u,x,y,now))return true;if(u.type==='tradecart'&&cart(c,u,x,y,now))return true}catch(err){}}
     return prev(c,u,x,y,now)}})(GFX.drawUnitSpr);
@@ -7062,6 +7108,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
