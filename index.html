@@ -5690,6 +5690,84 @@ try{(function(){
   try{const _td=townDecor;townDecor=function(c,now,E,V,list,inView){_td(c,now,E,V,list,inView);try{if(!GFX.sacArt())return;
       for(const e of G.ents)if(e.kind==='poi'&&e.type==='sacred'&&!e.dead&&E[ti(e.tx,e.ty)]&&inView(e.x,e.y,100)){const {q,Y0}=geo(e);SP.forEach((p,i)=>list.push([Y0+p[1]*q,{kind:'decor',d:'sacp',sac:e,i}]))}}catch(err){}}}catch(err){}
   try{const _dd=drawDecor;drawDecor=function(c,d,now){if(d&&d.d==='sacp'){try{GFX.sacPiece(c,d.sac,d.i,now)}catch(err){}return}return _dd(c,d,now)}}catch(err){}
+  /* ---- weather for Miracles (art only; gameplay fills G.weather / G.bolts, see the requests doc) ----
+     G.weather = [{k:'storm'|'rain'|'fog'|'snow', x, y, r, t0, dur}] in world px / game seconds (G.t); G.bolts = [{x,y,t}] lightning hits.
+     Drawn as the last depth-sorted item, so it sits over units and buildings (under the fog of war and the UI). */
+  const hsh=n=>{n=Math.sin(n*127.1+311.7)*43758.5453;return n-Math.floor(n)};
+  const wxA=(w,t)=>{const a=t-w.t0,b=w.t0+w.dur-t;return Math.max(0,Math.min(1,a/2,b/2))};
+  function wxDraw(c,now){const W=G.weather;if(!W||!W.length)return;const t=G.t,T=now/1000;
+    for(const w of W){const A=wxA(w,t);if(A<=0)continue;const {x,y,r}=w;c.save();c.beginPath();c.arc(x,y,r,0,7);c.clip();
+      if(w.k==='storm'||w.k==='rain'){const dark=w.k==='storm'?.72:.34;let g=c.createRadialGradient(x,y,r*.45,x,y,r);g.addColorStop(0,'rgba(18,26,48,'+(dark*A)+')');g.addColorStop(1,'rgba(18,26,48,0)');c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);
+        // drifting cloud shadows
+        if(w.k==='storm'){for(let i=0;i<12;i++){const cx=x-r+((hsh(i)*2*r+T*22)%(2*r)),cy=y-r+hsh(i+9)*2*r,rr=70+hsh(i+3)*90;const g2=c.createRadialGradient(cx,cy,0,cx,cy,rr);g2.addColorStop(0,'rgba(8,10,20,'+(.4*A)+')');g2.addColorStop(1,'rgba(10,14,24,0)');c.fillStyle=g2;c.fillRect(cx-rr,cy-rr,2*rr,2*rr)}}
+        // rain streaks
+        const N=Math.round((w.k==='storm'?4.5:3)*r*r/900);c.strokeStyle='rgba(200,218,240,'+(.7*A)+')';c.lineWidth=1.2;c.beginPath();
+        for(let i=0;i<N;i++){const sp=.6+hsh(i*3)*.4,ph=(T*sp*1.6+hsh(i))%1,px=x-r+hsh(i*7)*2*r+ph*40,py=y-r-60+ph*(2*r+80);c.moveTo(px,py);c.lineTo(px+6,py+20)}c.stroke();
+        // splashes
+        c.strokeStyle='rgba(210,225,245,'+(.5*A)+')';for(let i=0;i<N/4;i++){const ph=(T*1.3+hsh(i*5))%1;if(ph>.35)continue;const px=x-r+hsh(i*11)*2*r,py=y-r+hsh(i*13)*2*r,rr=1+ph*9;c.globalAlpha=1-ph/.35;c.beginPath();c.ellipse(px,py,rr,rr*.45,0,0,7);c.stroke()}c.globalAlpha=1}
+      if(w.k==='snow'){let g=c.createRadialGradient(x,y,r*.45,x,y,r);g.addColorStop(0,'rgba(236,244,255,'+(.55*A)+')');g.addColorStop(1,'rgba(236,244,255,0)');c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);
+        const N=Math.round(3*r*r/900);c.fillStyle='rgba(255,255,255,'+(.95*A)+')';
+        for(let i=0;i<N;i++){const sp=.35+hsh(i*3)*.3,ph=(T*sp*.35+hsh(i))%1,px=x-r+hsh(i*7)*2*r+Math.sin(T*1.3+i)*8,py=y-r-30+ph*(2*r+40),s=1.4+hsh(i*5)*2.2;c.beginPath();c.arc(px,py,s,0,7);c.fill()}}
+      if(w.k==='fog'){let g=c.createRadialGradient(x,y,r*.4,x,y,r);g.addColorStop(0,'rgba(206,212,216,'+(.6*A)+')');g.addColorStop(1,'rgba(206,212,216,0)');c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);
+        for(let i=0;i<16;i++){const cx=x-r+((hsh(i)*2*r+T*(6+hsh(i+2)*8))%(2*r)),cy=y-r+hsh(i+20)*2*r,rr=60+hsh(i+5)*90;const g2=c.createRadialGradient(cx,cy,0,cx,cy,rr);g2.addColorStop(0,'rgba(228,232,235,'+(.6*A)+')');g2.addColorStop(1,'rgba(225,230,233,0)');c.fillStyle=g2;c.fillRect(cx-rr,cy-rr,2*rr,2*rr)}}
+      c.restore();
+      // soft edge so the area doesn't end in a hard circle
+      }
+    // lightning bolts
+    const B=G.bolts;if(B&&B.length){for(let j=B.length-1;j>=0;j--){const b=B[j],a=t-b.t;if(a>8){B.splice(j,1);continue}
+      c.save();c.globalAlpha=Math.max(0,1-a/8)*.55;c.fillStyle='#1b140e';c.beginPath();c.ellipse(b.x,b.y,12,5,0,0,7);c.fill();c.restore();
+      if(a<.6){const k=1-a/.6;c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(b.x,b.y,0,b.x,b.y,240);g.addColorStop(0,'rgba(225,235,255,'+(.9*k)+')');g.addColorStop(1,'rgba(225,235,255,0)');c.fillStyle=g;c.fillRect(b.x-240,b.y-240,480,480);
+        const pts=[[b.x,b.y]];let px=b.x,py=b.y;const sd=b.t*97;for(let i=0;i<12;i++){px+=(hsh(sd+i)-.5)*34;py-=40;pts.push([px,py])}
+        for(const [lw,col] of [[9,'rgba(140,170,255,'+(.45*k)+')'],[3.5,'rgba(255,255,255,'+k+')']]){c.strokeStyle=col;c.lineWidth=lw;c.beginPath();pts.forEach(([X,Y],i)=>i?c.lineTo(X,Y):c.moveTo(X,Y));c.stroke()}c.restore()}
+      c.restore&&0}}}
+  GFX.wxDraw=wxDraw;
+  try{const _td2=townDecor;townDecor=function(c,now,E,V,list,inView){_td2(c,now,E,V,list,inView);if((G.weather&&G.weather.length)||(G.bolts&&G.bolts.length))list.push([1e9,{kind:'decor',d:'wx'}])}}catch(err){}
+  try{const _dd2=drawDecor;drawDecor=function(c,d,now){if(d&&d.d==='wx'){try{wxDraw(c,now)}catch(err){}return}return _dd2(c,d,now)}}catch(err){}
+  /* ---- Poultry yard (Josh picked A): one long hen house with nesting boxes and two ramps, egg crates, feed trough, dust bath,
+     fenced run, drawn over the whole c.yard box. All the yard's hens and chicks roam the run (3D birds), and now and then a bird
+     (chicks most often) walks up a ramp and goes in at the door, stays inside a while, then comes back out. ---- */
+  const YA={"yard":[0,0,700,537],"yard_m":[702,0,700,537]};let YL=null,yat=null;
+  function yload(){if(yat)return;yat=new Image();yat.onload=()=>{try{const m={};for(const k in YA){const [x,y,w,h]=YA[k],c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(yat,x,y,w,h,0,0,w,h);m[k]=c}YL=m}catch(err){}yat.onload=yat.onerror=null;yat.src=''};
+    yat.onerror=()=>{setTimeout(()=>{yat=null},5000)};yat.src=GFX.ART+'a1_yard.webp?v='+GFX.ARTV}
+  const ytint={};const yardPic=o=>{if(!YL){yload();return null}o=o>1?0:o;if(ytint[o])return ytint[o];return ytint[o]=GFX.tint(YL.yard,YL.yard_m,o)};
+  const WP=[[70,425],[200,452],[330,432],[470,398],[560,362],[640,322],[700,290],[860,395],[415,585]],
+    FS=[[0,385],[410,598],[912,362],[912,482],[415,700],[0,488]],RAMP=[[[212,440],[245,372]],[[565,360],[512,302]]];
+  const inPoly=(P,x,y)=>{let ins=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const [xi,yi]=P[i],[xj,yj]=P[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins}return ins};
+  const FCV={};const frontFence=o=>{if(FCV[o])return FCV[o];const P=yardPic(o);if(!P)return null;const c=document.createElement('canvas');c.width=P.width;c.height=P.height;const g=c.getContext('2d'),k=P.width/912;
+    g.beginPath();FS.forEach(([x,y],i)=>i?g.lineTo(x*k,y*k):g.moveTo(x*k,y*k));g.closePath();g.clip();g.drawImage(P,0,0);return FCV[o]=c};
+  GFX.yardArt=1;
+  const YQ=new Map();GFX._yq=YQ;
+  try{const _dpy=drawPoultryYard;drawPoultryYard=function(c,e,now){const P=GFX.mode==='V23D'&&yardPic(e.owner);if(!P||!GFX.cpDraw||!GFX.cpImg('hen'))return _dpy(c,e,now);
+    const g=e.yard,X0=g.x0*TILE,Y0=g.y0*TILE,W=(g.x1-g.x0)*TILE,H=(g.y1-g.y0)*TILE,k=W*1.06/912,OX=X0+W/2-456*k,OY=Y0+H+4-700*k,pw=(x,y)=>[OX+x*k,OY+y*k];
+    const mem=g.ids.map(id=>G.byId.get(id)).filter(x=>x&&!x.dead),birds=[];for(const m of mem)for(const t0 of(m.birds||[]))birds.push(t0);const gt=G.t;
+    let q=YQ.get(g.anchor);if(!q){q={B:[],t:now,fill:0};YQ.set(g.anchor,q)}const dt=Math.min(.1,Math.max(0,(now-q.t)/1000));q.t=now;
+    const pick=()=>{for(let n=0;n<30;n++){const x=60+Math.random()*800,y=290+Math.random()*300;if(inPoly(WP,x,y))return pw(x,y)}return pw(415,500)};
+    while(q.B.length<birds.length){const p=pick();q.B.push({x:p[0],y:p[1],tx:p[0],ty:p[1],f:Math.random()*6,m:'idle',mt:Math.random()*3,ph:Math.random()*9,col:q.B.length%2,leg:0})}q.B.length=birds.length;
+    c.drawImage(P,OX,OY,912*k,P.height*912*k/P.width);
+    const D=[];
+    birds.forEach((t0,i)=>{const a=gt-t0,s=q.B[i];if(a<20)return;const chick=a<60,spd=chick?16:9;s.mt-=dt;
+      if(s.m==='inside'){if(s.mt<=0){const R=RAMP[s.r],T=pw(...R[1]),Bt=pw(...R[0]);s.x=T[0];s.y=T[1];s.tx=Bt[0];s.ty=Bt[1];s.m='out';s.mt=8}return}
+      if(s.m==='goin'||s.m==='up'||s.m==='out'){/* moving along the ramp path */}
+      else if(s.mt<=0){const r=Math.random();
+        if(r<(chick?.12:.04)){s.r=Math.random()<.5?0:1;const Bt=pw(...RAMP[s.r][0]);s.tx=Bt[0];s.ty=Bt[1];s.m='goin';s.mt=12}
+        else if(s.m==='walk'||r<.5){s.m='peck';s.mt=1.2+Math.random()*1.5}else{s.m='walk';const p=pick();s.tx=p[0];s.ty=p[1];s.mt=5}}
+      const dx=s.tx-s.x,dy=s.ty-s.y,d=Math.hypot(dx,dy),mv=d>1;if(mv){const st=Math.min(d,spd*dt);s.x+=dx/d*st;s.y+=dy/d*st;s.f=Math.atan2(dy,dx)}
+      else{if(s.m==='goin'){const T=pw(...RAMP[s.r][1]);s.tx=T[0];s.ty=T[1];s.m='up'}else if(s.m==='up'){s.m='inside';s.mt=(chick?4:6)+Math.random()*6;return}else if(s.m==='out'){s.m='idle';s.mt=1+Math.random()*2}else if(!chick&&s.m==='walk')s.mt=0}
+      if(s.mt<-14&&(s.m==='goin'||s.m==='up'||s.m==='out')){const p=pick();s.x=p[0];s.y=p[1];s.tx=p[0];s.ty=p[1];s.m='idle';s.mt=1}
+      s.ph+=dt*(mv?9:0);const dir=((Math.round(s.f/(Math.PI/4))%8)+8)%8,RM=GFX.cpRM[dir];
+      // fade in/out at the door
+      let al=1;if(s.m==='up'){const T=pw(...RAMP[s.r][1]);al=Math.min(1,Math.hypot(T[0]-s.x,T[1]-s.y)/6)}else if(s.m==='out'){const T=pw(...RAMP[s.r][1]);al=Math.min(1,Math.hypot(T[0]-s.x,T[1]-s.y)/6)}
+      const sz=chick?6.2:12;
+      if(chick){const hop=mv?Math.abs(Math.sin(s.ph*1.6))*1.4:0;D.push([s.y,()=>{c.globalAlpha=al;GFX.cpDraw(c,'chick',s.x,s.y-hop,sz,RM[0],0,RM[1]);c.globalAlpha=1}]);return}
+      const S=GFX_COOP3D.hen;let col;if(mv)col=S.seg.walk[0]+((s.ph|0)%S.seg.walk[1]);else if(s.m==='peck'){const kk=((now/140+i*3)|0)%(S.seg.peck[1]*2);col=S.seg.peck[0]+Math.min(S.seg.peck[1]-1,kk<S.seg.peck[1]?kk:S.seg.peck[1]*2-1-kk)}else col=S.seg.idle[0];
+      const bob=mv?Math.abs(Math.sin(s.ph*1.6))*.8:0;D.push([s.y,()=>{c.globalAlpha=al;GFX.cpDraw(c,s.col?'henb':'hen',s.x,s.y-bob,sz,RM[0],col,RM[1]);c.globalAlpha=1}])});
+    D.sort((a,b)=>a[0]-b[0]);for(const dd of D)dd[1]();
+    const F=frontFence(e.owner);if(F)c.drawImage(F,OX,OY,912*k,F.height*912*k/F.width);
+    // egg crate fill and shipping, same numbers as the gameplay yard (display only; food is credited by the coop tick)
+    let hn=0;for(const m of mem)hn+=m.hens||0;const pm=G.players[e.owner]&&G.players[e.owner].age>=6?3:1;try{if(hn>0&&useOf(e)==='eggs')q.fill+=hn*dt*.05*pm/1.5*YARD_K}catch(err){}
+    if(q.fill>=12){q.fill=0;if(e.owner===0){try{if(GFX.eggIcon)GFX.eggIcon();const an=G.byId.get(g.anchor)||e,bk=an.toBakery&&G.ents.find(b=>b.type==='bakery'&&b.owner===0&&b.built&&!b.dead&&Math.hypot(b.x-e.x,b.y-e.y)<15*TILE);addPop(bk||an,'egg',18*pm)}catch(err){}}}
+  }}catch(err){}
+  try{const _dy=drawYards;drawYards=function(c,E,inView){if(GFX.mode==='V23D'&&yardPic(0))return;return _dy(c,E,inView)}}catch(err){}
 })()}catch(err){}
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
@@ -7445,6 +7523,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
