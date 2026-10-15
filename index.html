@@ -5723,6 +5723,26 @@ GFX.TCK=Object.assign({1:1.25,2:1.25},GFX.TCK||{}); // Josh: Bronze and Iron tow
   GFX.wvDraw=function(c,e,sp,now){if(!GFX.wvOn(e))return;const R=prep(sp._wvSrc||sp);if(!R)return;const x0=e.tx*TILE,y0=e.ty*TILE-sp.ov,xs=x0-(sp.dx||0),t=now/1000;
     R.P.forEach((p,i)=>piece(c,p,xs,y0,R.kc,t,e.id*2.31+i*1.7))};
 })();
+/* ===== V23D digging out stumps (art chat 1, Oct 15 2026; gameplay 5ac5 ask): a villager on order.type==='grub' swings the mattock into the
+   ground at the stump in time with the strokes (the pick/mine pose, impact on each of the 4 strokes), throwing up dirt clods and wood chips,
+   instead of standing idle with a jab. Drawing only: u.anim is put back after each draw. ===== */
+(function(){
+  const isG=u=>!!(u&&u.order&&u.order.type==='grub'&&u.working&&!u.moving&&u.anim&&u.anim.state!=='die'&&GFX.mode==='V23D');
+  const phOf=u=>Math.max(0,Math.min(.999,1-Math.max(0,Math.min(1,u.chopT==null?.5:u.chopT))));
+  const J=new WeakMap();
+  try{const d3=GFX.draw3d;if(d3)GFX.draw3d=function(c,u,x,y,now,S){if(!isG(u))return d3.apply(this,arguments);const A=u.anim,s0=A.state,p0=A.phase;
+    A.state='dig';A.phase=phOf(u);try{return d3.apply(this,arguments)}finally{A.state=s0;A.phase=p0}}}catch(err){}
+  try{const ju=GFX.juice;if(ju)GFX.juice=function(c,u,x,y,now){if(!isG(u))return ju.apply(this,arguments);const A=u.anim,s0=A.state,p0=A.phase,c0=A.cycle;
+    const q=GFX.st&&GFX.st.get(u);A.state='dig';A.phase=phOf(u);if(q&&q.jc!=null)A.cycle=q.jc;
+    try{ju.apply(this,arguments)}finally{A.state=s0;A.phase=p0;A.cycle=c0}
+    if(q)q.ji=u.impactT;
+    const last=J.get(u);if(u.impactT!==undefined&&last!==u.impactT){J.set(u,u.impactT);if(last===undefined&&G.t-u.impactT>.3)return;
+      const dir=(A.dir8!=null?[[1,0],[.7,.7],[0,1],[-.7,.7],[-1,0],[-.7,-.7],[0,-1],[.7,-.7]][A.dir8]:[Math.cos(u.face||0),Math.sin(u.face||0)]),hx=x+dir[0]*8,hy=y+dir[1]*4;
+      const t=G.byId&&G.byId.get(u.order.id);if(t){t._kick=now;t._kdx=dir[0]}
+      for(const [col,n,sz,g] of [['#6b4a2b',7,1.6,150],['#8a6538',4,1.2,150],['#c8935a',3,1.1,140],['rgba(170,140,100,.7)',4,2.8,-8]])
+        for(let i=0;i<n;i++){const a=Math.atan2(-.5-Math.random()*1.1,dir[0]*(.2+Math.random()*.8)+(Math.random()-.5)*1.1),sp=g<0?14+Math.random()*16:26+Math.random()*42;
+          GFX.FXP.push({x:hx+(Math.random()-.5)*4,y:hy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,g,t0:now,life:g<0?700:380+Math.random()*260,col,sz:sz+Math.random()*(g<0?1.5:1),k:g<0?'dust':'stone'})}}}}catch(err){}
+})();
 /* ===== END art chat 1: fx ===== */
 /* ===== V23D Industrial core buildings (art chat 3, Josh Oct 14 2026): painted Industrial Age (age 5) looks (Tripo image tool):
    town center, house, storage (art/c/nb_core.webp) and barracks, watchtower, rifle range, stable, forge, gun works (siege workshop),
@@ -8799,6 +8819,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
