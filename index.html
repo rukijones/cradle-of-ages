@@ -438,7 +438,11 @@ const clampZ=z=>Math.max(.45,Math.min(2.2,z));
 function addEnt(e){e.id=G.nextId++;e.dead=false;G.ents.push(e);G.byId.set(e.id,e);return e;}
 function mkRes(type,tx,ty){const e=addEnt({kind:'res',type,owner:-1,tx,ty,size:1,x:(tx+.5)*TILE,y:(ty+.5)*TILE,amt:RES[type].amt,v:G.rand()});G.occ[ti(tx,ty)]=e.id;return e;}
 function mkBld(type,owner,tx,ty,built){
-  {const s0=DEF[type].size;for(let y=ty;y<ty+s0;y++)for(let x=tx;x<tx+s0;x++){if(!inB(x,y))continue;const id=G.occ[ti(x,y)];if(clearableTree(id)){const tr=G.byId.get(id);emit('dust',tr.x,tr.y,4);kill(tr);G.occ[ti(x,y)]=0;}}}
+  {const s0=DEF[type].size;for(let y=ty;y<ty+s0;y++)for(let x=tx;x<tx+s0;x++){if(!inB(x,y))continue;const id=G.occ[ti(x,y)];if(clearableTree(id)){const tr=G.byId.get(id);emit('dust',tr.x,tr.y,4);kill(tr);G.occ[ti(x,y)]=0;}}
+    /* Josh (Oct 15): building over tree stumps clears them (dead stumps, and the stump marks of trees just cleared) */
+    const inF=(px,py)=>px>=tx*TILE-2&&px<(tx+s0)*TILE+2&&py>=ty*TILE-2&&py<(ty+s0)*TILE+2;
+    for(const r of G.ents)if(r.type==='tree'&&!r.dead&&r.deadStump&&r.tx>=tx-((r.size||1)-1)&&r.tx<tx+s0&&r.ty>=ty-((r.size||1)-1)&&r.ty<ty+s0){r.dead=true;emit('dust',r.x,r.y,3);for(let yy=r.ty;yy<r.ty+(r.size||1);yy++)for(let xx=r.tx;xx<r.tx+(r.size||1);xx++)if(inB(xx,yy)&&G.occ[ti(xx,yy)]===r.id)G.occ[ti(xx,yy)]=0;}
+    if(G.fx)G.fx=G.fx.filter(f=>!(f.type==='stump'&&inF(f.x,f.y)));}
   const d=DEF[type];
   const mh=d.hp+(type==='tower'&&G.players[owner].tech.sentry?100:0)+(type==='tower'&&G.players[owner].tech.guardtower?150:0)+(type==='tower'&&G.players[owner].tech.keeps?250:0);
   const e=addEnt({kind:'bld',type,owner,tx,ty,size:d.size,x:(tx+d.size/2)*TILE,y:(ty+d.size/2)*TILE,hp:built?mh:Math.max(1,mh*.1),maxHp:mh,built,progress:built?1:0,queue:[],trainT:0,cd:0,rally:null});
@@ -469,6 +473,10 @@ function allClear(o){for(const b of G.ents){if(b.owner!==o||!b.gar||!b.gar.lengt
 function shelteredN(o){let n=0;for(const b of G.ents)if(b.owner===o&&SHELTER[b.type]&&b.gar)n+=b.type==='towncenter'?b.gar.length:b.gar.filter(u=>u.order&&u.order.type==='garrison').length;return n;}
 function kill(e){
   if(e.dead)return;e.dead=true;try{onKilled(e);}catch(err){}
+  /* Josh (Oct 15): a merged building is one building. Destroying or demolishing any part (Poultry yard, row houses, apartment block, joined pens/corrals, long farm) destroys all of it */
+  if(e.kind==='bld')try{const ids=new Set();for(const g of [e.yard,e.grp,e.mgrp,e.frow])if(g&&g.ids)for(const id of g.ids)ids.add(id);ids.delete(e.id);
+    if(e.yard)try{yardFreeOcc(e.yard);}catch(err){}
+    for(const id of ids){const x=G.byId.get(id);if(x&&!x.dead&&x.kind==='bld'&&x.owner===e.owner)kill(x);}}catch(err){}
   if(e.type==='gate'&&G.gate)G.gate[ti(e.tx,e.ty)]=0;if(e.type==='gate'&&e.gpair&&!e._fallTw){const pg=G.byId.get(e.gpair);if(pg&&!pg.dead&&pg.type==='gate')kill(pg);}if(e.type==='tower')try{towerFell(e);}catch(err){}
   if(e.gar&&e.gar.length){const g=e.gar;e.gar=[];for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++)if(G.occ[ti(x,y)]===e.id)G.occ[ti(x,y)]=0;for(const u of g)release(e,u);}
   if(e.type==='deer'||LIVE[e.type]||e.type==='donkey'||e.type==='ox'){if(e.diseased){G.fx.push({type:'puff',x:e.x,y:e.y-4,t:.35});return;}const c=addEnt({kind:'res',type:'carcass',owner:-1,tx:tl(e.x),ty:tl(e.y),size:1,x:e.x,y:e.y,amt:LIVE[e.type]?(youngOf(e)?LIVE[e.type].ymeat:LIVE[e.type].meat):RES.carcass.amt,v:Math.random(),noOcc:1});
@@ -7087,6 +7095,70 @@ function cmdToBuilding(mine,hit){
       if(hit.built&&(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')&&v.length){if(hit.type==='goldmine'&&!G.players[0].tech.picks){toast('Research Copper picks to mine gold');return true;}v.forEach(u=>orderGather(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&DEF[hit.type].drop&&v.length&&v.every(u=>u.carry.amt>0)){v.forEach(u=>{u.order={type:'gather',phase:'drop',drop:hit.id,id:0,rtype:{f:'berry',w:'tree',s:'stone',g:'gold'}[u.carry.r],lx:u.x,ly:u.y,bad:0};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
   return false;}
+/* flour chute v2 (gameplay, Josh Oct 15): the slide from the windmill to the bakery is drawn in code so it always reaches the bakery: leaves a framed hatch on the tower side facing the bakery,
+   runs on timber trestles and ends in a hooded inlet on the bakery's wall. Weathered oak + iron bands, flour-dusted inside. Replaces GFX.millChute3D / GFX.millChute. */
+try{(function(){
+  const HC=[155.5,168],HRX=44,HRY=24;
+  function geo(m,bk,lx,ty,M){const Sm=(m.size||2)*TILE,Sb=(bk.size||3)*TILE,mx=m.tx*TILE+Sm/2,my=m.ty*TILE+Sm/2,bx0=bk.tx*TILE,by0=bk.ty*TILE,bcx=bx0+Sb/2,bcy=by0+Sb/2;
+    // bakery end: the bakery's wall facing the mill, a bit inside the footprint, at eave height
+    // the painted bakery house sits in the back-left of the 4x4 lot: aim at its wall facing the mill
+    const hcx=bx0+Sb*.38,hcy=by0+Sb*.44;const a=Math.atan2(hcy-my,hcx-mx),ca=Math.cos(a),sa=Math.sin(a);
+    const ex=hcx-ca*Sb*.2,ey=hcy-sa*Sb*.13,gx=ex,gy=ey+30;
+    let sx,sy;if(M&&M.k){sx=lx+(HC[0]+HRX*ca)*M.k;sy=ty+(HC[1]+HRY*sa)*M.k}else{sx=mx+ca*Sm*.32;sy=my+sa*Sm*.2-Sm*.55}
+    const g0x=mx+ca*Sm*.42,g0y=my+sa*Sm*.42;
+    return {sx,sy,ex,ey,g0x,g0y,g1x:gx,g1y:gy,behind:sa<-.15,a}}
+  const W={dark:'#33200f',side:'#5c3a1f',side2:'#6e4626',rim:'#8a5a30',hi:'#b98550',floor:'#c9a676',floor2:'#9c7448',band:'#34312d',bandHi:'#77716a'};
+  function draw(c,G,t,working,sk,seed){const {sx,sy,ex,ey,g0x,g0y,g1x,g1y}=G;
+    const dx=ex-sx,dy=ey-sy,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;let nx=-uy,ny=ux;if(ny<0){nx=-nx;ny=-ny}
+    const hw=3.4,P=(f,o)=>[sx+dx*f+nx*o,sy+dy*f+ny*o],gr=f=>[g0x+(g1x-g0x)*f,g0y+(g1y-g0y)*f];
+    c.save();c.lineJoin='round';c.lineCap='round';
+    // ground shadow
+    c.strokeStyle='rgba(20,12,4,.22)';c.lineWidth=6;c.beginPath();const s0=gr(.08),s1=gr(.95);c.moveTo(s0[0]+3,s0[1]+2);c.lineTo(s1[0]+3,s1[1]+2);c.stroke();
+    // trestles: an A-frame every ~34 px
+    const nT=Math.max(1,Math.round(L/34));for(let i=1;i<=nT;i++){const f=i/(nT+1),p=P(f,0),g=gr(f);if(g[1]-p[1]<4)continue;
+      c.strokeStyle=W.dark;c.lineWidth=2.4;c.beginPath();c.moveTo(p[0]-nx*hw*.9,p[1]+2);c.lineTo(g[0]-nx*hw*1.8,g[1]);c.moveTo(p[0]+nx*hw*.9,p[1]+3);c.lineTo(g[0]+nx*hw*1.8,g[1]);c.stroke();
+      c.strokeStyle=W.side2;c.lineWidth=1;c.beginPath();c.moveTo(p[0]-nx*hw*.9+.6,p[1]+2);c.lineTo(g[0]-nx*hw*1.8+.6,g[1]);c.moveTo(p[0]+nx*hw*.9+.6,p[1]+3);c.lineTo(g[0]+nx*hw*1.8+.6,g[1]);c.stroke();
+      const my2=(p[1]+g[1])/2;c.strokeStyle=W.dark;c.lineWidth=1.6;c.beginPath();c.moveTo((p[0]+g[0])/2-nx*hw*1.35,my2);c.lineTo((p[0]+g[0])/2+nx*hw*1.35,my2+1);c.stroke();
+      c.fillStyle='rgba(20,12,4,.3)';c.beginPath();c.ellipse(g[0],g[1]+.5,hw*2,1.6,0,0,7);c.fill()}
+    // hatch in the tower
+    c.fillStyle=W.dark;c.beginPath();c.ellipse(sx,sy-3,5.2,6.2,0,0,7);c.fill();c.fillStyle='#120b05';c.beginPath();c.ellipse(sx,sy-2.5,3.6,4.6,0,0,7);c.fill();
+    // outer (near) side board, a little depth below the rim
+    const DEP=3.2;let a=P(0,hw),b=P(1,hw),a2=P(0,-hw),b2=P(1,-hw);
+    let gd=c.createLinearGradient(sx,sy,ex,ey);gd.addColorStop(0,W.side);gd.addColorStop(1,W.side2);
+    c.fillStyle=gd;c.beginPath();c.moveTo(a2[0],a2[1]);c.lineTo(b2[0],b2[1]);c.lineTo(b[0],b[1]+DEP);c.lineTo(a[0],a[1]+DEP);c.closePath();c.fill();
+    // flour-dusted floor
+    gd=c.createLinearGradient(a2[0],a2[1],a[0],a[1]);gd.addColorStop(0,W.floor2);gd.addColorStop(.6,W.floor);gd.addColorStop(1,W.floor2);
+    c.fillStyle=gd;c.beginPath();c.moveTo(a2[0],a2[1]+.6);c.lineTo(b2[0],b2[1]+.6);c.lineTo(b[0],b[1]-.4);c.lineTo(a[0],a[1]-.4);c.closePath();c.fill();
+    // far rim
+    c.strokeStyle=W.rim;c.lineWidth=1.3;c.beginPath();c.moveTo(a2[0],a2[1]);c.lineTo(b2[0],b2[1]);c.stroke();
+    // plank seams on the side board
+    c.strokeStyle='rgba(40,22,8,.5)';c.lineWidth=.6;c.beginPath();c.moveTo(a[0],a[1]+DEP*.5);c.lineTo(b[0],b[1]+DEP*.5);c.stroke();
+    // near rim with highlight
+    c.strokeStyle=W.rim;c.lineWidth=1.7;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();
+    c.strokeStyle=W.hi;c.lineWidth=.7;c.beginPath();c.moveTo(a[0],a[1]-.6);c.lineTo(b[0],b[1]-.6);c.stroke();
+    // iron bands
+    const nB=Math.max(2,Math.round(L/22));for(let i=1;i<nB;i++){const f=i/nB,p=P(f,hw),q=P(f,-hw);c.strokeStyle=W.band;c.lineWidth=1.5;c.beginPath();c.moveTo(q[0],q[1]);c.lineTo(p[0],p[1]);c.lineTo(p[0],p[1]+DEP);c.stroke();c.strokeStyle=W.bandHi;c.lineWidth=.5;c.beginPath();c.moveTo(p[0]-.5,p[1]+.3);c.lineTo(p[0]-.5,p[1]+DEP-.3);c.stroke()}
+    // sack sliding down
+    if(working&&sk&&sk.complete){const q=((t*.55)+seed*.13)%1;if(q<.88){const f=q/.88,p=P(f,0),sw=7.5,sh=sw*sk.height/sk.width;c.drawImage(sk,p[0]-sw/2,p[1]-sh+1.8,sw,sh)}}
+    // hooded inlet on the bakery wall
+    const hx=ex+ux*2,hy=ey+uy*2;c.fillStyle=W.side;c.beginPath();c.moveTo(hx-6,hy-8);c.lineTo(hx+6,hy-8);c.lineTo(hx+7,hy+4);c.lineTo(hx-7,hy+4);c.closePath();c.fill();
+    c.fillStyle=W.rim;c.beginPath();c.moveTo(hx-7.5,hy-8);c.lineTo(hx,hy-12.5);c.lineTo(hx+7.5,hy-8);c.closePath();c.fill();c.strokeStyle=W.dark;c.lineWidth=.8;c.stroke();
+    c.fillStyle='#1a1007';c.beginPath();c.ellipse(hx,hy-1,4,3.4,0,0,7);c.fill();
+    c.strokeStyle=W.band;c.lineWidth=1.2;c.beginPath();c.moveTo(hx-7,hy+4);c.lineTo(hx+7,hy+4);c.stroke();
+    if(working){for(let i=0;i<3;i++){const f=((t*.7)+i/3+seed*.21)%1;c.fillStyle='rgba(245,236,214,'+(.45*(1-f)).toFixed(3)+')';c.beginPath();c.arc(hx+(i-1)*3+f*2,hy-2-f*7,1.2+f*2.4,0,7);c.fill()}}
+    c.restore()}
+  function run(c,m,bk,t,sk,lx,ty,M){const G=geo(m,bk,lx,ty,M),seed=m.id%7;
+    const sp=M&&M.spr&&M.spr[m.owner>1?0:m.owner];
+    if(G.behind&&sp&&sp.w){const pad=16,bx=Math.min(G.sx,G.ex,G.g0x,G.g1x)-pad,by=Math.min(G.sy,G.ey)-pad-12,bw=Math.max(G.sx,G.ex,G.g0x,G.g1x)+pad-bx,bh=Math.max(G.g0y,G.g1y,G.sy,G.ey)+pad-by,R=3;
+      const O=GFX._chO||(GFX._chO=document.createElement('canvas'));O.width=Math.ceil(bw*R);O.height=Math.ceil(bh*R);const g=O.getContext('2d');g.setTransform(R,0,0,R,-bx*R,-by*R);draw(g,G,t,bk.working,sk,seed);
+      g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='destination-out';const sx0=m.tx*TILE-(sp.dx||0),sy0=m.ty*TILE-sp.ov;g.drawImage(sp,(sx0-bx)*R,(sy0-by)*R,sp.w*R,sp.h*R);g.globalCompositeOperation='source-over';
+      c.drawImage(O,bx,by,bw,bh)}
+    else draw(c,G,t,bk.working,sk,seed);return true}
+  GFX.millChute3D=function(c,m,bk,t,sk,lx,ty,MI){const M=MI||GFX.MILL;if(!M||!M.ready)return false;return run(c,m,bk,t,sk,lx,ty,M)};
+  GFX.millChute=function(c,m,bk,t,sk){return run(c,m,bk,t,sk,0,0,null)};
+  GFX.chuteGeo=geo;
+})()}catch(err){}
+/* END flour chute v2 */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
