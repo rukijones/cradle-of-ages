@@ -6095,7 +6095,7 @@ try{(function(){
 /* ===== V23D Industrial/Modern live touches (art chat 3, Josh Oct 15 2026: "Go for it"): live forge fires; poultry houses get their own small live hens
    inside the painted run (art chat 1's big yard hens, nest and crate are skipped for the painted Industrial poultry house and Modern poultry farm, which
    draw on a 2x2 plot now) and spinning vent fans on the Modern farm; the Modern artillery factory's painted-open bay is an open doorway (units drive out
-   of it, no roll-up). No new files. ===== */
+   of it, no roll-up). Tower / bunker upgrade looks: art/c/nf_tower.webp (+1 file). ===== */
 (function(){try{
   if(typeof GFX==='undefined'||typeof bldSpr0==='undefined')return;
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
@@ -6147,6 +6147,24 @@ try{(function(){
   /* Modern artillery factory: the bay is painted open, so units come out of the dark bay (no roll-up door drawn over it) */
   bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(s&&e&&e.type==='workshop'&&GFX.mode==='V23D'&&e.owner>=0&&e.owner<2&&ageOf(e.owner)>=6&&!s._nc&&!s._nf){
     const d=[.12,.58,.21,.27,'l','open'];if(!s.door||s.door[5]!=='open')s.door=d}}catch(err){}return s}})(bldSpr0);
+  /* tower upgrade looks (Josh's picks Oct 15): Industrial watchtower Guard tower = 2A (sandbag + wire ring, steel-plated top), Keep = 3A (concrete tower,
+     steel turret with twin guns); Modern bunker Guard tower = 2B (two guns, roof searchlight, wire), Keep = 3A (armoured, roof turret, hedgehogs).
+     Sentry tower keeps the plain picture. Lone towers only (towers set in walls keep art chat 1's wall kit). art/c/nf_tower.webp, masks half size. */
+  const TL={"it2":[0,0,586,1134,942,1188,293,567],"it3":[588,0,654,1186,1237,1188,327,593],"xb2":[1244,0,1081,959,1566,1188,541,480],"xb3":[0,1188,940,1051,2109,1188,470,526]};
+  const TF={it2:[1.1,.04],it3:[1.16,.04],xb2:[1.18,.04],xb3:[1.12,.04]};
+  const TIM=new Image();let tcut=false;const TC={};
+  function tready(){if(tcut)return true;if(!(TIM.complete&&TIM.naturalWidth))return false;for(const k in TL){const [x,y,w,h,mx,my,mw,mh]=TL[k];
+      const a=document.createElement('canvas');a.width=w;a.height=h;a.getContext('2d').drawImage(TIM,x,y,w,h,0,0,w,h);
+      const m=document.createElement('canvas');m.width=w;m.height=h;const g=m.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(TIM,mx,my,mw,mh,0,0,w,h);
+      GFX.imgs['nt_'+k]=a;GFX.imgs['nt_'+k+'_m']=m;try{if(!GFX_ART['nt_'+k])GFX_ART['nt_'+k]={age:k[0]==='x'?6:5,culture:'both',smoke:null}}catch(e){}}return tcut=true}
+  function ttier(o){try{const T=G.players[o].tech||{};return T.keeps?3:T.guardtower?2:T.sentry?1:0}catch(e){return 0}}
+  function tkey(o){if(GFX.mode!=='V23D'||o==null||o<0||o>1)return null;const a=ageOf(o);if(a<5)return null;const t=ttier(o);if(t<2)return null;return (a>=6?'xb':'it')+t}
+  function tspr(k,o,sz){if(!tready())return null;const ck=k+o+'_'+sz;if(TC[ck])return TC[ck];const [wf,dn]=TF[k];let sp=GFX.spr('nt_'+k,o,sz*TILE,wf,dn);
+    if(GFX.hdUp)sp=GFX.hdUp(sp,GFX.imgs['nt_'+k],GFX.imgs['nt_'+k+'_m'],o,'');sp._nt=k;return TC[ck]=sp}
+  GFX.towerUpSpr=function(o,sz){const k=tkey(o);return k?tspr(k,o,sz||((DEF.tower&&DEF.tower.size)||2)):null};
+  bldSpr0=(function(prev){return function(e){if(e&&e.type==='tower'){try{const k=tkey(e.owner);if(k&&!(GFX.wallTower&&GFX.wallTower(e))){const s=tspr(k,e.owner,e.size||DEF.tower.size);if(s)return s}}catch(err){}}return prev(e)}})(bldSpr0);
+  try{sprFor=(function(prev){return function(type,o){if(type==='tower'){try{const k=tkey(o);if(k){const s=tspr(k,o,DEF.tower.size);if(s)return s}}catch(err){}}return prev(type,o)}})(sprFor)}catch(err){}
+  TIM.onload=function(){try{tready()}catch(e){}};TIM.src=GFX.ART+'nf_tower.webp?v='+GFX.ARTV;
 }catch(err){}})();
 /* ===== END art chat 3: late ===== */
 
