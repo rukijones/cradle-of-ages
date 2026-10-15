@@ -5721,6 +5721,13 @@ function shadowPass(c,list){for(const it of list){const e=it[1];if(!e||!e.kind)c
 function spTop(sp){if(sp._top!==undefined)return sp._top;let top=0;try{const g=sp.getContext('2d'),d=g.getImageData(0,0,sp.width,sp.height).data,k=sp.width/sp.w;outer:for(let y=0;y<sp.height;y++){for(let x=0;x<sp.width;x++)if(d[(y*sp.width+x)*4+3]>40){top=y/k;break outer;}}}catch(e){top=0;}sp._top=top;return top;}
 function drawBuilding(c,e,now){
   if(e.type==='farm'&&e.built){drawFarmPlot(c,e.tx*TILE,e.ty*TILE,e.size*TILE,Math.min(1,e.amt/farmCap(e)*1.4),e.id);return;}
+  /* Josh (Oct 14): a farm being built showed the old 2x2 picture inside its 3x3 lot; now the full-size bed appears as it is built */
+  if(e.type==='farm'&&!e.built){const S=e.size*TILE,x0=e.tx*TILE,fy=e.ty*TILE,p=Math.max(.06,e.progress||0),H=S+44,top=fy+S+8-H*p;
+    c.save();c.globalAlpha=.3;drawFarmPlot(c,x0,fy,S,0,e.id);c.restore();
+    c.save();c.beginPath();c.rect(x0-10,top,S+20,fy+S+8-top);c.clip();drawFarmPlot(c,x0,fy,S,0,e.id);c.restore();
+    const busy=G.ents.some(u=>u.order&&u.order.type==='build'&&u.order.id===e.id&&u.working);if(busy&&Math.random()<.2)emit('dust',x0+Math.random()*S,fy+S*(.3+Math.random()*.6),1);
+    for(const[px,py]of[[x0+4,fy+4],[x0+S-4,fy+4],[x0+4,fy+S-4],[x0+S-4,fy+S-4]]){c.fillStyle='#6b4423';c.fillRect(px-1.5,py-6,3,7);}
+    c.strokeStyle='rgba(235,215,170,.75)';c.lineWidth=.9;c.strokeRect(x0+4,fy+2,S-8,S-6);return;}
   const sp=bldSpr(e),S=e.size*TILE,x0=e.tx*TILE,fy=e.ty*TILE,y0=fy-sp.ov,xs=x0-(sp.dx||0);
   if(!e.built){
     c.fillStyle='rgba(110,86,54,.55)';rrect(c,x0+3,fy+3,S-6,S-6,6);c.fill();
