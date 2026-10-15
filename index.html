@@ -5066,12 +5066,12 @@ GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='trebuc
   const stool=(c,x,y,k)=>{c.save();if(k==='chz'){c.fillStyle='#c98f1e';c.beginPath();c.ellipse(x,y-.6,1.6,.7,0,0,7);c.fill();c.fillRect(x-1.6,y-1.8,3.2,1.2);c.fillStyle='#f2c94c';c.beginPath();c.ellipse(x,y-1.8,1.6,.7,0,0,7);c.fill();c.restore();return}
     c.strokeStyle='#4a2f17';c.lineWidth=.6;c.beginPath();c.moveTo(x-1.4,y-2);c.lineTo(x-1.8,y);c.moveTo(x+1.4,y-2);c.lineTo(x+1.8,y);c.moveTo(x,y-2);c.lineTo(x,y+.6);c.stroke();c.fillStyle='#7a5230';c.beginPath();c.ellipse(x,y-2.2,2.2,.9,0,0,7);c.fill();c.restore()};
   GFX.dyScene=function(c,b,now){if(GFX.mode!=='V23D'||!GFX.dySpr(b))return;let q=ST.get(b);if(!q){q={ids:[],cows:[{},{},{}],maids:[{},{}],off:Math.random()*20};ST.set(b,q)}
-    const want=Math.min(3,b.milked||0);const herd=G.ents.filter(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&!e.sick&&Math.hypot(e.x-b.x,e.y-b.y)<5*TILE&&!(typeof youngOf==='function'&&youngOf(e)));
+    const LY0=(GFX.wingLay&&GFX.wingLay(b))||null,want=Math.min(LY0?LY0.slot.length:3,b.milked||0);const herd=G.ents.filter(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&!e.sick&&Math.hypot(e.x-b.x,e.y-b.y)<5*TILE&&!(typeof youngOf==='function'&&youngOf(e)));
     q.ids=q.ids.filter(id=>herd.some(e=>e.id===id)).slice(0,want);for(const e of herd.sort((a,z)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(z.x-b.x,z.y-b.y))){if(q.ids.length>=want)break;if(!q.ids.includes(e.id))q.ids.push(e.id)}
     const t=performance.now();for(const id of q.ids)GFX._tied.set(id,t);
     const LY=(GFX.wingLay&&GFX.wingLay(b))||null,D=[],P=(LY?LY.slot:SLOT).map(s=>GFX.dyPt(b,s[0],s[1]));
     q.ids.forEach((id,i)=>{const u=G.byId.get(id),f=q.cows[i];f.id=id;f.owner=b.owner;f.face=LY?LY.face:5*Math.PI/4;f.moving=false;f.anim=null;f.flash=u&&u.flash||0;
-      D.push([P[i][1],()=>{GFX.drawBeast(c,f,P[i][0],P[i][1],now,'cow',1)}])});
+      D.push([P[i][1],()=>{GFX.drawBeast(c,f,P[i][0],P[i][1],now,'cow',(LY&&LY.cs)||1)}])});
     const n=Math.min(2,b.gar?b.gar.length:0),S=GFX.VIL3D&&GFX.VIL3D.mw3d,SM=GFX.VIL3D&&GFX.VIL3D.mwmilk,nc=q.ids.length,DR=LY?GFX.dyPt(b,LY.dr[0],LY.dr[1]):GFX.dyPt(b,585,342),use=(typeof useOf==='function'?useOf(b):'milk');
     q.del=q.del||[-1,-1];q.chz=q.chz||0;
     // cheese stack by the cool-house door (cheese mode): grows with each delivered pail, carted off at 5
@@ -6374,12 +6374,13 @@ try{(function(){
     const nm='a1_wing'+(left?'L':'R');if(!GFX.imgs[nm]){GFX.imgs[nm]=left?flipC(YL.wing):YL.wing;GFX.imgs[nm+'_m']=left?flipC(YL.wing_m):YL.wing_m}try{if(!GFX_ART[nm])GFX_ART[nm]={age:3,culture:'both'}}catch(err){}
     return WCV[k]=GFX.spr(nm,o,sz*TILE,1.12,.02)};
   // milking spots in the 900-px frame (right-side wing); mirrored for the left side
-  const WLAY={slot:[[330,345],[405,377],[480,409]],face:7*Math.PI/4,dr:[670,470],ch:[577,514],sx:4.6,sy:3.2,px:-2.6,md:5};
+  /* Josh picked dairy shed B (Oct 15): one long, deeper milking shed; cows stand inside the stalls under the roof */
+  const WLAY={slot:[[424,309],[572,381]],face:7*Math.PI/4,dr:[690,425],ch:[598,474],sx:4.6,sy:3.2,px:-2.6,md:5,cs:.84};
   GFX.wingLay=function(e){if(!GFX.wingSpr(e))return null;if(!GFX.wingLeft(e))return WLAY;
-    return {slot:WLAY.slot.map(([x,y])=>[900-x,y]),face:5*Math.PI/4,dr:[900-WLAY.dr[0],WLAY.dr[1]],ch:[900-WLAY.ch[0],WLAY.ch[1]],sx:-WLAY.sx,sy:WLAY.sy,px:-WLAY.px,md:7}};
+    return {slot:WLAY.slot.map(([x,y])=>[900-x,y]),face:5*Math.PI/4,dr:[900-WLAY.dr[0],WLAY.dr[1]],ch:[900-WLAY.ch[0],WLAY.ch[1]],sx:-WLAY.sx,sy:WLAY.sy,px:-WLAY.px,md:7,cs:WLAY.cs}};
   try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='dairy'&&e.ranch){const s=GFX.wingSpr(e);if(s)return s}return prev(e)}})(bldSpr0)}catch(err){}
   // the lane between the ranch gate and the dairy yard (ground layer, under both pictures)
-  const RGATE={r:[[688,470],[702,500]],l:[[290,500],[291,546]]},WEDGE=[[22,449],[435,209]];
+  const RGATE={r:[[688,470],[702,500]],l:[[290,500],[291,546]]},WEDGE=[[45,465],[430,239]];
   GFX.wingLane=function(e){const R=wingRanch(e),sw=GFX.wingSpr(e);if(!R||!sw||!R.built)return null;let sr=null;try{sr=bldSpr0(R)}catch(err){}if(!sr||!sr.w)return null;
     const left=e.tx<R.tx,kR=sr.w/933,rp=([x,y])=>[R.tx*TILE-sr.dx+x*kR,R.ty*TILE-sr.ov+y*kR],kW=sw.w/900,wp=([x,y])=>[e.tx*TILE-sw.dx+(left?900-x:x)*kW,e.ty*TILE-sw.ov+y*kW];
     const G2=RGATE[left?'l':'r'],A=rp(G2[0]),B=rp(G2[1]),E0=wp(WEDGE[0]),E1=wp(WEDGE[1]);
@@ -8544,6 +8545,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
