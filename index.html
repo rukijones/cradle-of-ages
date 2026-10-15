@@ -4700,7 +4700,7 @@ try{shadowLayer=(function(prev){return function(c){try{if(GFX.mode==='V23D')for(
    eggs sit in the straw by the door (they wobble just before hatching), chicks scurry after the hens, hens wander and peck.
    Eggs fill a crate in the yard; a full crate ships by itself (egg pop: +food, or to the bakery once Grand bakery is researched).
    Food is still credited continuously by the gameplay code; the crate only shows it. Older 2x2 coops keep their look with 3D birds. ===== */
-DEF.coop.size=3;
+DEF.coop.size=2;/* Medieval scale review (Josh, Oct 15): coops back to a 2x2 plot; 3x3 coops in saves keep the 3x3 yard */
 const GFX_COOP3D={"hen":{"file":"coop_hen","fw":92,"fh":96,"foot":80.7,"upx":87.31,"seg":{"walk":[0,6],"peck":[6,6],"idle":[12,1]},"rows":5},"henb":{"file":"coop_henb","fw":92,"fh":96,"foot":80.7,"upx":87.31,"seg":{"walk":[0,6],"peck":[6,6],"idle":[12,1]},"rows":5},"chick":{"file":"coop_chick","fw":72,"fh":72,"foot":60.4,"upx":71.46,"seg":{"idle":[0,1]},"rows":5},"egg":{"file":"coop_egg","fw":75,"fh":64,"foot":57.1,"upx":80.57,"seg":{"idle":[0,1]},"rows":1},"crate":{"file":"coop_crate","fw":129,"fh":96,"foot":71.9,"upx":127.46,"seg":{"idle":[0,1]},"rows":1},"fence":{"file":"coop_fence","fw":124,"fh":128,"foot":97.5,"upx":157.3,"seg":{"idle":[0,1]},"rows":2}};GFX._cpI={};
 GFX.cpImg=function(k){const S=GFX_COOP3D[k];if(!S)return null;let im=GFX._cpI[k];if(!im){im=new Image();im.src=GFX.ART+S.file+'.webp?v='+GFX.ARTV;GFX._cpI[k]=im}return im.complete&&im.naturalWidth?im:null};
 GFX.cpDraw=function(c,k,x,y,px,row,col,mir,rot){const S=GFX_COOP3D[k],im=GFX.cpImg(k);if(!im)return false;const sc=px/S.upx,w=S.fw*sc,h=S.fh*sc;
@@ -4709,35 +4709,37 @@ GFX.cpRM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]];
 GFX.cpFenceRow=function(c,x0,y,n){for(let k=0;k<n;k++)GFX.cpDraw(c,'fence',x0+TILE*(k+.5),y,TILE*1.04,0,0,0)};
 GFX.cpFenceCol=function(c,x,y0,n){for(let k=0;k<n;k++)GFX.cpDraw(c,'fence',x,y0+TILE*(k+.92),TILE*1.04,1,0,0)};
 /* 3x3 coop yard is a 45-degree diamond, matching the Bronze Age 3D buildings: u runs top->right, v runs top->left (local px from the footprint's top-left) */
-GFX.cpD=function(){const S=3*TILE,hw=S*.53;return {cx:S/2,by:S-2,hw,hh:hw*.595}};
-GFX.cpUV=function(u,v){const D=GFX.cpD();return [D.cx+(u-v)*D.hw,D.by-2*D.hh+(u+v)*D.hh]};
-GFX.cpFenceEdges=function(c,ox,oy,which){const S=GFX_COOP3D.fence,D=GFX.cpD(),n=3,w=D.hw/n*S.fw/88,px=w*S.upx/S.fw,L=[];
+GFX.cpD=function(N){const S=(N||3)*TILE,hw=S*.53;return {cx:S/2,by:S-2,hw,hh:hw*.595}};
+GFX.cpUV=function(u,v,N){const D=GFX.cpD(N);return [D.cx+(u-v)*D.hw,D.by-2*D.hh+(u+v)*D.hh]};
+GFX.cpFenceEdges=function(c,ox,oy,which,N){N=N||3;const S=GFX_COOP3D.fence,D=GFX.cpD(N),n=N,w=D.hw/n*S.fw/88,px=w*S.upx/S.fw,L=[];
   const E=which==='back'?[[0,0,0,1,0],[0,0,1,0,1]]:[[0,1,1,1,1],[1,0,1,1,0]];   // [u0,v0,u1,v1,row]: row 0 runs '/', row 1 runs '\\'
-  for(const[u0,v0,u1,v1,row]of E)for(let k=0;k<n;k++){const t=(k+.5)/n,p=GFX.cpUV(u0+(u1-u0)*t,v0+(v1-v0)*t);L.push([p[1],p[0],row])}
+  for(const[u0,v0,u1,v1,row]of E)for(let k=0;k<n;k++){const t=(k+.5)/n,p=GFX.cpUV(u0+(u1-u0)*t,v0+(v1-v0)*t,N);L.push([p[1],p[0],row])}
   L.sort((a,b)=>a[0]-b[0]);for(const[y,x,row]of L)GFX.cpDraw(c,'fence',ox+x,oy+y,px,row,0,0)};
 GFX._coopSpr=new WeakMap();
-try{bldSpr0=(function(prev){return function(e){const sp=prev(e);if(!e||e.type!=='coop'||GFX.mode!=='V23D'||(e.size||2)<3||!sp)return sp;
-  if(!GFX.cpImg('fence'))return sp;let C=GFX._coopSpr.get(sp);if(C)return C;
-  const S=3*TILE,D=GFX.cpD(),hutW=TILE*1.6,hw=hutW,hh=sp.h*hutW/sp.w,hb=GFX.cpUV(.44,.44),pad=Math.ceil(D.hw-S/2+10),OV=Math.max(14,Math.ceil(hh-hb[1]+6));
+GFX._coopSpr2={};GFX.CP2={hut:1.3,hb:.40};
+try{bldSpr0=(function(prev){return function(e){let sp=prev(e);if(!e||e.type!=='coop'||GFX.mode!=='V23D'||!sp||e.yard)return sp;const N=(e.size||2)>=3?3:2;
+  if(!GFX.cpImg('fence'))return sp;let C;
+  if(N===2){let h=null;try{h=sprFor('coop',e.owner>1?0:e.owner)}catch(err){}if(h&&h.w)sp=h;const kk=(sp._cpk||(sp._cpk=Math.random().toString(36).slice(2)))+'_'+(e.owner>1?0:e.owner);C=GFX._coopSpr2[kk];if(C)return C}else{C=GFX._coopSpr.get(sp);if(C)return C}
+  const S=N*TILE,D=GFX.cpD(N),hutW=TILE*(N===2?GFX.CP2.hut:1.6),hw=hutW,hh=sp.h*hutW/sp.w,hb=N===2?GFX.cpUV(GFX.CP2.hb,GFX.CP2.hb,2):GFX.cpUV(.44,.44),pad=Math.ceil(D.hw-S/2+10),OV=Math.max(14,Math.ceil(hh-hb[1]+6));
   C=document.createElement('canvas');const K=2;C.width=(S+pad*2)*K;C.height=(S+OV)*K;const g=C.getContext('2d');g.scale(K,K);g.translate(pad,OV);
-  g.fillStyle='rgba(120,92,52,.30)';g.beginPath();for(const[u,v]of[[.04,.04],[.96,.04],[.96,.96],[.04,.96]]){const p=GFX.cpUV(u,v);g.lineTo(p[0],p[1])}g.closePath();g.fill();   // trodden earth in the yard
-  GFX.cpFenceEdges(g,0,0,'back');
+  g.fillStyle='rgba(120,92,52,.30)';g.beginPath();for(const[u,v]of[[.04,.04],[.96,.04],[.96,.96],[.04,.96]]){const p=GFX.cpUV(u,v,N);g.lineTo(p[0],p[1])}g.closePath();g.fill();   // trodden earth in the yard
+  GFX.cpFenceEdges(g,0,0,'back',N);
   g.drawImage(sp,hb[0]-hw/2,hb[1]-hh,hw,hh);
-  C.w=S+pad*2;C.h=S+OV;C.dx=pad;C.ov=OV;GFX._coopSpr.set(sp,C);return C}})(bldSpr0)}catch(err){}
+  C.w=S+pad*2;C.h=S+OV;C.dx=pad;C.ov=OV;if(N===2)GFX._coopSpr2[sp._cpk+'_'+(e.owner>1?0:e.owner)]=C;else GFX._coopSpr.set(sp,C);return C}})(bldSpr0)}catch(err){}
 GFX.eggIcon=function(){if(ICON.egg)return;const c=document.createElement('canvas');c.width=c.height=48;const g=c.getContext('2d');
   g.fillStyle='#5a4a32';g.beginPath();g.ellipse(24,26,14,18,-.25,0,7);g.fill();const gr=g.createRadialGradient(19,18,2,24,26,18);gr.addColorStop(0,'#fffaf0');gr.addColorStop(1,'#e2d2b0');g.fillStyle=gr;g.beginPath();g.ellipse(24,26,12.5,16.5,-.25,0,7);g.fill();
   g.fillStyle='rgba(150,110,70,.45)';for(const[x,y]of[[28,30],[20,33],[27,20],[31,25]]){g.beginPath();g.arc(x,y,1.2,0,7);g.fill()}ICON.egg=c.toDataURL()};
 GFX._coopSt=new WeakMap();
 GFX.cpYard=function(e){const s=e.size||2;return s>=3?[[TILE*.35,TILE*1.95,TILE*2.1,TILE*2.55],[TILE*2.05,TILE*.7,TILE*2.7,TILE*2.1]]:[[TILE*.1,TILE*1.75,TILE*1.9,TILE*2.15]]};
-GFX.cpPick=function(e){if((e.size||2)>=3){for(let i=0;i<20;i++){const u=.16+Math.random()*.66,v=.16+Math.random()*.66;if(u+v>1.2)return GFX.cpUV(u,v)}return GFX.cpUV(.7,.7)}const R=GFX.cpYard(e),r=R[Math.random()<.7||R.length<2?0:1];return [r[0]+Math.random()*(r[2]-r[0]),r[1]+Math.random()*(r[3]-r[1])]};
+GFX.cpPick=function(e){const N=(e.size||2)>=3?3:2;if(N===2||(e.size||2)>=3){const lo=N===2?.2:.16,sp=N===2?.6:.66,mn=N===2?1.18:1.2;for(let i=0;i<20;i++){const u=lo+Math.random()*sp,v=lo+Math.random()*sp;if(u+v>mn)return GFX.cpUV(u,v,N)}return GFX.cpUV(.7,.7,N)}const R=GFX.cpYard(e),r=R[Math.random()<.7||R.length<2?0:1];return [r[0]+Math.random()*(r[2]-r[0]),r[1]+Math.random()*(r[3]-r[1])]};
 try{drawCoopChickens=(function(prev){return function(c,e,now){if(GFX.mode!=='V23D'||!GFX.cpImg('hen')||!GFX.cpImg('egg')){return prev(c,e,now)}
   let q=GFX._coopSt.get(e);if(!q){q={B:[],t:now,fill:0};GFX._coopSt.set(e,q)}const dt=Math.min(.1,(now-q.t)/1000);q.t=now;
-  const x0=e.tx*TILE,y0=e.ty*TILE,big=(e.size||2)>=3,birds=e.birds||[-999],gt=G?G.t:0,D=[];
+  const x0=e.tx*TILE,y0=e.ty*TILE,N=(e.size||2)>=3?3:2,big=!!GFX.cpImg('fence'),birds=e.birds||[-999],gt=G?G.t:0,D=[];
   while(q.B.length<birds.length){const[px,py]=GFX.cpPick(e);q.B.push({x:px,y:py,tx:px,ty:py,f:Math.random()*6,m:'idle',mt:Math.random()*2,ph:Math.random()*9,col:(e.id*7+q.B.length)%2})}
   q.B.length=birds.length;
   const hens=[];birds.forEach((t0,i)=>{const a=gt-t0,s=q.B[i];if(a>=20)hens.push(s)});
   birds.forEach((t0,i)=>{const a=gt-t0,s=q.B[i];
-    if(a<20){const NP=big?GFX.cpUV(.36,.70):null,nx=(big?NP[0]-5:TILE*.55)+(i%3)*5,ny=(big?NP[1]-1.5:TILE*1.85)+((i/3)|0)*3.5,wob=a>16?Math.sin(now/55+i)*.35:0;D.push([y0+ny,()=>GFX.cpDraw(c,'egg',x0+nx,y0+ny,4.6,0,0,0,wob)]);return}
+    if(a<20){const NP=big?(N===2?GFX.cpUV(.28,.74,2):GFX.cpUV(.36,.70)):null,nx=(big?NP[0]-5:TILE*.55)+(i%3)*5,ny=(big?NP[1]-1.5:TILE*1.85)+((i/3)|0)*3.5,wob=a>16?Math.sin(now/55+i)*.35:0;D.push([y0+ny,()=>GFX.cpDraw(c,'egg',x0+nx,y0+ny,4.6,0,0,0,wob)]);return}
     const chick=a<60,sp=chick?16:9;s.mt-=dt;
     if(chick){const m=hens.find(h=>h!==s&&gt-birds[q.B.indexOf(h)]>=60);if(m&&s.mt<=0){s.tx=m.x+(Math.random()-.5)*10;s.ty=m.y+4+Math.random()*4;s.mt=.6+Math.random()}}
     else if(s.mt<=0){if(s.m==='walk'||Math.random()<.45){s.m='peck';s.mt=1.2+Math.random()*1.5}else{s.m='walk';const[px,py]=GFX.cpPick(e);s.tx=px;s.ty=py;s.mt=4}}
@@ -4749,13 +4751,13 @@ try{drawCoopChickens=(function(prev){return function(c,e,now){if(GFX.mode!=='V23
   // egg crate: fills from the hens' laying, ships itself when full
   const h=e.hens||0,pm=G&&G.players[e.owner]&&G.players[e.owner].age>=6?3:1;if(e.built&&h>0&&useOf(e)==='eggs')q.fill+=h*dt*.05*pm/1.5;
   if(q.fill>=12){q.fill=0;if(e.owner===0){try{GFX.eggIcon();const bk=e.toBakery&&G.ents.find(b=>b.type==='bakery'&&b.owner===0&&b.built&&!b.dead&&Math.hypot(b.x-e.x,b.y-e.y)<15*TILE);addPop(bk||e,'egg',18*pm)}catch(err){}}}
-  if(big){const CP=GFX.cpUV(.74,.56),cx=CP[0],cy=CP[1];D.push([y0+cy,()=>{GFX.cpDraw(c,'crate',x0+cx,y0+cy,19,0,0,0);const n=Math.floor(q.fill);for(let k=0;k<n;k++){const r=(k/4)|0,cc=k%4;GFX.cpDraw(c,'egg',x0+cx-6+cc*4+(r%2)*1.5,y0+cy-4.6+r*2.3,3.4,0,0,0)}}])}
-  if(birds.some(t0=>gt-t0<20)){const NP=big?GFX.cpUV(.36,.70):null,nx=big?NP[0]:TILE*.55+5,ny=big?NP[1]:TILE*1.85+1.5;D.push([y0+ny-6,()=>{c.save();c.fillStyle='#b98c3a';c.beginPath();c.ellipse(x0+nx,y0+ny,10,4.2,0,0,7);c.fill();c.fillStyle='#e2b85a';c.beginPath();c.ellipse(x0+nx,y0+ny-.6,8.6,3.2,0,0,7);c.fill();c.strokeStyle='#f1d58a';c.lineWidth=.6;for(let k=0;k<7;k++){const a=k*.9;c.beginPath();c.moveTo(x0+nx+Math.cos(a)*3,y0+ny+Math.sin(a)*1.2);c.lineTo(x0+nx+Math.cos(a)*8.5,y0+ny+Math.sin(a)*3.2);c.stroke()}c.restore()}])}
+  if(big){const CP=N===2?GFX.cpUV(.76,.52,2):GFX.cpUV(.74,.56),cx=CP[0],cy=CP[1],ck=N===2?.8:1;D.push([y0+cy,()=>{GFX.cpDraw(c,'crate',x0+cx,y0+cy,19*ck,0,0,0);const n=Math.floor(q.fill);for(let k=0;k<n;k++){const r=(k/4)|0,cc=k%4;GFX.cpDraw(c,'egg',x0+cx-6+cc*4+(r%2)*1.5,y0+cy-4.6+r*2.3,3.4,0,0,0)}}])}
+  if(birds.some(t0=>gt-t0<20)){const NP=big?(N===2?GFX.cpUV(.28,.74,2):GFX.cpUV(.36,.70)):null,nx=big?NP[0]:TILE*.55+5,ny=big?NP[1]:TILE*1.85+1.5;D.push([y0+ny-6,()=>{c.save();c.fillStyle='#b98c3a';c.beginPath();c.ellipse(x0+nx,y0+ny,10,4.2,0,0,7);c.fill();c.fillStyle='#e2b85a';c.beginPath();c.ellipse(x0+nx,y0+ny-.6,8.6,3.2,0,0,7);c.fill();c.strokeStyle='#f1d58a';c.lineWidth=.6;for(let k=0;k<7;k++){const a=k*.9;c.beginPath();c.moveTo(x0+nx+Math.cos(a)*3,y0+ny+Math.sin(a)*1.2);c.lineTo(x0+nx+Math.cos(a)*8.5,y0+ny+Math.sin(a)*3.2);c.stroke()}c.restore()}])}
   D.sort((a,b)=>a[0]-b[0]);for(const d of D)d[1]();
-  if(big&&GFX.cpImg('fence'))GFX.cpFenceEdges(c,x0,y0,'front');
+  if(big&&GFX.cpImg('fence'))GFX.cpFenceEdges(c,x0,y0,'front',N);
 }})(drawCoopChickens)}catch(err){}
 /* the old oval chicken run drawn in front of the coop is replaced by the fenced yard on 3x3 coops */
-try{drawDecor=(function(prev){return function(c,d,now){if(GFX.mode==='V23D'&&(d.d==='fenceB'||d.d==='fenceF')){const cp=G.ents.find(e=>e.type==='coop'&&!e.dead&&Math.abs(e.x-d.x)<1&&Math.abs(e.y+50-d.y)<1);if(cp&&(cp.size||2)>=3)return}return prev(c,d,now)}})(drawDecor)}catch(err){}
+try{drawDecor=(function(prev){return function(c,d,now){if(GFX.mode==='V23D'&&(d.d==='fenceB'||d.d==='fenceF')){const cp=G.ents.find(e=>e.type==='coop'&&!e.dead&&Math.abs(e.x-d.x)<1&&Math.abs(e.y+50-d.y)<1);if(cp&&GFX.cpImg('fence'))return}return prev(c,d,now)}})(drawDecor)}catch(err){}
 
 /* ===== V23D hand-made bakery (Iron Age look, any age): Tripo 3D workshop with a brick dome oven, plus a Tripo baker who
    kneads at the table, slides the dough into the oven on a wooden peel, pulls the baked loaf out and carries it to the bread crate.
@@ -5107,8 +5109,8 @@ try{shadowLayer=(function(prev){return function(c){try{if(GFX.mode==='V23D'&&GFX
    those units are hidden while seated (they are at the tables). Each table's pair raises their mugs together and clinks.
    Team colour: a waving pennant (no painted banner on these). Smoke comes from the chimneys (GFX_ART smoke). ===== */
 try{if(DEF.pub)DEF.pub.size=4;if(DEF.inn)DEF.inn.size=3}catch(err){}
-(function(){const A={pb:{w:560,f:'pb_bld',wf:1.1,smoke:[[412.5,81.2]],flag:[468,412]},in:{w:400,f:'in_bld',wf:1.1,smoke:null,flag:[48,250]},
-    pbi:{w:640,f:'a1_pbi',wf:1.1*640/560,ox:40,flag:[555,240],at:1},pbd:{w:640,f:'a1_pbd',wf:1.1*640/560,ox:40,flag:[555,240],at:1}};const L={};
+(function(){const PIK=GFX.PIK=1.2;/* Medieval scale review (Josh, Oct 15): pub + inn drawn 20% bigger on the same plots */const A={pb:{w:560,f:'pb_bld',wf:1.1*PIK,smoke:[[412.5,81.2]],flag:[468,412]},in:{w:400,f:'in_bld',wf:1.1*PIK,smoke:null,flag:[48,250]},
+    pbi:{w:640,f:'a1_pbi',wf:1.1*PIK*640/560,ox:40,flag:[555,240],at:1},pbd:{w:640,f:'a1_pbd',wf:1.1*PIK*640/560,ox:40,flag:[555,240],at:1}};const L={};
   /* Pub & Inn (hasInn): the inn wing joined on (art chat 1 Iron picks block, atlas a1_ipk); lit upstairs while b.innOn */
   const vk=e=>{if(e.type!=='pub')return 'in';try{if(hasInn(e)&&GFX.a1img&&GFX.a1img('a1_pbi'))return e.innOn?'pbi':'pbd'}catch(err){}return 'pb'};
   for(const k in A)if(!A[k].at)for(const s of ['','_m']){const im=new Image();im.src=GFX.ART+A[k].f+s+'.webp?v='+GFX.ARTV;L[A[k].f+s]=im}
@@ -8438,6 +8440,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
