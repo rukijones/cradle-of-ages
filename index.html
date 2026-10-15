@@ -5665,6 +5665,42 @@ try{(function(){
   GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u&&MAP[u.type]&&u.owner<2&&GFX.mode==='V23D'&&!u.dead){try{if(draw(c,u,x,y,now))return true}catch(err){}}return prev.apply(this,arguments)}})(GFX.drawUnitSpr);
 })()}catch(err){}
 /* ===== END art chat 3: veh ===== */
+/* ===== V23D bazooka man (art chat 3, Josh Oct 15 2026): Josh's pick 1 (free concept), Tripo 3D figure + a bazooka prop modelled in code.
+   Ready for gameplay's new unit: type key 'bazooka' (or a proxy with u._v==='bazooka'). Walk/run/idle with the bazooka slung on the back,
+   ready = kneel and aim on the shoulder, attack = fire (frame 0 = shot, small recoil), die. Same framing and segments as the rifleman
+   (sheet bz3d, files art/c/bz3d_p1 walk+run+idle, bz3d_p2 ready+attack+die). Shot effects drawn in code: back-blast smoke behind,
+   flash in front; shoot/shootAt are tagged p.bz for bazooka shooters and drawn as a rocket with a smoke trail. ===== */
+try{(function(){
+  if(!GFX.IRON3D||!GFX.IRONMAP)return;const V=GFX.VIL3D&&GFX.VIL3D.mm3d;
+  const SEG={walk:[0,12],ready:[12,8],attack:[20,12],die:[32,6],idle:[38,8],run:[46,12]};
+  const PK=[['walk','run','idle'],['ready','attack','die']];
+  const m={fw:194,fh:192,dirs:5,rows5:1,seg:SEG,foot:V?V.foot:174.5,nc:58,v:2,bodyH:V?V.bodyH:137,baked:1,file:'bz3d',pack:{}};
+  PK.forEach((g,i)=>{let x=0;for(const s of g){m.pack[s]={f:'bz3d_p'+(i+1),x,n:SEG[s][1]};x+=SEG[s][1]}});
+  GFX.IRON3D.bz3d=m;GFX.IRONMAP.bazooka='bz3d';
+  const B='bowman',key=u=>u&&(u._v||u.type)==='bazooka';
+  if(GFX.SOLD&&GFX.poseAs&&GFX.rigFor){GFX.SOLD.add('bazooka');if(!GFX.poseAs.bazooka)GFX.poseAs.bazooka=B;
+    GFX.rigFor=(function(prev){return function(u){const r=prev(u);if(r||!key(u)||GFX.mode!=='V23D'||u.owner>1)return r;if(!GFX.rigs||!GFX.rigs[B])return r;const k='bazooka';
+      if(!GFX.rps[k])GFX.rps[k]=GFX.rps[B];try{if(!GFX_RIGS[k])GFX_RIGS[k]=GFX_RIGS[B]}catch(e){}for(const M of [GFX.bodyH,GFX.rigH,GFX.legIn])if(M&&M[k]==null&&M[B]!=null)M[k]=M[B];return k}})(GFX.rigFor)}
+  if(GFX.drawUnitSpr)GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u&&!u._v&&u.type==='bazooka'){const E=GFX.S3.bz3d;if(E&&Object.values(E).some(q=>q&&q.ok))return false;try{GFX.seg3(m,'walk');GFX.seg3(m,'ready')}catch(e){}}
+    return prev.apply(this,arguments)}})(GFX.drawUnitSpr);
+  /* shot: back-blast smoke behind the tube, flash at the muzzle (first 0.5 s after the shot) */
+  try{drawUnit=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);try{if(key(u)&&GFX.mode==='V23D'&&!u.dead&&u.cd>0){const D=(DEF.bazooka&&DEF.bazooka.cd)||4,t=D-u.cd;
+      if(t>=0&&t<.6){const a=u.face||0,ca=Math.cos(a),sa=Math.sin(a)*.55,hy=y-11,k=t/.6;c.save();
+        if(t<.09){c.globalCompositeOperation='lighter';c.fillStyle='rgba(255,210,90,.9)';circ(c,x+ca*15,hy+sa*15,5*(1-t/.09)+2);c.fill();c.fillStyle='rgba(255,170,60,.8)';circ(c,x-ca*13,hy-sa*13,4*(1-t/.09)+1.5);c.fill()}
+        c.globalCompositeOperation='source-over';for(let i=0;i<4;i++){const d=12+k*(10+i*4),s=2.5+k*(5+i);c.globalAlpha=.55*(1-k);c.fillStyle=i%2?'#cfc9bd':'#e4dfd4';circ(c,x-ca*d+(i-1.5)*k*4,hy-sa*d-k*(4+i*2),s);c.fill()}
+        c.restore()}}}catch(e){}return r}})(drawUnit)}catch(e){}
+  /* rocket in flight */
+  const tag=n=>{if(G.projs.length>n)G.projs[G.projs.length-1].bz=1};
+  try{const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);if(key(src))tag(n);return r}}catch(e){}
+  try{const _sa=shootAt;shootAt=function(src){const n=G.projs.length;const r=_sa.apply(this,arguments);if(key(src))tag(n);return r}}catch(e){}
+  try{const _dp=drawParts;drawParts=function(c){try{if(GFX.mode==='V23D'){const Vv=G.vis&&G.vis[0];for(const p of G.projs){if(!p.bz||(Vv&&!Vv[ti(tl(p.x),tl(p.y))]))continue;
+      const f=Math.min(1,p.trav/p.d0),bx=p.x,by=p.y-6-Math.sin(f*Math.PI)*3,a=Math.atan2(p.vy,p.vx);
+      const T=p.trl||(p.trl=[]);T.push([bx,by]);if(T.length>14)T.shift();
+      for(let i=0;i<T.length;i++){const q=T[i],k=i/T.length;c.fillStyle='rgba(225,220,210,'+(.45*k).toFixed(3)+')';circ(c,q[0],q[1]-(1-k)*3,1.2+(1-k)*3.2);c.fill()}
+      c.save();c.translate(bx,by);c.rotate(a);c.fillStyle='rgba(255,190,80,.9)';c.beginPath();c.moveTo(-5,0);c.lineTo(-10-Math.random()*3,-1.6);c.lineTo(-10-Math.random()*3,1.6);c.closePath();c.fill();
+      c.fillStyle='#4d5530';c.fillRect(-5,-1.4,8,2.8);c.fillStyle='#2e3320';c.beginPath();c.moveTo(3,-1.4);c.lineTo(6,0);c.lineTo(3,1.4);c.closePath();c.fill();c.restore()}}}catch(e){}return _dp.apply(this,arguments)}}catch(e){}
+})()}catch(err){}
+/* ===== END art chat 3: bz ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
    Pack donkey (Josh picked load A): owned pack donkeys are the 3D wild donkey wearing a red striped blanket, a wooden pack saddle,
@@ -7959,6 +7995,7 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
 
 
 
