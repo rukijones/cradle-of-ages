@@ -173,6 +173,7 @@ button.sb{border:0;background:none;padding:0;width:100%;color:inherit;font:inher
         <button class="big" data-diff="easy">Play easy</button>
         <button class="big" data-diff="normal">Play normal</button>
       </div>
+      <div class="row" style="margin-top:-6px"><button class="big alt" id="spiritOpt" style="font-size:13px;padding:7px 14px">Spirit Age victory: Off</button></div>
       <ul class="how">
         <li>Drag to scroll the map, pinch to zoom, tap the minimap to jump.</li>
         <li>Tap a unit, then tap the ground to move, a tree, bush or rock to gather, or an enemy to attack.</li>
@@ -789,7 +790,7 @@ function techState(o,t){if(G.players[o].tech[t])return 'done';for(const e of G.e
 function reqMissing(o,k){const it=TECH[k];if(!it||!it.req)return null;const miss=it.req.filter(t=>!G.ents.some(e=>e.owner===o&&e.type===t&&e.built&&!e.dead));return miss.length?miss:null;}
 function canQueue(b,k){const o=b.owner,it=itemOf(k);if(it.needTech&&!G.players[o].tech[it.needTech])return false;if(DEF[k]&&!canTrain(o,k))return false;if((it.age||0)>G.players[o].age)return false;if(TECH[k]&&upgTo(k)&&RETIRE[upgTo(k)]&&G.players[o].age>=RETIRE[upgTo(k)])return false;if(TECH[k]&&(techState(o,k)||reqMissing(o,k)))return false;return true;}
 function atkOf(u){const t=G.players[u.owner].tech,mil=!NONMIL.has(u.type);return (RANGED.has(u.type)&&BON(u.owner).feathers?1:0)+DEF[u.type].atk+(mil&&t.weapons?2:0)+(mil&&t.ironweap?2:0)+(mil&&t.steel?2:0)+(u.type==='slinger'&&t.vetsling?1:0);}
-function speedOf(u){return (G.road&&G.players[u.owner]&&G.players[u.owner].age>=6&&G.road[ti(tl(u.x),tl(u.y))]?(u.type==='truck'?1.6:1.3):1)*DEF[u.type].speed*(SIEGE.has(u.type)&&BON(u.owner).oxen?1.25:1)*((u.type==='villager'||u.type==='settler')&&G.players[u.owner].tech.wheel?1.25:1);}
+function speedOf(u){return (G.road&&G.players[u.owner]&&G.players[u.owner].age>=6&&G.road[ti(tl(u.x),tl(u.y))]?(u.type==='truck'?1.6:1.3):1)*DEF[u.type].speed*(SIEGE.has(u.type)&&BON(u.owner).oxen?1.25:1)*((u.type==='villager'||u.type==='settler')&&G.players[u.owner].tech.wheel?1.25:1)*spiritSpeed(u);}
 function capOf(u){if(u.type==='fishboat')return 25;if(u.type==='villager'&&u.donkey){const d=G.byId.get(u.donkey);if(d&&!d.dead&&d.owner===u.owner&&Math.hypot(d.x-u.x,d.y-u.y)<3*TILE)return CARRY*2;}return CARRY;}
 function rangeOf(u){const t=G.players[u.owner].tech;return (DEF[u.type].range||0)+(u.type==='slinger'&&t.vetsling?1:0)+(t.ballistics&&RANGED.has(u.type)?1:0);}
 function hitAmt(u,t){let a=atkOf(u)*(u.buff&&u.buff.type==='morale'&&u.buff.until>G.t?1.1:1)*(1+.1*(u.rank||0));const b=BONUS[u.type];if(b&&b.vs.includes(t.type))a+=b.amt;return a;}
@@ -1216,7 +1217,7 @@ $('gmenu').addEventListener('click',e=>{const tb=e.target.closest('button[data-t
   const org=ends.find(en=>en!==dest&&Math.hypot(board[0].x-en.x,board[0].y-en.y)<6*TILE);const dist=Math.hypot(dest.x-org.x,dest.y-org.y)/TILE,trav=Math.round(4+dist/12);
   for(const u of board){u.dead=true;u.sheltered=true;}(G.troops=G.troops||[]).push({units:board,dest:dest.id,x:dest.x,y:dest.y,ret:G.t+trav,o:0});G.sel=[];panelKeyLast='';toast(board.length+' soldier'+(board.length>1?'s':'')+' boarded the train. Arriving in about '+trav+' seconds');sfx('horn',org.x,org.y);});
 function coppiceOwner(t){for(const o of[0,1])if(G.players[o].tech.coppicing&&inTerritory(o,t.tx,t.ty,1))return o;return -1;}
-function gatherRate(u,t){const p=G.players[u.owner],rt=RES[t.type].r;let r=t.copd&&!t.stump?RATE.w*1.2:t.type==='farm'?.55:t.type==='carcass'?1:t.type==='fish'?(u.type==='fishboat'?1:.5):RATE[rt];if(t.type==='goldmine'||t.type==='stonemine')r*=1.15;if(t.type==='farm'){if(bigFarm(t))r*=2;if(!t.mc||G.t-t.mc>5){t.mc=G.t;const ml=millOf(t);t.milled=!!ml;t.millUse=ml&&!(ml.useT>0)?useOf(ml):null;}if(t.milled)r*=1.25;if(t.millUse==='flax')r*=.45;else if(t.millUse==='barley'||t.millUse==='hay')r*=.7;if(BON(u.owner).oxen)r*=1.2;}if(u.forester){r*=2;if(p.tech.sawmill)r*=1.5;}if(p.tech.bronzetools&&u.type==='villager')r*=1.2;if(u.buff&&u.buff.type==='rest'&&u.buff.until>G.t)r*=1.15;if(t.type==='farm'&&t.ox){const ox=G.byId.get(t.ox);if(ox&&!ox.dead&&ox.owner===u.owner&&ox.plowing)r*=1.4;}if(rt==='w'&&p.tech.axes)r*=1.25;if(rt==='s'&&p.tech.picks)r*=1.25;if(t.type==='farm'&&p.tech.plow)r*=1.25;return r*(u.owner===1?G.aiMult:1);}
+function gatherRate(u,t){const p=G.players[u.owner],rt=RES[t.type].r;let r=t.copd&&!t.stump?RATE.w*1.2:t.type==='farm'?.55:t.type==='carcass'?1:t.type==='fish'?(u.type==='fishboat'?1:.5):RATE[rt];if(t.type==='goldmine'||t.type==='stonemine')r*=1.15;if(t.type==='farm'){if(bigFarm(t))r*=2;if(!t.mc||G.t-t.mc>5){t.mc=G.t;const ml=millOf(t);t.milled=!!ml;t.millUse=ml&&!(ml.useT>0)?useOf(ml):null;}if(t.milled)r*=1.25;if(t.millUse==='flax')r*=.45;else if(t.millUse==='barley'||t.millUse==='hay')r*=.7;if(BON(u.owner).oxen)r*=1.2;}if(u.forester){r*=2;if(p.tech.sawmill)r*=1.5;}if(p.tech.bronzetools&&u.type==='villager')r*=1.2;if(u.buff&&u.buff.type==='rest'&&u.buff.until>G.t)r*=1.15;if(t.type==='farm'&&t.ox){const ox=G.byId.get(t.ox);if(ox&&!ox.dead&&ox.owner===u.owner&&ox.plowing)r*=1.4;}if(rt==='w'&&p.tech.axes)r*=1.25;if(rt==='s'&&p.tech.picks)r*=1.25;if(t.type==='farm'&&p.tech.plow)r*=1.25;r*=spiritGather(u.owner,t,rt);return r*(u.owner===1?G.aiMult:1);}
 function applyTech(o,k){
   if(k==='renaissance'){try{caravanUp(o);}catch(err){}}
   if(k==='harvesters'){let n=0;for(const u of G.ents)if(u.owner===o&&u.type==='villager'&&u.order&&u.order.type==='gather'&&u.order.rtype==='farm'){u.order=null;u.path=null;n++;}if(o===0)toast('Steam harvesters now work your farms. '+n+' farmer'+(n===1?' is':'s are')+' free for other work');}
@@ -1560,7 +1561,7 @@ function updUnit(u,dt){
       return;}}
   if(!o){
     u.scan-=dt;
-    if(u.scan<=0){u.scan=.5;if(u.type!=='villager'&&u.owner!==2&&DEF[u.type].atk>0){const t=nearestEnemy(u,d.sight*TILE,u.type==='ram'||u.type==='trebuchet');if(t)u.order={type:'attack',id:t.id,auto:true};}}
+    if(u.scan<=0){u.scan=.5;if(u.type!=='villager'&&u.owner!==2&&DEF[u.type].atk>0){const t=nearestEnemy(u,d.sight*TILE*(wxIn(u.x,u.y,'fog',u.owner)?.4:1),u.type==='ram'||u.type==='trebuchet');if(t)u.order={type:'attack',id:t.id,auto:true};}}
     return;
   }
   if(o.type==='move'){
@@ -1811,7 +1812,7 @@ function updBld(b,dt){
   if(d.atk){
     b.cd-=dt;
     const sen=b.type==='tower'&&G.players[b.owner].tech.sentry,kp=b.type==='tower'&&G.players[b.owner].tech.keeps?4:0,gtw=b.type==='tower'&&G.players[b.owner].tech.guardtower?3:0;
-    if(b.cd<=0){const rr=(d.range+(sen?1:0))*TILE,tg=[];for(const e of G.ents)if(e.kind==='unit'&&!e.dead&&e.owner!==b.owner&&!LIVE[e.type]&&e.type!=='deer'&&(e.owner!==2||e.type==='wolf')&&(!e.air||(b.type==='tower'&&G.players[b.owner].age>=6))){const dd=Math.hypot(e.x-b.x,e.y-b.y)-e.r;if(dd<rr)tg.push([dd,e]);}
+    if(b.cd<=0){const rr=(d.range+(sen?1:0))*TILE*(wxIn(b.x,b.y,'fog',b.owner)?.5:1),tg=[];for(const e of G.ents)if(e.kind==='unit'&&!e.dead&&e.owner!==b.owner&&!LIVE[e.type]&&e.type!=='deer'&&(e.owner!==2||e.type==='wolf')&&(!e.air||(b.type==='tower'&&G.players[b.owner].age>=6))){const dd=Math.hypot(e.x-b.x,e.y-b.y)-e.r;if(dd<rr)tg.push([dd,e]);}
       if(tg.length){tg.sort((a,c)=>a[0]-c[0]);const n=(b.type==='castle'?3:1)+Math.floor(((b.type==='towncenter'||b.type==='castle')&&b.gar&&b.gar.length||0)/2);const mg=b.type==='tower'&&G.players[b.owner].age>=6;for(let i=0;i<n;i++)shoot(b,tg[i%tg.length][1],Math.round((d.atk+(sen?2:0)+kp+gtw)*(mg?1.3:1)),mg?'bullet':'arrow');b.cd=d.cd*(mg?.35:1);}}
   }
 }
@@ -1943,7 +1944,53 @@ function wolfRaid(u){if(u.type!=='wolf'||u.owner!==2)return false;
     const cx=u.x/TILE,cy=u.y/TILE;let a=Math.atan2(c.y-u.y,c.x-u.x);for(let k=0;k<8;k++){if(clearLine(cx,cy,a,2)){u.rt=[u.x+Math.cos(a)*2*TILE,u.y+Math.sin(a)*2*TILE];break;}a+=(k%2?1:-1)*(k+1)*.6;}
     if(G.t-u.pw.t>40){u.prowl=0;u.nextRaid=G.t+120;}return false;}
   const ex=exitTile(mem[0],tl(u.x),tl(u.y),0);if(ex){u.order={type:'move',x:ex.x,y:ex.y};u.path=null;}else u.prowl=0;return true;}
-function updPOIs(dt){try{wolfTick(dt);}catch(e){}try{boatIdleTick(dt);}catch(e){}try{grazeTick(dt);}catch(e){}
+/* Josh (Oct 15): sacred sites have spirits; holding all 4 charges a Miracle; optional Spirit Age victory.
+   e.spirit = 'sun'|'rain'|'stone'|'wind' (one each). G._sp = {sun:owner,...} (refreshed every tick). P.mirC = charge s (MIR_CHARGE), P.mirReady,
+   P.mirCD = G.t until it may charge again. Active weather: G.weather=[{k:'storm'|'rain'|'fog'|'snow',x,y,r,t0,dur,owner}] (world px, G.t s);
+   lightning hits: G.bolts.push({x,y,t}). G.spiritWin (start-screen option), G.spHold={o,t0}. */
+const SPIRN={sun:'Sun',rain:'Rain',stone:'Stone',wind:'Wind'},SPB={sun:'Farms +10%',rain:'Fishing and berries +10%',stone:'Stone and gold mining +10%',wind:'Your units move 5% faster'};
+const MIR_CHARGE=60,MIR_CD=240,MIR_R=16*TILE,SPIRIT_WIN=300;
+const MIRDEF={storm:{n:'Storm',d:'Lightning strikes enemy soldiers and buildings at a spot you tap for 20 s',dur:20},rain:{n:'Blessed rain',d:'2 minutes of rain over your town: farms and berries +30%, your people heal',dur:120},fog:{n:'Fog',d:'90 s of thick fog over the enemy town: their sight and tower range drop',dur:90},snow:{n:'Blizzard',d:'60 s of snow over the enemy town: they move at half speed and their farms stop',dur:60}};
+function spH(o,k){return !!(G&&G._sp&&G._sp[k]===o);}
+function spiritGather(o,t,rt){let m=1;if(t.type==='farm'){if(spH(o,'sun'))m*=1.1;if(wxIn(t.x,t.y,'rain',o,true))m*=1.3;if(wxIn(t.x,t.y,'snow',o))m=0;}
+  else if(t.type==='berry'||t.type==='fish'){if(spH(o,'rain'))m*=1.1;if(t.type==='berry'&&wxIn(t.x,t.y,'rain',o,true))m*=1.3;}
+  else if(rt==='s'||rt==='g'||t.type==='goldmine'||t.type==='stonemine'){if(spH(o,'stone'))m*=1.1;}return m;}
+function spiritSpeed(u){let m=1;if(u.owner<2&&spH(u.owner,'wind'))m*=1.05;if(u.owner<2&&wxIn(u.x,u.y,'snow',u.owner))m*=.5;return m;}
+/* is (x,y) inside weather k? own=false: cast by the OTHER side (hurts o); own=true: cast by o itself (helps o) */
+function wxIn(x,y,k,o,own){const W=G&&G.weather;if(!W||!W.length)return false;for(const w of W){if(w.k!==k||G.t<w.t0||G.t>w.t0+w.dur)continue;if(own?w.owner!==o:w.owner===o)continue;if((x-w.x)*(x-w.x)+(y-w.y)*(y-w.y)<w.r*w.r)return true;}return false;}
+function mainTC(o){return G.ents.filter(e=>e.type==='towncenter'&&e.owner===o&&!e.dead).sort((a,b)=>a.id-b.id)[0];}
+function castMiracle(o,k,wx,wy){const P=G.players[o];if(!P.mirReady||!MIRDEF[k])return false;let x,y;
+  if(k==='storm'){x=wx;y=wy;}else{const tc=mainTC(k==='rain'?o:1-o);if(!tc){if(o===0)toast('No town center to cast it on');return false;}x=tc.x;y=tc.y;}
+  P.mirReady=0;P.mirC=0;P.mirCD=G.t+MIR_CD;G.weather=(G.weather||[]).filter(w=>G.t<w.t0+w.dur+3);G.weather.push({k,x,y,r:k==='storm'?5*TILE:MIR_R,t0:G.t,dur:MIRDEF[k].dur,owner:o,bt:0});
+  if(o===0)toast(MIRDEF[k].n+'!');else toast('The red tribe called down a '+MIRDEF[k].n.toLowerCase()+'!');try{sfx('done',x,y);}catch(e){}return true;}
+function spiritTick(dt){if(G.spiritWin===undefined&&G.t<5){try{G.spiritWin=!!SPIRIT_OPT;}catch(e){G.spiritWin=false;}}const S=G.ents.filter(e=>e.kind==='poi'&&e.type==='sacred'&&!e.dead);
+  if(S.some(e=>!e.spirit)){const ks=['sun','rain','stone','wind'].sort(()=>Math.random()-.5);S.sort((a,b)=>a.id-b.id).forEach((e,i)=>{if(!e.spirit)e.spirit=ks[i%4];});}
+  G._sp={};for(const e of S)if(e.owner===0||e.owner===1)G._sp[e.spirit]=e.owner;
+  const all=[0,1].find(o=>S.length>=4&&S.every(e=>e.owner===o));
+  for(const o of[0,1]){const P=G.players[o];if(P.mirReady)continue;if(all===o&&G.t>=(P.mirCD||0)){const b=Math.floor((P.mirC||0)/6);P.mirC=(P.mirC||0)+dt;if(o===0&&Math.floor(P.mirC/6)!==b)panelKeyLast='';
+      if(P.mirC>=MIR_CHARGE){P.mirReady=1;P.mirC=MIR_CHARGE;if(o===0){toast('A Miracle is ready! Select your town center');try{sfx('done',0,0);}catch(e){}panelKeyLast='';}}}}
+  // weather effects
+  if(G.weather&&G.weather.length){G.weather=G.weather.filter(w=>G.t<w.t0+w.dur+3);
+    for(const w of G.weather){if(G.t>w.t0+w.dur)continue;
+      if(w.k==='storm'){w.bt=(w.bt||0)-dt;if(w.bt<=0){w.bt=.9+Math.random()*.6;const tg=G.ents.filter(e=>!e.dead&&(e.kind==='unit'||e.kind==='bld')&&e.owner!==w.owner&&e.owner>=0&&e.owner<2&&!e.air&&Math.hypot(e.x-w.x,e.y-w.y)<w.r);
+        const t=tg.length?tg[(Math.random()*tg.length)|0]:null;if(!G.bolts)G.bolts=[];if(t){G.bolts.push({x:t.x,y:t.y,t:G.t});damage(t,t.kind==='bld'?90:40,null,false);emit('dust',t.x,t.y,5);}else{const a=Math.random()*6.28,r=Math.random()*w.r;G.bolts.push({x:w.x+Math.cos(a)*r,y:w.y+Math.sin(a)*r,t:G.t});}if(G.bolts.length>40)G.bolts.splice(0,G.bolts.length-40);}}
+      else if(w.k==='rain'){for(const u of G.ents)if(u.kind==='unit'&&u.owner===w.owner&&!u.dead&&u.hp<u.maxHp&&Math.hypot(u.x-w.x,u.y-w.y)<w.r)u.hp=Math.min(u.maxHp,u.hp+1.5*dt);}}}
+  // Spirit Age victory
+  if(G.spiritWin&&!G.over){if(all===0||all===1){if(!G.spHold||G.spHold.o!==all){G.spHold={o:all,t0:G.t};toast(all===0?'You hold all 4 sacred sites: keep them for 5 minutes to win':'The red tribe holds all 4 sacred sites! Take one back within 5 minutes');}
+      if(G.t-G.spHold.t0>=SPIRIT_WIN){G.over=true;clearSave();const win=all===0;$('endTitle').textContent=win?'Victory':'Defeat';$('endText').textContent=(win?'The spirits chose your tribe.':'The spirits chose the red tribe.')+' Spirit Age victory at '+fmtTime(G.t)+'.';$('end').hidden=false;}}
+    else G.spHold=null;}
+  spiritBar();
+  // the computer uses its Miracle
+  const A=G.players[1];if(A.mirReady){const tc=mainTC(1),en=G.ents.filter(e=>e.owner===0&&e.kind==='unit'&&!e.dead&&!NONMIL.has(e.type)&&tc&&Math.hypot(e.x-tc.x,e.y-tc.y)<22*TILE);
+    if(en.length>=4){let cx=0,cy=0;for(const e of en){cx+=e.x;cy+=e.y;}castMiracle(1,'storm',cx/en.length,cy/en.length);}else if(G.t-(A.mirReadyT||(A.mirReadyT=G.t))>20){castMiracle(1,['snow','fog','rain'][(Math.random()*3)|0]);A.mirReadyT=0;}}}
+function spiritBar(){let el=document.getElementById('spiritBar');const h=G.spiritWin&&G.spHold&&!G.over;if(!h){if(el)el.hidden=true;return;}
+  if(!el){el=document.createElement('div');el.id='spiritBar';el.style.cssText='position:absolute;left:50%;top:calc(36px + var(--st));transform:translateX(-50%);z-index:5;padding:5px 12px;border-radius:12px;border:2px solid #cfe6ff;background:linear-gradient(#2a3d6b,#16213d);color:#fff;font-weight:700;font-size:12px;box-shadow:0 0 14px rgba(150,200,255,.6);pointer-events:none;white-space:nowrap';$('app').appendChild(el);}
+  el.hidden=false;const left=Math.max(0,SPIRIT_WIN-(G.t-G.spHold.t0));const tx=(G.spHold.o===0?'Spirit Age: you win in ':'Spirit Age: the red tribe wins in ')+fmtTime(left);if(el.textContent!==tx)el.textContent=tx;}
+function mirActs(){const P=G.players[0],S=G.ents.filter(e=>e.kind==='poi'&&e.type==='sacred'&&!e.dead),mine=S.filter(e=>e.owner===0).length;
+  if(P.mirReady)return Object.keys(MIRDEF).map(k=>btn('mir:'+k,MIRDEF[k].n,'<span class="cost">'+({storm:'Tap a spot',rain:'Your town',fog:'Enemy town',snow:'Enemy town'})[k]+'</span>','',false,0,'wide',PILL('age','Miracle'))).join('')+'<div class="hint" style="max-width:190px">Pick a Miracle. Storm: tap the spot. The others fall on a town</div>';
+  if(mine>=4)return '<div class="hint" style="max-width:200px">'+(G.t<(P.mirCD||0)?'The spirits rest: next Miracle charges in '+fmtTime(P.mirCD-G.t):'Miracle charging: '+Math.floor((P.mirC||0)/MIR_CHARGE*100)+'%')+'</div>';
+  if(mine>=2)return '<div class="hint" style="max-width:200px">You hold '+mine+' of 4 sacred sites. Hold all 4 to charge a Miracle</div>';return '';}
+function updPOIs(dt){try{wolfTick(dt);}catch(e){}try{spiritTick(dt);}catch(e){console.error(e);}try{boatIdleTick(dt);}catch(e){}try{grazeTick(dt);}catch(e){}
   for(const t of G.ents)if(t.bare&&!t.dead){if(t.type==='fish'){t.amt+=dt*(RES.fish.amt/150);if(t.amt>=RES.fish.amt){t.amt=RES.fish.amt;t.bare=false;}}else{t.amt+=dt*(30/600);if(t.amt>=30){t.amt=30;t.bare=false;}}}
   for(const t of G.ents){if(t.type!=='tree'||t.dead||t.deadStump||!(t.stump||t.sapling))continue;
     let browsed=false;if(t.growT<45)for(const a of G.ents)if((a.type==='deer'||a.type==='sheep'||a.type==='cow')&&!a.dead&&Math.abs(a.x-t.x)<48&&Math.hypot(a.x-t.x,a.y-t.y)<1.6*TILE){browsed=true;break;}
@@ -6981,6 +7028,7 @@ try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if
 })()}catch(err){}
 function onTap(wx,wy){
   if(!G||G.over)return;
+  if(G.mirAim){const k=G.mirAim;G.mirAim=null;castMiracle(0,k,wx,wy);mark(wx,wy,'#cfe6ff');panelKeyLast='';return;}
   if(G.strikeN||G.reconAim){const ap=G.byId.get(G.strikeFrom);if(ap&&!ap.dead){if(G.strikeN){airLaunch(0,ap,Math.min(G.strikeN,ap.planes||0),wx,wy,'strike');mark(wx,wy,'#ff3b2f');toast('Air strike launched');}else if(G.players[0].g>=50){G.players[0].g-=50;ap.reconT=G.t+60;airLaunch(0,ap,1,wx,wy,'recon');mark(wx,wy,'#9ec4e0');toast('Recon plane on its way');}}G.strikeN=0;G.reconAim=false;panelKeyLast='';return;}
   if(G.prospect){G.prospect=false;panelKeyLast='';const v=selEnts().filter(u=>u.kind==='unit'&&u.owner===0&&u.type==='villager');if(v.length){const u=v.sort((a,b)=>Math.hypot(a.x-wx,a.y-wy)-Math.hypot(b.x-wx,b.y-wy))[0];u.order={type:'testpit',x:wx,y:wy};u.path=null;mark(wx,wy,'#ffd25a');}return;}
   if(G.aground){G.aground=false;panelKeyLast='';const rs=selEnts().filter(u=>u.kind==='unit'&&u.owner===0&&rangeOf(u)>0);for(const u of rs){u.order={type:'aground',x:wx,y:wy};u.path=null;}if(rs.length){G.fx.push({type:'crater',x:wx,y:wy,t:.01,r:1});mark(wx,wy,'#ff5a4a');}return;}
@@ -7467,7 +7515,7 @@ function renderPanel(sel){
   }else if(one&&one.kind==='poi'){
     const own=one.owner===0?'Held by you. ':one.owner===1?'Held by the red tribe. ':'';
     if(one.type==='sacred'&&!sacFound(one,0)){info='<div style="min-width:0;flex:1"><div class="nm">A strange glow</div><div class="sub">Something is hidden here</div></div>';acts='<div class="hint">Stand any of your units on the glow for a few seconds to see what it is.</div>';}else{
-    info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site')+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec')+'</div></div>';
+    info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site'+(one.spirit?' of the '+SPIRN[one.spirit]:''))+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec'+(one.spirit?'. '+SPB[one.spirit]:''))+'</div></div>';
     acts='<div class="hint">'+(one.type==='tradepost'?'In the Renaissance Age, trade carts from your market travel here and bring back gold. The farther your market, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';}
   }else if(one&&one.kind!=='unit'){
     const nm=one.kind==='res'?RES[one.type].name:(one.type==='pub'&&hasInn(one)?'Pub & Inn':one.type==='coop'&&one.yard?'Poultry yard':bname(one.type,one.owner))+(one.owner===1?' (enemy)':'');
@@ -7562,7 +7610,7 @@ function renderPanel(sel){
   }
   if(one&&one.kind==='bld'&&one.owner===0&&!G.place&&info){const g=(one.type==='pen'||one.type==='corral')&&one.mgrp;if(g)info=info.replace('>'+DEF[one.type].name+'<','>'+DEF[one.type].name+' ×'+g.ids.length+'<');
     info+='<button class="b demo-mini'+(G.demo===one.id?' danger':'')+'" data-act="demolish" aria-label="'+(one.built?'Demolish':'Cancel build')+'"><img alt="" src="'+TRASH_ICO+'"></button>';}
-  $('info').innerHTML=info;try{const o1=sel.length===1&&!G.place?sel[0]:null,ps=o1&&o1.kind==='unit'&&o1.owner===0?portSheet(o1):null;if(ps){const nmEl=document.querySelector('#info .nm');const rn=ps[1],nm=PNAMES[FEM.has(rn)?'woman':'man'][(o1.id*7)%10];if(nmEl)nmEl.textContent=nm+', '+(o1.type==='villager'?'villager':DEF[o1.type].name.toLowerCase());}}catch(e){}{const up=document.getElementById('upop');if(up&&String(G.sel[0]||'')!==up.dataset.bid)closeUpPop();}if(one&&one.type==='ranch'&&one.owner===0&&one.built&&!G.place){try{acts=ranchActs(one,P);}catch(err){console.error(err);}}
+  $('info').innerHTML=info;try{const o1=sel.length===1&&!G.place?sel[0]:null,ps=o1&&o1.kind==='unit'&&o1.owner===0?portSheet(o1):null;if(ps){const nmEl=document.querySelector('#info .nm');const rn=ps[1],nm=PNAMES[FEM.has(rn)?'woman':'man'][(o1.id*7)%10];if(nmEl)nmEl.textContent=nm+', '+(o1.type==='villager'?'villager':DEF[o1.type].name.toLowerCase());}}catch(e){}{const up=document.getElementById('upop');if(up&&String(G.sel[0]||'')!==up.dataset.bid)closeUpPop();}if(one&&one.type==='ranch'&&one.owner===0&&one.built&&!G.place){try{acts=ranchActs(one,P);}catch(err){console.error(err);}}if(one&&one.type==='towncenter'&&one.owner===0&&one.built&&!G.place){try{acts=mirActs()+acts;}catch(err){console.error(err);}}
   {const T=[];acts=acts.replace(/<button class="b g tabb[^"]*"[^>]*>.*?<\/button>/g,m=>{T.push(m);return '';});const bt=$('btabs');if(bt)bt.innerHTML=T.join('');}$('acts').innerHTML=acts;
   const iv=idleVills().length,ar=armyUnits().length;
   renderGroups();
@@ -7611,6 +7659,7 @@ $('panel').addEventListener('click',e=>{
   if(act==='form'){const fi=FORMS.findIndex(f=>f[0]===(G.selForm||'loose'));G.selForm=FORMS[(fi+1)%FORMS.length][0];const ag=activeGroup();if(ag>=0)G.groupForm[ag]=G.selForm;toast('Formation: '+FORMS[(fi+1)%FORMS.length][1]);panelKeyLast='';return;}
   if(act==='savegrp'){let i=-1;for(let k=0;k<5;k++)if(!grpUnits(k).length){i=k;break;}if(i<0)toast('All 5 groups are in use. Hold a group number to replace it');else assignGroup(i);return;}
   if(act==='rtab'){G.rtab=arg;panelKeyLast='';return;}
+  if(act==='mir'){const Pm=G.players[0];if(!Pm.mirReady){toast('The Miracle is not ready yet');return;}if(arg==='storm'){G.mirAim='storm';toast('Tap where the storm should strike');return;}castMiracle(0,arg);panelKeyLast='';return;}
   if(act==='mkwing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.dairy.cost)){toast(shortMsg?shortMsg(DEF.dairy.cost):'Not enough wood');return;}const p={type:'dairy',tx:one.tx+3,ty:one.ty+3,wing:one.id};G.place=p;wingSnap(p);if(wingWhy(one,p.tx,p.ty,0,true))toast('No room at the ranch gates: clear the trees, rocks or buildings beside a gate');panelKeyLast='';return;}
   if(act==='wingb'&&one&&one.type==='ranch'){const W=one.wing&&G.byId.get(one.wing);if(W&&!W.built){const n=wingBuilders(W,2);toast(n?n+' villagers sent to build the dairy wing':'No free villagers');}panelKeyLast='';return;}
   if(act==='shepherds'&&one){const s=G.ents.filter(e=>e.shep===penLead(one).id&&!e.dead);if(s.length)setSel(s);else toast('Select villagers, then tap the pen to make them shepherds');panelKeyLast='';return;}
@@ -7666,7 +7715,9 @@ $('panel').addEventListener('click',e=>{
 function centerTile(){return{x:tl(cam.x+W/2/cam.z),y:tl(cam.y+(H-PANH+TOPH)/2/cam.z)};}
 
 /* ---------- menus ---------- */
-document.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',()=>newGame(b.dataset.diff)));
+document.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',()=>{newGame(b.dataset.diff);try{if(G)G.spiritWin=!!SPIRIT_OPT;}catch(e){}}));
+let SPIRIT_OPT=false;try{SPIRIT_OPT=localStorage.getItem('coaSpirit')==='1';}catch(e){}
+{const so=$('spiritOpt');const lab=()=>{so.textContent='Spirit Age victory: '+(SPIRIT_OPT?'On':'Off');so.style.borderColor=SPIRIT_OPT?'var(--gold)':'';};if(so){lab();so.addEventListener('click',()=>{SPIRIT_OPT=!SPIRIT_OPT;try{localStorage.setItem('coaSpirit',SPIRIT_OPT?'1':'0');}catch(e){}lab();toast(SPIRIT_OPT?'Hold all 4 sacred sites for 5 minutes to win':'Spirit Age victory off');});}}
 $('menuBtn').addEventListener('click',()=>{if(!G||G.over)return;G.paused=true;$('pause').hidden=false;});
 const SPEEDS=[1,1.5,2,5];let speed=1;
 $('speedBtn').addEventListener('click',()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];const b=$('speedBtn');b.textContent=speed+'x';b.classList.toggle('fast',speed>1);toast('Game speed '+speed+'x');});
