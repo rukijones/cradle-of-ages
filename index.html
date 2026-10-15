@@ -6825,6 +6825,62 @@ try{(function(){
     if(!best){const Ai=rp(RG.R.i),Fi=fp(SWFG.SW.i);best={L:0,rk:'R',fk:'SW',P:[Ai,Fi]}}
     best.key=key;SRC.set(w,best);return best};
 }catch(err){}})();
+
+/* ===== V23D bakery props in real 3D (art chat 1, Oct 15 2026; Josh: "the bakery chute from the windmill needs to be Tripo made real 3D and also the bags
+   of flour that slide down it, and all stuff like that ... No 2D cartoons"; his pick: look A). Tripo models baked to one atlas (a1_bk3):
+   - flour chute: timber trough sections + A-frame trestles, rendered at 24 headings; the chute is built from 2-6 sections along gameplay's
+     GFX.chuteGeo line (hatch on the mill -> bakery wall), each section turned to the slope, trestles stretched down to the ground;
+   - flour sack (GFX._flourSack: sliding down the chute, on carriers and donkeys, stacked at the mill), bread basket (the 'bcrate' prop: baker's
+     crate, bread carriers), dough (the lump on the baker's peel), plus a dough trough and a peel of loaves set by the oven while it works. ===== */
+(function(){try{
+  if(typeof GFX==='undefined')return;
+  const BM={"R":154.83870967741936,"W":192,"half":0.62,"P":{"cb0":[0,0,53,107,-26.0,-96.0],"cb1":[55,0,66,104,-33.0,-96.0],"cb2":[123,0,81,103,-40.0,-96.0],"cb3":[206,0,95,120,-47.0,-95.0],"cb4":[303,0,109,99,-54.0,-94.0],"cb5":[414,0,121,96,-60.0,-92.0],"cb6":[537,0,131,93,-65.0,-90.0],"cb7":[670,0,139,88,-69.0,-87.0],"cb8":[811,0,145,83,-72.0,-84.0],"cb9":[0,122,148,76,-74.0,-80.0],"cb10":[150,122,150,68,-75.0,-75.0],"cb11":[302,122,154,60,-77.0,-70.0],"cb12":[458,122,156,54,-78.0,-67.0],"cb13":[616,122,154,60,-77.0,-70.0],"cb14":[772,122,150,68,-75.0,-75.0],"cb15":[0,200,147,75,-74.0,-79.0],"cb16":[149,200,145,82,-73.0,-83.0],"cb17":[296,200,139,88,-70.0,-86.0],"cb18":[437,200,131,92,-66.0,-89.0],"cb19":[570,200,122,96,-61.0,-91.0],"cb20":[694,200,110,98,-55.0,-93.0],"cb21":[806,200,96,100,-48.0,-94.0],"cb22":[904,200,80,102,-40.0,-95.0],"cb23":[0,304,64,104,-32.0,-96.0],"cl0":[66,304,51,95,-26.0,-59.0],"cl1":[119,304,65,114,-32.0,-77.0],"cl2":[186,304,79,103,-39.0,-66.0],"cl3":[267,304,93,99,-46.0,-61.0],"cl4":[362,304,105,98,-52.0,-61.0],"cl5":[469,304,115,123,-57.0,-87.0],"cl6":[586,304,123,93,-61.0,-59.0],"cl7":[711,304,129,89,-64.0,-57.0],"cl8":[842,304,133,84,-66.0,-55.0],"cl9":[0,429,134,77,-67.0,-52.0],"cl10":[136,429,134,70,-67.0,-49.0],"cl11":[272,429,131,65,-65.0,-48.0],"cl12":[405,429,136,61,-67.0,-48.0],"cl13":[543,429,134,64,-65.0,-46.0],"cl14":[679,429,132,72,-66.0,-50.0],"cl15":[813,429,133,78,-67.0,-52.0],"cl16":[0,509,131,84,-66.0,-55.0],"cl17":[133,509,127,90,-64.0,-58.0],"cl18":[262,509,120,94,-60.0,-59.0],"cl19":[384,509,112,97,-56.0,-61.0],"cl20":[498,509,102,98,-51.0,-61.0],"cl21":[602,509,90,103,-45.0,-65.0],"cl22":[694,509,76,111,-38.0,-73.0],"cl23":[772,509,62,98,-31.0,-61.0],"sack":[836,509,133,112,-70.0,-80.0],"basket":[0,623,126,109,-61.0,-80.0],"dough":[128,623,69,56,-32.0,-53.0],"trough":[199,623,160,113,-80.0,-77.0],"peel":[361,623,122,54,-65.0,-34.0]}};let AT=null,ati=null;
+  function aload(){if(ati)return;ati=new Image();ati.onload=()=>{AT=ati};ati.onerror=()=>{setTimeout(()=>{ati=null},5000)};ati.src=GFX.ART+'a1_bk3.webp?v='+GFX.ARTV}
+  const ok=()=>{if(GFX.mode!=='V23D'||GFX.BK3===false)return false;if(!AT){aload();return false}return true};
+  GFX.bk3=ok;
+  const R=BM.R,CE=.819,AY=.32*CE*R,LY=.22*CE*R;
+  function piece(c,k,x,y,wd,ax,ay){const p=BM.P[k];if(!p)return;const q=wd/p[2];c.drawImage(AT,p[0],p[1],p[2],p[3],x-p[2]*q*ax,y-p[3]*q*ay,p[2]*q,p[3]*q)}
+  GFX.bk3Piece=function(c,k,x,y,wd,ax,ay){if(!ok())return false;piece(c,k,x,y,wd,ax==null?.5:ax,ay==null?.85:ay);return true};
+  // sack as an image-like canvas for every user of GFX._flourSack (chute, carriers, donkeys, the mill's stack)
+  let SK=null;function sackCv(){if(SK||!AT)return SK;const p=BM.P.sack,c=document.createElement('canvas');c.width=p[2];c.height=p[3];c.getContext('2d').drawImage(AT,p[0],p[1],p[2],p[3],0,0,p[2],p[3]);c.complete=true;c.naturalWidth=p[2];c.naturalHeight=p[3];return SK=c}
+  // ---- the chute ----
+  function seg(c,k,x,y,q,rot,offY){const p=BM.P[k];c.save();c.translate(x,y);if(rot)c.rotate(rot);c.scale(q,q);c.drawImage(AT,p[0],p[1],p[2],p[3],p[4],p[5]+offY,p[2],p[3]);c.restore()}
+  function legs(c,k,x,y,q,sy){const p=BM.P[k];c.save();c.translate(x,y);c.scale(q*Math.min(2.2,1+Math.max(0,sy-1)*.3),q*sy);c.drawImage(AT,p[0],p[1],p[2],p[3],p[4],p[5]+LY,p[2],p[3]);c.restore()}
+  function draw(c,G,t,working,seed){const {sx,sy,ex,ey,g0x,g0y,g1x,g1y}=G;
+    const gx=g1x-g0x,gy=g1y-g0y;let yaw=Math.atan2(gx,gy/.574);let lv=[Math.sin(yaw),.574*Math.cos(yaw)];const vx=ex-sx,vy=ey-sy,Ls=Math.hypot(vx,vy)||1;
+    if(lv[0]*vx+lv[1]*vy<0)lv=[-lv[0],-lv[1]];const pf=Math.hypot(lv[0],lv[1])||.574;
+    let deg=(yaw*180/Math.PI)%180;if(deg<0)deg+=180;const idx=Math.round(deg/7.5)%24;
+    const n=Math.max(2,Math.min(6,Math.round(Ls/(26*pf))));let kU=Ls/(n*pf);kU=Math.max(14,Math.min(36,kU));const q=kU/R,rot=Math.atan2(vy,vx)-Math.atan2(lv[1],lv[0]);
+    const S=[];for(let i=0;i<n;i++){const f=(i+.5)/n;S.push({x:sx+vx*f,y:sy+vy*f,gx:g0x+gx*f,gy:g0y+gy*f,f})}
+    c.save();
+    c.fillStyle='rgba(20,12,4,.2)';for(const s of S){c.beginPath();c.ellipse(s.gx+2,s.gy+1,kU*.42,kU*.13,Math.atan2(gy,gx),0,7);c.fill()}
+    for(const s of S){const top=s.y+(AY-LY)*q,H=s.gy-top;if(H>3)legs(c,'cl'+idx,s.x,top,q,H/(LY*q))}
+    c.fillStyle='#1a1006';c.beginPath();c.ellipse(sx,sy-2,4.6,5.6,0,0,7);c.fill();c.fillStyle='#0d0703';c.beginPath();c.ellipse(sx,sy-1.6,3.2,4.1,0,0,7);c.fill();
+    const ord=S.slice().sort((a,b)=>a.y-b.y);for(const s of ord)seg(c,'cb'+idx,s.x,s.y,q,rot,AY);
+    // sack sliding down
+    const sk=sackCv();if(working&&sk){const qq=((t*.55)+seed*.13)%1;if(qq<.9){const f=qq/.9,x=sx+vx*f,y=sy+vy*f,w=7.5,h=w*sk.height/sk.width;c.drawImage(sk,x-w/2,y-h-.5,w,h)}}
+    // flour dust where the chute meets the bakery wall
+    c.fillStyle='#160d05';c.beginPath();c.ellipse(ex,ey-2,3.6,3,0,0,7);c.fill();
+    if(working){for(let i=0;i<3;i++){const f=((t*.7)+i/3+seed*.21)%1;c.fillStyle='rgba(245,236,214,'+(.45*(1-f)).toFixed(3)+')';c.beginPath();c.arc(ex+(i-1)*3+f*2,ey-3-f*7,1.2+f*2.4,0,7);c.fill()}}
+    c.restore()}
+  function run(c,m,bk,t,lx,ty,M){if(!GFX.chuteGeo)return false;const G=GFX.chuteGeo(m,bk,lx,ty,M),seed=m.id%7,sp=M&&M.spr&&M.spr[m.owner>1?0:m.owner];
+    if(G.behind&&sp&&sp.w){const pad=24,bx=Math.min(G.sx,G.ex,G.g0x,G.g1x)-pad,by=Math.min(G.sy,G.ey)-pad-14,bw=Math.max(G.sx,G.ex,G.g0x,G.g1x)+pad-bx,bh=Math.max(G.g0y,G.g1y,G.sy,G.ey)+pad-by,K=3;
+      const O=GFX._chO3||(GFX._chO3=document.createElement('canvas'));O.width=Math.ceil(bw*K);O.height=Math.ceil(bh*K);const g=O.getContext('2d');g.setTransform(K,0,0,K,-bx*K,-by*K);draw(g,G,t,bk.working,seed);
+      g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='destination-out';const sx0=m.tx*TILE-(sp.dx||0),sy0=m.ty*TILE-sp.ov;g.drawImage(sp,(sx0-bx)*K,(sy0-by)*K,sp.w*K,sp.h*K);g.globalCompositeOperation='source-over';
+      c.drawImage(O,bx,by,bw,bh)}else draw(c,G,t,bk.working,seed);return true}
+  function hook(){
+    const c3=GFX.millChute3D,c2=GFX.millChute;
+    GFX.millChute3D=function(c,m,bk,t,sk,lx,ty,MI){const M=MI||GFX.MILL;if(ok()&&M&&M.ready)return run(c,m,bk,t,lx,ty,M);return c3?c3.apply(this,arguments):false};
+    GFX.millChute=function(c,m,bk,t,sk){if(ok())return run(c,m,bk,t,0,0,null);return c2?c2.apply(this,arguments):false};
+    const bp=GFX.bkProp;GFX.bkProp=function(c,k,x,y,wd){if(ok()){if(k==='bcrate'){piece(c,'basket',x,y,wd*.92,.5,.62);return}if(k==='dough'){piece(c,'dough',x,y,wd*.95,.5,.6);return}}return bp?bp.apply(this,arguments):undefined};
+    // carriers, donkeys and the mill read GFX._flourSack when they draw: hand them the 3D sack
+    try{Object.defineProperty(GFX,'_flourSack',{configurable:true,get(){return (ok()&&sackCv())||GFX.__fs0},set(v){GFX.__fs0=v}})}catch(err){}
+    // a dough trough by the kneading table and a peel of fresh loaves by the oven while the bakery works
+    const bs=GFX.bkScene;if(bs)GFX.bkScene=function(c,b,now){const r=bs.apply(this,arguments);try{if(ok()&&b&&b.built&&GFX.bkPt&&(b.working||(b.gar&&b.gar.length))){
+      const D=GFX.bkPt(b,.60,.80),P2=GFX.bkPt(b,.52,.70);piece(c,'trough',D[0],D[1],11,.5,.8);if(b.working)piece(c,'peel',P2[0],P2[1],12,.5,.7)}}catch(err){}return r};
+  }
+  setTimeout(hook,0);
+}catch(err){}})();
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
   SPR.ruin=ruinSprite();
