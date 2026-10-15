@@ -1186,7 +1186,7 @@ function loadCart(u,m){u.goods={};if(!m.goods)return;let room=6;for(const k of['
 function oxAlive(f){const ox=f.ox&&G.byId.get(f.ox);return ox&&!ox.dead&&ox.owner===f.owner?ox:null;}
 /* ---- planned-city rules (Josh): farm rows, windmill block, flour chute, military quarter ---- */
 const MILL_R=8,MILL_N=18,MILL_GAP=5;
-function millMap(){const C=G._fm;if(C&&G.t-C.t<2)return C.m;const pairs=[],m=new Map(),cnt=new Map();
+function millMap(){const C=G._fm;if(C&&C.m&&C.cnt&&G.t-C.t<2)return C.m;const pairs=[],m=new Map(),cnt=new Map();
   const mills=G.ents.filter(e=>e.type==='mill'&&e.built&&!e.dead&&e.owner>=0&&e.owner<2);
   if(mills.length)for(const f of G.ents){if(f.type!=='farm'||!f.built||f.dead)continue;for(const ml of mills){if(ml.owner!==f.owner)continue;const d=Math.hypot(ml.x-f.x,ml.y-f.y);if(bldGap(ml,f)<=MILL_GAP)pairs.push([d,f.id,ml.id]);}}
   pairs.sort((a,b)=>a[0]-b[0]);for(const[d,fid,mid]of pairs){if(m.has(fid))continue;const c=cnt.get(mid)||0;if(c>=MILL_N)continue;m.set(fid,mid);cnt.set(mid,c+1);}
@@ -7965,10 +7965,10 @@ function mgDims(k){const s=k==='yard'?DEF.coop.size:DEF.bakery.size;return k==='
 function mgBox(olds){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const id of olds){const e=G.byId.get(id);if(!e||e.dead)continue;x0=Math.min(x0,e.tx);y0=Math.min(y0,e.ty);x1=Math.max(x1,e.tx+e.size);y1=Math.max(y1,e.ty+e.size);}return {x0,y0,x1,y1};}
 function mgNear(mg,tx,ty){const B=mgBox(mg.olds),gx=Math.max(0,B.x0-(tx+mg.w),tx-B.x1),gy=Math.max(0,B.y0-(ty+mg.h),ty-B.y1);return Math.max(gx,gy)<=MG_NEAR;}
 function beginMerge(k,olds){const d=mgDims(k),B=mgBox(olds.map(e=>e.id));G.place={type:d.type,mg:{k,olds:olds.map(e=>e.id),w:d.w,h:d.h},tx:Math.round((B.x0+B.x1)/2-d.w/2),ty:B.y1+1};G.sel=[];panelKeyLast='';
-  toast('Tap where the '+(k==='yard'?'Poultry yard':'steam bakery')+' goes. Within 3 tiles of the old ones (yellow box): half price and half the time');}
+  toast('Tap where the '+(k==='yard'?'Poultry yard':'steam bakery')+' goes, even right where the old ones stand. Within 3 tiles of them (yellow box): half price and half the time');}
 function mergeWhy(mg,tx,ty,needExp){const FREE=new Set(['wall','gate','farm','pylon','outpost']);
   for(let y=ty;y<ty+mg.h;y++)for(let x=tx;x<tx+mg.w;x++){if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);if(G.terrain[i])return 'Water or cliffs in the way';
-    if(G.occ[i]&&!clearableTree(G.occ[i])){const e=G.byId.get(G.occ[i]);return e&&e.kind==='bld'&&DEF[e.type]?'Your '+DEF[e.type].name.toLowerCase()+' is in the way':'Blocked. Pick open ground';}
+    if(G.occ[i]&&!clearableTree(G.occ[i])&&!mg.olds.includes(G.occ[i])){const e=G.byId.get(G.occ[i]);return e&&e.kind==='bld'&&DEF[e.type]?'Your '+DEF[e.type].name.toLowerCase()+' is in the way':'Blocked. Pick open ground';}
     if(G.wocc[i])return 'Blocked. Pick open ground';if(needExp&&!G.exp[0][i])return 'Pick explored ground';}
   if(!inTerritory(0,tx+Math.floor(mg.w/2)-1,ty+Math.floor(mg.h/2)-1,2))return 'Build it inside your territory';
   for(const e of G.ents){if(e.kind!=='bld'||e.dead||FREE.has(e.type)||(DEF[e.type]&&DEF[e.type].walkable)||mg.olds.includes(e.id))continue;const es=e.size||DEF[e.type].size;if(tx-1<e.tx+es&&tx+mg.w+1>e.tx&&ty-1<e.ty+es&&ty+mg.h+1>e.ty)return 'Leave 1 tile of space next to other buildings so people can walk between them';}
@@ -7977,17 +7977,21 @@ function mgCost(mg,tx,ty){const base=mg.k==='yard'?YARD_COST:STEAM_COST,near=mgN
 function placeMerge(sel){const p=G.place,mg=p&&p.mg;if(!mg)return;const P=G.players[0],why=mergeWhy(mg,p.tx,p.ty,true);if(why){toast(why);return;}
   const olds=mg.olds.map(id=>G.byId.get(id)).filter(e=>e&&!e.dead&&e.owner===0);if(olds.length<(mg.k==='yard'?6:2)){toast('Some of the old buildings are gone');G.place=null;return;}
   const {c,T,near}=mgCost(mg,p.tx,p.ty);if(!canAfford(P,c)){toast(shortMsg?shortMsg(c):'Not enough resources');return;}pay(P,c);
-  const d=mgDims(mg.k),ms=[];for(let i=0;i<d.n;i++){const m=mkBld(d.type,0,p.tx+(i%d.cols)*d.s,p.ty+Math.floor(i/d.cols)*d.s,true);displaceUnits(m);if(mg.k==='yard'){m.ysite=1;m.birds=[];}else m.bsite=1;ms.push(m);}
+  const d=mgDims(mg.k),ms=[],keep={birds:[],stock:{},us:[]};
+  /* Josh (Oct 15): the yard can go right where the old coops stand. Old ones under the new box make room now (their hens / stock wait in the job); the others keep working until it's done */
+  for(const e of olds){if(e.tx<p.tx+mg.w&&e.tx+e.size>p.tx&&e.ty<p.ty+mg.h&&e.ty+e.size>p.ty){if(mg.k==='yard')for(const t of (e.birds||[]))keep.birds.push(t);
+    else{for(const k of ['flour','eggs','milk','fstock'])if(e[k]>0)keep.stock[k]=(keep.stock[k]||0)+e[k];if(e.gar&&e.gar.length){keep.us.push(...e.gar.map(u=>u.id));releaseAll(e);}}e.mgOld=0;kill(e);}}
+  for(let i=0;i<d.n;i++){const m=mkBld(d.type,0,p.tx+(i%d.cols)*d.s,p.ty+Math.floor(i/d.cols)*d.s,true);displaceUnits(m);if(mg.k==='yard'){m.ysite=1;m.birds=[];}else m.bsite=1;ms.push(m);}
   const an=ms[0];for(const m of ms){m.siteA=an.id;if(m!==an)m.mergeWait=an.id;}
-  an.mergeJob={k:mg.k,ids:ms.map(m=>m.id),old:olds.map(e=>e.id),cost:c,T,site:1};an.upT=T;for(const e of olds)e.mgOld=an.id;
+  an.mergeJob={k:mg.k,ids:ms.map(m=>m.id),old:olds.filter(e=>!e.dead).map(e=>e.id),cost:c,T,site:1,keep};an.upT=T;for(const e of olds)e.mgOld=an.id;
   const vs=sel.filter(u=>u.type==='villager'&&u.owner===0&&!u.dead);if(vs.length){for(const u of vs){u.shep=0;u.order={type:'upgrade',id:an.id};u.path=null;}}else sendBuilder(an);
   G.place=null;toast((mg.k==='yard'?'Poultry yard':'Steam bakery')+' started'+(near?' next to the old ones: half price, half the time':'')+'. The old ones keep working until it is done');panelKeyLast='';}
 function mgCancel(an){const J=an&&an.mergeJob;const ids=J?J.ids:[];for(const id of ids){const m=G.byId.get(id);if(m&&!m.dead){m.ysite=m.bsite=0;kill(m);}}if(J)for(const id of J.old||[]){const e=G.byId.get(id);if(e)e.mgOld=0;}}
 function siteCheck(b){const A=G.byId.get(b.siteA);const J=A&&!A.dead&&A.mergeJob;if(!J||!J.site||J.ids.some(id=>{const m=G.byId.get(id);return !m||m.dead;})){
   if(J&&J.site)mgCancel(A);else{b.ysite=b.bsite=0;kill(b);for(const e of G.ents)if(e.mgOld===b.siteA)e.mgOld=0;}}}
 function mgFinish(an,J){for(const id of J.ids){const m=G.byId.get(id);if(m){m.ysite=0;m.bsite=0;m.siteA=0;}}const olds=(J.old||[]).map(id=>G.byId.get(id)).filter(e=>e&&!e.dead);
-  if(J.k==='yard'){const birds=[];for(const o of olds)for(const t of (o.birds||[]))birds.push(t);const ms=J.ids.map(id=>G.byId.get(id)).filter(Boolean);ms.forEach((m,i)=>{m.birds=birds.slice(i*6,i*6+6);});if(!birds.length&&ms[0])ms[0].birds=[-999];}
-  else for(const o of olds)steamPass(o,an);
+  if(J.k==='yard'){const birds=(J.keep&&J.keep.birds||[]).slice();for(const o of olds)for(const t of (o.birds||[]))birds.push(t);const ms=J.ids.map(id=>G.byId.get(id)).filter(Boolean);ms.forEach((m,i)=>{m.birds=birds.slice(i*6,i*6+6);});if(!birds.length&&ms[0])ms[0].birds=[-999];}
+  else{for(const o of olds)steamPass(o,an);if(J.keep){for(const k in J.keep.stock)an[k]=(an[k]||0)+J.keep.stock[k];const us=(J.keep.us||[]).map(id=>typeof id==='object'?id:G.byId.get(id)).filter(u=>u&&!u.dead);if(us.length)assignWorkers(an,us);}}
   for(const o of olds){o.mgOld=0;kill(o);}}
 try{finishYard=(function(prev){return function(b){const J=b.mergeJob;const r=prev.apply(this,arguments);try{if(J&&J.site)mgFinish(b,J);}catch(err){}return r}})(finishYard)}catch(err){}
 try{finishSteam=(function(prev){return function(a){const J=a.mergeJob;const r=prev.apply(this,arguments);try{if(J&&J.site)mgFinish(a,J);}catch(err){}return r}})(finishSteam)}catch(err){}
@@ -8016,6 +8020,15 @@ try{drawUnitR=(function(prev){return function(c,e,x,y,now){const r=prev.apply(th
 /* ===== Cows being milked (Josh, Oct 15: "still invisible cows in the dairy"): the milking scene draws the tied cows at the stalls and hides
    the real cow, but its ground ring was still drawn where the cow stands, so it looked like an invisible cow. No ring for a tied cow. ===== */
 try{(function(){const nr=GFX.noRing;GFX.noRing=function(e){try{if(e&&e.type==='cow'&&GFX._tied&&performance.now()-(GFX._tied.get(e.id)||-1e9)<400)return true;}catch(err){}return nr?nr(e):false};})()}catch(err){}
+/* ===== Merged buildings are ONE building (Josh, Oct 15: "make sure merged buildings don't cause any bugs: if destroyed by enemy, fully disappear,
+   stats are single, not multiple"). Poultry yard, steam bakery, row houses / apartment block, joined pens, long farm: one shared health pool.
+   A hit on any part is spread over all live parts (so the whole thing has the summed health and all parts fall together, and kill() takes the
+   rest with it); repairs are shared out every tick. ===== */
+function grpOf(e){const g=e&&e.kind==='bld'&&(e.yard||e.grp||e.sgrp||e.mgrp||e.frow);return g&&g.ids&&g.ids.length>1?g:null;}
+function grpLive(g,o){const L=[];for(const id of g.ids){const x=G.byId.get(id);if(x&&!x.dead&&x.owner===o)L.push(x);}return L;}
+try{damage=(function(prev){return function(t,amt,src,ranged){const g=grpOf(t);if(!g||t._gsp)return prev.apply(this,arguments);const L=grpLive(g,t.owner);if(L.length<2)return prev.apply(this,arguments);
+  const k=amt/L.length;for(const x of L){if(x.dead)continue;x._gsp=1;try{prev.call(this,x,k,src,ranged);}finally{x._gsp=0;}}}})(damage)}catch(err){}
+try{updBld=(function(prev){return function(b,dt){const r=prev.apply(this,arguments);try{const g=grpOf(b);if(g&&(g.anchor===b.id||(!G.byId.get(g.anchor)&&g.ids[0]===b.id))){const L=grpLive(g,b.owner);if(L.length>1){let h=0,m=0;for(const x of L){h+=x.hp/x.maxHp;}const f=h/L.length;for(const x of L)x.hp=Math.max(.5,f*x.maxHp);}}}catch(err){}return r}})(updBld)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
