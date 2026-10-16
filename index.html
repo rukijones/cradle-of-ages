@@ -1078,7 +1078,7 @@ function breadDst(b){let best=null,bd=1e9;for(const e of G.ents){if(e.owner!==b.
 function breadCarrier(b){const c=b.bcar&&G.byId.get(b.bcar);return c&&!c.dead&&c.owner===b.owner&&(c.breadB===b.id||(c.order&&c.order.type==='bread'&&c.order.bk===b.id))?c:null;}
 function breadDrop(o,amt,at){const Q=G.players[o],a=amt*(o===1?G.aiMult:1);Q.f+=a;inc(o,'f',amt,'bakery');if(o===0&&at&&V0(at))G.fx.push({type:'float',x:at.x,y:at.y-34,t:1.6,text:'+'+Math.round(a)+' food',col:'#9fd07a'});}
 function breadSend(b){if(breadCarrier(b))return;b.bcar=0;const dst=breadDst(b);if(!dst)return;b.dT=G.t;
-  let d=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.innD||u.penned||u.asgV||u.breadB||u.flourC||(u.order&&!u.order.auto))continue;
+  let d=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.innD||u.penned||u.asgV||u.pubD||u.breadB||u.flourC||(u.order&&!u.order.auto))continue;
     if(u.bake&&(u.bake!==b.id||u.leg!=='home'))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q-(u.bake===b.id?1e6:0)+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;d=u;}}
   if(d){if(d.bake!==b.id){const v=d.buddy&&G.byId.get(d.buddy);if(v&&v.donkey===d.id)v.donkey=0;d.buddy=0;d.home=0;}d.order=null;d.path=null;d.breadB=b.id;d.breadC=0;d.bto=dst.id;d.bleg='load';d.bnf=0;b.bcar=d.id;return;}
   if(b.gar&&b.gar.length){const u=b.gar.shift();release(b,u);u.sheltered=false;u.breadC=b.fstock;b.fstock=0;bEv(b,'trip');u.order={type:'bread',bk:b.id,to:dst.id};u.path=null;b.bcar=u.id;return;}
@@ -1117,7 +1117,7 @@ function pubTick(b,dt){const n=b.gar?b.gar.length:0,P=G.players[b.owner];b.beer=
   if(b.trip){const t=b.trip;t.t+=dt;if(t.t>=t.dur){b.grain+=t.amt;b.trip=null;}}
   else if(b.grain<20){let m=null,md=15*TILE;for(const e of G.ents)if(e.type==='mill'&&e.owner===b.owner&&e.built&&!e.dead&&((e.grain||0)+(e.flour||0))>=6){const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<md){md=d;m=e;}}
     if(m){const take=Math.min(24,(m.grain||0)+(m.flour||0));let r=take;const g1=Math.min(r,m.grain||0);m.grain-=g1;r-=g1;m.flour=(m.flour||0)-r;b.barley=useOf(m)==='barley';b.trip={fx:m.x,fy:m.y+10,amt:take,t:0,dur:Math.max(2,md/60),cargo:'grain'};}}
-  if(n&&b.beer<40){const need=4*n*dt/15*(b.barley?1/1.5:1);if(b.grain>=need){b.grain-=need;b.beer=Math.min(40,b.beer+n*dt/15);b.working=true;}else b.stall='Waiting for grain from a windmill';}
+  if(n&&b.beer<40){const need=4*n*dt/15*(b.barley?1/1.5:1);if(b.grain>=need){b.grain-=need;b.beer=Math.min(40,b.beer+n*dt/15);b.working=true;}else b.stall=G.ents.some(d=>d.type==='donkey'&&d.pubD===b.id&&!d.dead)?'A pack donkey is bringing beer or grain':'Waiting for grain: a windmill within 15 tiles, or send a pack donkey (select it, tap this pub)';}
   if(b.beer>15&&expAt(b,'beer',Math.min(b.beer-15,dt*.5)))b.beer-=Math.min(b.beer-15,dt*.5);
   b.scanT=(b.scanT||0)-dt;if(b.scanT<=0){b.scanT=2;const busy=G.ents.filter(u=>u.order&&u.order.type==='pub'&&u.order.id===b.id).length;let free=6-busy,rd=readyAt(b).length;
     for(const u of G.ents){if(u.owner!==b.owner||u.type!=='villager'||u.dead||u.order||u.shep)continue;if(Math.hypot(u.x-b.x,u.y-b.y)>12*TILE)continue;
@@ -1129,7 +1129,7 @@ function innPub(b,min){let best=null,bd=1e9;for(const e of G.ents)if(e.type==='p
 function innDonkeyOf(b){const d=b.donk&&G.byId.get(b.donk);return d&&!d.dead&&d.owner===b.owner&&d.innD===b.id?d:null;}
 function innSupply(b,dt){if(!b.built)return;let d=innDonkeyOf(b);if(!d)b.donk=0;if(d)return;b.dscan=(b.dscan||0)-dt;if(b.dscan>0)return;b.dscan=3;
   if((b.beer||0)>=8||!innPub(b,2))return;let best=null,bs=1e9;
-  for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.bake||u.innD||u.penned||u.asgV||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>70*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
+  for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.bake||u.innD||u.penned||u.asgV||u.pubD||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>70*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
   if(!best){if(b.owner===0&&G.t-(b.noDk||-99)>90){b.noDk=G.t;toast('Your roadside inn needs a pack donkey to bring beer from the pub. Train one at the ranch');}return;}
   const v=best.buddy&&G.byId.get(best.buddy);if(v&&v.donkey===best.id)v.donkey=0;best.buddy=0;best.home=0;best.order=null;best.path=null;best.innD=b.id;best.ileg='home';best.beerC=0;b.donk=best.id;}
 function donkeyInn(u,dt){const b=G.byId.get(u.innD);
@@ -1160,7 +1160,7 @@ function bakeRunner(b){const r=b.runner&&G.byId.get(b.runner);return r&&!r.dead&
 function bakeryHaul(b,dt){b.flour=b.flour||0;if(b.trip){const t=b.trip;t.t+=dt;if(t.t>=t.dur){b.flour+=t.amt;b.trip=null;}return;}
   {const cm=chuteMill(b);b.chute=cm?cm.id:0;if(cm){const dk=bakeDonkey(b);if(dk){if(dk.flourC){b.flour+=dk.flourC;dk.flourC=0;}dk.bake=0;dk.leg=0;}b.donk=0;b.runner=0;const a=Math.min(cm.flour||0,Math.max(0,80-b.flour),20*dt);if(a>0){cm.flour-=a;b.flour+=a;}return;}}
   let d=bakeDonkey(b);if(!d)b.donk=0;
-  if(!d){b.dscan=(b.dscan||0)-dt;if(b.dscan<=0){b.dscan=2;let best=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.bake||u.innD||u.penned||u.asgV||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
+  if(!d){b.dscan=(b.dscan||0)-dt;if(b.dscan<=0){b.dscan=2;let best=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.bake||u.innD||u.penned||u.asgV||u.pubD||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
     if(best){const v=best.buddy&&G.byId.get(best.buddy);if(v&&v.donkey===best.id)v.donkey=0;best.buddy=0;best.order=null;best.path=null;best.bake=b.id;best.leg='home';best.flourC=0;b.donk=best.id;d=best;}}}
   if(d){b.runner=0;return;}
   if(!bakeRunner(b))b.runner=0;
@@ -1536,6 +1536,7 @@ function updUnit(u,dt){
         if(v>bv&&!G.ents.some(c=>c!==u&&(c.type==='caravan'||c.type==='tradecart')&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
       if(best){u.cv={leg:'load',id:best.id};u.path=null;return;}}if(!TCv)return;}}
   if(u.type==='donkey'&&u.owner<2&&u.breadB&&donkeyBread(u,dt))return;
+  if(u.type==='donkey'&&u.owner<2&&u.pubD&&donkeyPub(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&u.innD&&donkeyInn(u,dt))return;
   if(u.type==='donkey'&&u.owner<2&&u.bake&&donkeyBake(u,dt))return;
   if(u.type==='donkey'&&u.owner===0&&u.asgV&&!u.raise){if(u.order&&!u.order.auto)u.asgV=0;else{const v=G.byId.get(u.asgV);if(!v||v.dead||v.owner!==0)u.asgV=0;else{v.donkey=u.id;u.buddy=v.id;v.idleT=0;u.scan=(u.scan||0)-dt;const d=Math.hypot(v.x-u.x,v.y-u.y);
@@ -8394,15 +8395,40 @@ try{enqueue=(function(prev){return function(b,k){if(k==='donkey'&&b.owner===0&&d
 function donkFree(u){if(u.innD){const b=G.byId.get(u.innD);if(b&&b.donk===u.id){b.donk=0;if(u.beerC)b.beer=(b.beer||0)+u.beerC;}}u.innD=0;u.ileg=0;u.beerC=0;
   if(u.bake){const b=G.byId.get(u.bake);if(b&&b.donk===u.id)b.donk=0;if(u.flourC&&b&&!b.dead)b.flour=(b.flour||0)+u.flourC;}u.bake=0;u.leg=0;u.flourC=0;
   if(u.breadB){const b=G.byId.get(u.breadB);if(b&&!b.dead){if(u.breadC)b.fstock=(b.fstock||0)+u.breadC;if(b.bcar===u.id)b.bcar=0;}}u.breadB=0;u.breadC=0;u.bleg=0;
+  if(u.pubD){const b=G.byId.get(u.pubD);if(b&&!b.dead&&u.pcar){if(u.pcar.k==='beer')b.beer=(b.beer||0)+u.pcar.a;else b.grain=(b.grain||0)+u.pcar.a;}}u.pubD=0;u.pleg=0;u.psrc=0;if(u.pcar){u.beerC=0;u.flourC=0;}u.pcar=null;
   const v=u.buddy&&G.byId.get(u.buddy);if(v&&v.donkey===u.id)v.donkey=0;u.buddy=0;u.asgV=0;u.penned=0;u.order=null;u.path=null;}
 try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();
     if(sel.length&&sel.every(u=>u.type==='donkey'&&u.owner===0&&!u.dead&&!u.raise)){const hit=pick(wx,wy);
-      if(hit&&hit.owner===0&&!hit.dead&&(hit.type==='villager'||(hit.type==='inn'&&hit.built)||(hit.type==='bakery'&&hit.built))){const u=sel[0];
+      if(hit&&hit.owner===0&&!hit.dead&&(hit.type==='villager'||(hit.type==='inn'&&hit.built)||(hit.type==='bakery'&&hit.built)||(hit.type==='pub'&&hit.built))){const u=sel[0];
+        if(hit.type==='pub'){const old=G.ents.find(d=>d!==u&&d.type==='donkey'&&d.pubD===hit.id&&!d.dead);if(old)donkFree(old);donkFree(u);u.home=0;u.pubD=hit.id;u.pleg='pick';toast('Pack donkey now brings beer (from another pub) or grain (from a windmill) to this pub');}
+        else 
         if(hit.type==='villager'){const old=G.ents.find(d=>d!==u&&d.type==='donkey'&&d.asgV===hit.id&&!d.dead);if(old)donkFree(old);donkFree(u);u.asgV=hit.id;hit.donkey=u.id;u.buddy=hit.id;toast('Pack donkey now carries for this villager');}
         else if(hit.type==='inn'){const old=innDonkeyOf(hit);if(old&&old!==u)donkFree(old);donkFree(u);u.home=0;u.innD=hit.id;u.ileg='home';u.beerC=0;hit.donk=u.id;toast('Pack donkey now brings beer to this inn');}
         else{const old=bakeDonkey(hit);if(old&&old!==u)donkFree(old);donkFree(u);u.bake=hit.id;u.leg='home';u.flourC=0;hit.donk=u.id;toast('Pack donkey now brings flour to this bakery');}
         if(sel.length>1)toast('One donkey per job: the others stay where they are');mark(hit.x,hit.y,'#ffd25a');panelKeyLast='';return;}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
-try{setSel=(function(prev){return function(a){const r=prev.apply(this,arguments);try{const s=selEnts();if(s.length&&s.every(u=>u.type==='donkey'&&u.owner===0)&&G.t-(G.dkTip||-999)>90){G.dkTip=G.t;toast('Tap a villager, a roadside inn or a bakery to give this donkey a job');}}catch(err){}return r}})(setSel)}catch(err){}
+try{setSel=(function(prev){return function(a){const r=prev.apply(this,arguments);try{const s=selEnts();if(s.length&&s.every(u=>u.type==='donkey'&&u.owner===0)&&G.t-(G.dkTip||-999)>90){G.dkTip=G.t;toast('Tap a villager, a pub, a roadside inn or a bakery to give this donkey a job');}}catch(err){}return r}})(setSel)}catch(err){}
+/* ===== Pack donkey to a pub (Josh, Oct 15: "I can't get a pack donkey to get beer for the Inn that says it needs grain"). That building is a
+   Pub & Inn, which brews its own beer from windmill grain (a windmill within 15 tiles); donkeys only served roadside inns. Now a donkey sent
+   to a pub keeps it stocked: it brings beer from your nearest other pub that has some to spare, otherwise grain from your nearest windmill,
+   any distance. It waits by the pub while the pub is well stocked. ===== */
+function donkeyPub(u,dt){const b=G.byId.get(u.pubD);
+  if(!b||b.dead||b.owner!==u.owner||b.type!=='pub'){donkFree(u);return false;}
+  if(u.order&&!u.order.auto){donkFree(u);return false;}
+  u.order=null;if(u.fz>G.t)return true;
+  if(u.pleg==='go'){const s=G.byId.get(u.psrc);if(!s||s.dead||s.owner!==u.owner){u.pleg='pick';return true;}const r=approach(u,s,TILE*1.1);if(r==='fail'){u.fz=G.t+3;u.pleg='pick';return true;}if(r!==true)return true;
+    u.lw=(u.lw||0)+dt;if(u.lw<1.2)return true;u.lw=0;
+    if(s.type==='pub'){const a=Math.min(12,Math.floor((s.beer||0)-4));if(a<1){u.pleg='pick';return true;}s.beer-=a;u.pcar={k:'beer',a};u.beerC=a;}
+    else{const tot=(s.grain||0)+(s.flour||0),a=Math.min(24,Math.floor(tot));if(a<4){u.pleg='pick';return true;}let r2=a;const g1=Math.min(r2,s.grain||0);s.grain-=g1;r2-=g1;s.flour=(s.flour||0)-r2;u.pcar={k:'grain',a};u.flourC=a;b.barley=typeof useOf==='function'&&useOf(s)==='barley';}
+    u.pleg='home';return true;}
+  if(u.pleg==='home'){if(!u.pcar){u.pleg='pick';return true;}const r=approach(u,b,TILE*1.1);if(r==='fail'){u.fz=G.t+3;return true;}if(r!==true)return true;
+    const c=u.pcar;if(c.k==='beer')b.beer=Math.min(60,(b.beer||0)+c.a);else b.grain=(b.grain||0)+c.a;
+    if(b.owner===0&&G.fx)G.fx.push({type:'float',x:b.x,y:b.y-30,t:1.6,text:'+'+c.a+' '+c.k,col:c.k==='beer'?'#f2c94c':'#e8d9a0'});
+    u.pcar=null;u.beerC=0;u.flourC=0;u.pleg='pick';return true;}
+  if((b.beer||0)>=30||((b.grain||0)>=20&&(b.beer||0)>=8)){if(Math.hypot(u.x-b.x,u.y-b.y)>4*TILE)approach(u,b,TILE*2);return true;}
+  let best=null,bd=1e9;for(const e of G.ents){if(e===b||e.type!=='pub'||e.owner!==u.owner||!e.built||e.dead||(e.beer||0)<10)continue;const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<bd){bd=d;best=e;}}
+  if(!best){for(const e of G.ents){if(e.type!=='mill'||e.owner!==u.owner||!e.built||e.dead||((e.grain||0)+(e.flour||0))<8)continue;const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<bd){bd=d;best=e;}}}
+  if(best){u.psrc=best.id;u.pleg='go';u.lw=0;}else if(Math.hypot(u.x-b.x,u.y-b.y)>4*TILE)approach(u,b,TILE*2);
+  return true;}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
