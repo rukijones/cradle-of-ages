@@ -8823,6 +8823,16 @@ const ATKMOVE={off:false};
 /* Josh (Oct 16): the Medieval castle looked smaller than the town center. Castle footprint 4x4 -> 5x5 (picture scales with size).
    Castles already built in old saves keep their own e.size. */
 try{if(DEF.castle)DEF.castle.size=5}catch(err){}
+/* Josh (Oct 16): with villagers selected, tapping one of your buildings that is still under construction sends them straight to
+   help build it (no extra button). Built buildings keep the old 2-tap flow (tap building, then the send/staff button). */
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place&&!G.mirAim&&!G.strikeN&&!G.reconAim&&!G.prospect&&!G.aground){
+    const sel=selEnts(),vs=sel.filter(u=>u&&u.kind==='unit'&&u.owner===0&&!u.dead&&(u.type==='villager'||u.type==='settler'));
+    if(vs.length){const hit=pick(wx,wy);
+      if(hit&&hit.kind==='bld'&&hit.owner===0&&!hit.dead&&!hit.built){
+        for(const u of vs){u.shep=0;if(u.bq)u.bq=[];orderBuild(u,hit);}
+        const rest=sel.filter(u=>u&&u.kind==='unit'&&u.owner===0&&!vs.includes(u)&&u.type!=='sheep');if(rest.length)orderMove(rest,hit.x,hit.y);
+        mark(hit.x,hit.y,'#ffd25a');toast(vs.length>1?vs.length+' villagers going to help build':'Villager going to help build');return;}}}}catch(err){}
+  return prev.apply(this,arguments)}})(onTap)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
