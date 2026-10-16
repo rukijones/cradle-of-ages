@@ -5143,7 +5143,7 @@ GFX.gpSpr=function(s,soft){const k=s+(soft?'s':'');let c=GFX._gp[k];if(c)return 
     g.translate(rx,ry);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.72,'rgba(0,0,0,.95)');gr.addColorStop(.86,'rgba(0,0,0,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=gr;g.fillRect(-rx,-rx,2*rx,2*rx);c.rx=rx;c.ry=ry;return MK[s]=c}
   const L={c:document.createElement('canvas'),m:document.createElement('canvas'),x:0,y:0,w:0,h:0,z:0,sig:''};
-  const keyOf=e=>{const P=G.players&&G.players[e.owner];return P?GFX.GROUND_AGE[P.age]||null:null};
+  const keyOf=e=>{const P=G.players&&G.players[e.owner];const k=P?GFX.GROUND_AGE[P.age]||null:null;return (k&&GFX.groundKeyOf)?GFX.groundKeyOf(e,k):k};/* gameplay hook (Oct 16, Josh's paving rules) - please keep */
   try{shadowLayer=(function(prev){return function(c){try{if(GFX.mode==='V23D'&&GFX.texReady){
     const z=cam.z,vw=W/z,vh=H/z,vx=cam.x,vy=cam.y,inside=vx>=L.x&&vy>=L.y&&vx+vw<=L.x+L.w&&vy+vh<=L.y+L.h&&Math.abs(L.z-z)<.001;
     const bx=inside?L.x:vx-vw*.4,by=inside?L.y:vy-vh*.4,bw=inside?L.w:vw*1.8,bh=inside?L.h:vh*1.8;const paved=[];let sig='';
@@ -8660,8 +8660,7 @@ let RANCH_OK=new Set(),WCORN=null,WCORN_T=-1;
 function wingCornerMap(){if(WCORN&&G.t-WCORN_T<1)return WCORN;WCORN=new Map();WCORN_T=G.t;for(const W of G.ents){if(W.type!=='dairy'||W.dead||!W.ranch)continue;const n=W.size||4;
   for(let dy=0;dy<n;dy++)for(let dx=0;dx<n;dx++)if(wingCorner(dx,dy,n)){const x=W.tx+dx,y=W.ty+dy;if(inB(x,y))WCORN.set(ti(x,y),W.ranch);}}return WCORN;}
 function ranchAt(x,y){if(!inB(x,y))return 0;const i=ti(x,y),w=G.wocc[i];if(w){const e=G.byId.get(w);if(e&&e.type==='ranch'&&!e.dead)return e.id;}const c=wingCornerMap().get(i);if(c)return c;const o=G.occ[i];if(o){const e=G.byId.get(o);if(e&&e.type==='dairy'&&e.ranch)return e.ranch;}return 0;}
-function walkNR(x,y){if(!walk(x,y))return false;const r=ranchAt(x,y);return !r||RANCH_OK.has(r);}
-function wkFor(u,gx,gy,t){RANCH_OK=new Set();const a=ranchAt(tl(u.x),tl(u.y)),b=ranchAt(gx,gy);if(a)RANCH_OK.add(a);if(b)RANCH_OK.add(b);
+function walkNR(x,y){if(!walk(x,y))return false;if(G.abk&&G.abk[ti(x,y)]&&!(Math.abs(x-WK_GX)<=1&&Math.abs(y-WK_GY)<=1))return false;const r=ranchAt(x,y);return !r||RANCH_OK.has(r);} let WK_GX=-9,WK_GY=-9;function wkFor(u,gx,gy,t){WK_GX=gx;WK_GY=gy;try{abkRefresh()}catch(err){}RANCH_OK=new Set();const a=ranchAt(tl(u.x),tl(u.y)),b=ranchAt(gx,gy);if(a)RANCH_OK.add(a);if(b)RANCH_OK.add(b);
   if(t){if(t.type==='ranch')RANCH_OK.add(t.id);if(t.type==='dairy'&&t.ranch)RANCH_OK.add(t.ranch);if(t.type==='pen'&&t.sranch)RANCH_OK.add(t.sranch);}
   if(u.shep)RANCH_OK.add(u.shep);if(u.dairyId)RANCH_OK.add(u.dairyId);if(u.home)RANCH_OK.add(u.home);return walkNR;}
 /* ===== Keep / Guard tower look on towers joined to walls (Josh, Oct 15: "the keep isn't updating to the newer version. Even i built a new
@@ -8925,6 +8924,36 @@ try{if(typeof GFX!=='undefined'){
 /* Josh (Oct 16): after 6 coops merge into a poultry yard, the old coops' flags kept waving in mid-air. A coop that is part of a
    yard drawn as one picture (GFX.yardPic) no longer runs the moving-cloth pass; the yard picture keeps its own flag. */
 try{if(typeof GFX!=='undefined'&&GFX.wvOn){const _wv=GFX.wvOn;GFX.wvOn=function(e){if(e&&e.type==='coop'&&e.yard&&GFX.yardPic&&GFX.yardPic())return false;return _wv.apply(this,arguments)}}}catch(err){}
+/* Josh (Oct 16): "make it so a person can't walk under the back right corner of the new castle. Many of the buildings are like that."
+   The painted 45-degree buildings are wider than their square plot, so their back corners hang over free tiles. G.abk marks the free tiles
+   that lie under a building's painted base (outside the plot; the row in front of the plot and the tiles next to a unit's goal stay open); unit paths
+   (walkNR) avoid them, except right next to the unit's own goal. The base is read from each picture: its lowest painted pixel per column
+   is the front edge, mirrored about the side corners for the back edge. */
+const ABK_SKIP=new Set(['farm','wall','gate','ranch','pen','corral','dock','pylon','outpost']);const ABK_PROF=new WeakMap();let ABK_SIG='';
+function abkProfile(sp){let P=ABK_PROF.get(sp);if(P!==undefined)return P;P=null;try{const W=sp.width,H=sp.height;if(W>0&&H>0){const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(sp,0,0);
+    const d=g.getImageData(0,0,W,H).data,low=new Float32Array(W).fill(-1);let x0=W,x1=-1;
+    for(let x=0;x<W;x++){for(let y=H-1;y>=0;y--){if(d[(y*W+x)*4+3]>110){low[x]=y;break}}if(low[x]>=0){if(x<x0)x0=x;if(x>x1)x1=x}}
+    if(x1>x0){const k=Math.max(2,Math.round((x1-x0)*.12));let cl=-1,cr=-1;for(let x=x0;x<=x0+k;x++)cl=Math.max(cl,low[x]);for(let x=x1-k;x<=x1;x++)cr=Math.max(cr,low[x]);P={low,x0,x1,yc:(cl+cr)/2,W,H}}}}catch(err){P=null}
+  ABK_PROF.set(sp,P);return P}
+function abkRefresh(){if(!G||!G.ents)return;let sig='',n=0;for(const e of G.ents)if(e.kind==='bld'&&!e.dead&&e.built){n++;sig+=e.id+(e.size||0)+',';}sig=n+':'+(G.players[0]&&G.players[0].age)+':'+(G.players[1]&&G.players[1].age)+':'+sig.length+':'+sig.slice(-60);
+  if(sig===ABK_SIG&&G.abk)return;ABK_SIG=sig;const A=G.abk&&G.abk.length===MW*MH?G.abk:(G.abk=new Uint8Array(MW*MH));A.fill(0);
+  if(typeof GFX==='undefined'||GFX.mode!=='V23D'||GFX.ABK===false)return;
+  for(const e of G.ents){if(e.kind!=='bld'||e.dead||!e.built||ABK_SKIP.has(e.type)||e.yard)continue;let sp=null;try{sp=bldSpr0(e)}catch(err){}if(!sp||!sp.w||!sp.width)continue;
+    const P=abkProfile(sp);if(!P)continue;const s=e.size||DEF[e.type].size||2,sc=sp.w/P.W,X0=e.tx*TILE-(sp.dx||0),Y0=e.ty*TILE-(sp.ov||0),midY=(e.ty+s*.5)*TILE;
+    for(let ty=e.ty-3;ty<e.ty+s;ty++)for(let tx=e.tx-3;tx<e.tx+s+3;tx++){if(!inB(tx,ty))continue;if(tx>=e.tx&&tx<e.tx+s&&ty>=e.ty&&ty<e.ty+s)continue;
+      const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE;const px=Math.round((cx-X0)/sc);if(px<=P.x0||px>=P.x1)continue;const lo=P.low[px];if(lo<0)continue;
+      const yl=Y0+lo*sc,yb=Y0+(2*P.yc-lo)*sc;if(cy<yl-6&&cy>yb+6)A[ti(tx,ty)]=1}}}
+
+/* draw order beside wide buildings: a unit standing next to a building's plot but in front of that building's painted base (e.g. just
+   right of the castle's right tower) is drawn over the building instead of being covered by it, so nobody looks like they are under it. */
+let ZB_T=-1,ZB=[];
+function zbList(){const now=performance.now();if(now-ZB_T<250)return ZB;ZB_T=now;ZB=[];if(typeof GFX==='undefined'||GFX.mode!=='V23D')return ZB;
+  for(const e of G.ents){if(e.kind!=='bld'||e.dead||ABK_SKIP.has(e.type)||DEF[e.type].walkable)continue;if(e.x<cam.x-260||e.y<cam.y-260||e.x>cam.x+W/cam.z+260||e.y>cam.y+H/cam.z+360)continue;let sp=null;try{sp=bldSpr0(e)}catch(err){}if(!sp||!sp.w||!sp.width)continue;
+    const P=abkProfile(sp);if(!P)continue;const s=e.size||DEF[e.type].size||2;ZB.push({e,P,sc:sp.w/P.W,X0:e.tx*TILE-(sp.dx||0),Y0:e.ty*TILE-(sp.ov||0),fx0:e.tx*TILE,fx1:(e.tx+s)*TILE,key:(e.ty+s)*TILE-2})}
+  return ZB}
+try{zOverOf=(function(prev){return function(e){const r=prev(e);if(r||!e||e.kind!=='unit'||e.air||e.naval)return r;let best=0;try{
+  for(const B of zbList()){if(e.y>=B.key||e.y<B.Y0)continue;if(e.x>=B.fx0&&e.x<=B.fx1)continue;const px=Math.round((e.x-B.X0)/B.sc);if(px<B.P.x0||px>B.P.x1)continue;const lo=B.P.low[px];if(lo<0)continue;
+    if(e.y>=B.Y0+lo*B.sc-3&&B.key+1>best)best=B.key+1}}catch(err){}return best||r}})(zOverOf)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
