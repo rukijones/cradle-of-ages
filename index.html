@@ -8447,12 +8447,12 @@ function wkFor(u,gx,gy,t){RANCH_OK=new Set();const a=ranchAt(tl(u.x),tl(u.y)),b=
 try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='tower'&&e.owner<2&&GFX.mode==='V23D'&&GFX.towerTierSpr&&GFX.wallTower){try{if(GFX.wallTower(e)){const s=GFX.towerTierSpr(e.owner,e.size||2);if(s)return s;}}catch(err){}}return prev(e)}})(bldSpr0)}catch(err){}
 /* ===== Building scale, interim (Josh, Oct 15: "make sure that the buildings are not too small compared to the people ... and that the doors
    are big enough"; Medieval is the standard; his pick: enlarge now, art chats repaint later). The pictures below were drawn small next to
-   villagers (doors 0.5-0.8x a villager vs ~1.1-1.4x in the Medieval Age). They are drawn bigger on the same plot, grown from the middle of the
-   plot's bottom edge, so they still stand on their tiles. Remove an entry when its repaint lands. GFX.SCALEFIX=false turns it off. ===== */
+   villagers (doors 0.5-0.8x a villager vs ~1.1-1.4x in the Medieval Age). They are drawn bigger on the same plot, grown upward from the picture's own
+   ground line (Oct 16), so bases stay on the ground. Remove an entry when its repaint lands. GFX.SCALEFIX=false turns it off. ===== */
 const SCALEFIX={1:{house:1.2},2:{house:1.15,storage:1.25},3:{house:1.08},5:{storage:1.15}};
 try{(function(){const C=new WeakMap();
   function grow(s,k,S){let m=C.get(s);if(!m){m={};C.set(s,m);}const key=k+'_'+S;if(m[key])return m[key];const c=document.createElement('canvas');c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);
-    for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;c.ov=-S+(S+ov)*k;c._scaled=k;return m[key]=c;}
+    for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;/* Josh (Oct 16): grown from the picture's own ground line (its lowest painted row), not the plot's edge, so a base or plinth stays on the ground where it was and the picture grows only upward and sideways */let by=s.h;try{const g=s.getContext('2d'),d=g.getImageData(0,0,s.width,s.height).data;let r=s.height-1;outer:for(;r>=0;r--){for(let x=0;x<s.width;x++)if(d[(r*s.width+x)*4+3]>60)break outer;}by=(r+1)/s.height*s.h;}catch(err){}c.ov=ov+by*(k-1);c._scaled=k;return m[key]=c;}
   bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(!s||!s.w||!e||e.owner>1||GFX.SCALEFIX===false||GFX.mode!=='V23D')return s;const a=G.players[e.owner].age,f=SCALEFIX[a]&&SCALEFIX[a][e.type];if(!f)return s;
       if(e.type==='house'&&e.mgrp)return s;return grow(s,f,(e.size||DEF[e.type].size)*TILE);}catch(err){return s}}})(bldSpr0);
 })()}catch(err){}
