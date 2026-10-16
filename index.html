@@ -786,7 +786,7 @@ function approach(u,t,R){
   u.repath-=STEP;
   if(!u.path||!u.path.length||(t.kind==='unit'&&u.repath<=0&&(u.ptx!==ttx||u.pty!==tty))){
     if(G.pathBudget<=0){if(u.path&&u.path.length)follow(u,STEP);return false;}G.pathBudget--;
-    const far=Math.hypot(t.x-u.x,t.y-u.y)>28*TILE;WK=u.naval?wwalk:wkFor(u,ttx,tty,t);ASTAR_LIM=u.type==='tradecart'?160000:24000;PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>distPtEnt((x+.5)*TILE,(y+.5)*TILE,t)<=R,ttx,tty,far&&u.type!=='tradecart');PASSO=-1;ASTAR_LIM=24000;WK=walk;
+    const far=Math.hypot(t.x-u.x,t.y-u.y)>28*TILE;WK=u.naval?wwalk:wkFor(u,ttx,tty,t);ASTAR_LIM=u.type==='tradecart'?160000:24000;PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>distPtEnt((x+.5)*TILE,(y+.5)*TILE,t)<=R,ttx,tty,far&&u.type!=='tradecart');u.path=gateFix(u,u.path);PASSO=-1;ASTAR_LIM=24000;WK=walk;
     u.ptx=ttx;u.pty=tty;u.repath=.6;
     if(!u.path)return 'fail';if(far&&u.path.length<2){u.path=null;return 'fail';}
   }
@@ -1609,7 +1609,7 @@ function updUnit(u,dt){
     return;
   }
   if(o.type==='move'){
-    if(!u.path){if(G.pathBudget<=0)return;G.pathBudget--;WK=u.naval?wwalk:wkFor(u,o.x,o.y,null);PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>x===o.x&&y===o.y,o.x,o.y,true);PASSO=-1;WK=walk;if(!u.path){u.order=null;return;}}
+    if(!u.path){if(G.pathBudget<=0)return;G.pathBudget--;WK=u.naval?wwalk:wkFor(u,o.x,o.y,null);PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>x===o.x&&y===o.y,o.x,o.y,true);u.path=gateFix(u,u.path);PASSO=-1;WK=walk;if(!u.path){u.order=null;return;}}
     if(follow(u,dt)){if(o.face!==undefined)u.face=o.face;u.order=null;}
     return;
   }
@@ -8074,7 +8074,11 @@ function ranchZone(b,k){const L=rSpots(b,k||'s');if(L){let x0=1e9,y0=1e9,x1=-1e9
   if(k==='c'){const Z=rZone(b,'c'),S=rZone(b,'s');return [Math.min(Z[0],S[0]),Math.min(Z[1],S[1]),Math.max(Z[2],S[2]),Math.max(Z[3],S[3])];}
   const W=swingOf(b);if(W&&W.built){const Z=[W.tx+.45,W.ty+.45,W.tx+2.55,W.ty+2.55];Z.w=W;return Z;}return [-60,-60,-60,-60];}
 const SW_OFF=(()=>{const L=[];for(let d=-2;d<=4;d++)L.push([5,d],[d,5],[-3,d],[d,-3]);return L;})();
-function swOff(R){const S=(R&&R.size)||5,L=[];for(let d=-2;d<=S-1;d++)L.push([S,d],[d,S],[-3,d],[d,-3]);return L;}
+function swOff(R){const S=(R&&R.size)||5,L=[];let art=false;try{art=typeof GFX!=='undefined'&&GFX.ranch8&&GFX.ranch8();}catch(err){}
+  /* 7x7 ranch art (Oct 15): the barn and hut fill the back and right, the open pasture is the left half, so the sheep fold goes on the
+     left side, or the left half of the top / bottom sides (its lane then meets the pasture instead of running behind the barn) */
+  if(art){for(let d=-2;d<=S-1;d++){L.push([-3,d]);if(d<=S/2-2)L.push([d,-3],[d,S]);}}else for(let d=-2;d<=S-1;d++)L.push([S,d],[d,S],[-3,d],[d,-3]);
+  const px=-1.5,py=S/2-1.5;return L.sort((a,b)=>Math.hypot(a[0]-px,a[1]-py)-Math.hypot(b[0]-px,b[1]-py));}
 function swingWhy(R,tx,ty,o,needExp){if(!R||R.dead||!R.built)return 'Build it at a finished ranch';if(!swOff(R).some(q=>R.tx+q[0]===tx&&R.ty+q[1]===ty))return 'The sheep wing joins the ranch on one of its sides';
   const D=R.wing&&G.byId.get(R.wing);if(D&&!D.dead&&tx<D.tx+D.size&&tx+3>D.tx&&ty<D.ty+D.size&&ty+3>D.ty)return 'The dairy wing is in the way';
   for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){const x=tx+dx,y=ty+dy;if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);
@@ -8574,6 +8578,23 @@ const AIECO={off:false};
   };
 }
 /* ===== END computer economy fixes ===== */
+/* ===== In and out of a ranch only through its gates (Josh, Oct 15: "People can still walk through the ranch. They don't follow the gates").
+   When a path starts outside a ranch's fence and ends inside it (or the other way round), it is rebuilt: walk (round the outside) to the
+   nearest gate, through the gate, then on. Gates: the main gate, the lower-left opening when the dairy wing is on the left, and the sheep
+   fold's opening. Moving about inside the fence is unchanged. ===== */
+function inPolyG(P,x,y){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
+function ranchFence(R){try{if(typeof GFX==='undefined'||!GFX.ranch8||!GFX.ranch8()||!GFX.ranch8Pt)return null;const P=[[35,465],[480,710],[990,450],[505,215]].map(p=>GFX.ranch8Pt(R,p[0],p[1]));if(P.some(p=>!p))return null;
+  const cx=(P[0][0]+P[2][0])/2,cy=(P[1][1]+P[3][1])/2;return P.map(([x,y])=>[cx+(x-cx)*.94,cy+(y-cy)*.94]);}catch(err){return null}}
+function ranchGatePts(R){const L=[];try{for(const g of rGates(R)||[])L.push({i:[g.i[0]*TILE,g.i[1]*TILE],o:[g.o[0]*TILE,g.o[1]*TILE]});}catch(err){}
+  try{const S=R.swing&&G.byId.get(R.swing);if(S&&!S.dead&&S.built&&GFX.swRoute){const r=GFX.swRoute(S,bldSpr(R));if(r&&r.P&&r.P.length>1)L.push({i:r.P[0],o:r.P[1]});}}catch(err){}return L;}
+function gateFix(u,path){try{if(!path||!path.length||u.naval||u.air)return path;const E=path[path.length-1];
+  for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built)continue;if(Math.min(Math.hypot(u.x-R.x,u.y-R.y),Math.hypot(E.x-R.x,E.y-R.y))>R.size*TILE)continue;
+    const F=ranchFence(R);if(!F)continue;const sIn=inPolyG(F,u.x,u.y),eIn=inPolyG(F,E.x,E.y);if(sIn===eIn)continue;const Gs=ranchGatePts(R);if(!Gs.length)continue;
+    const out=(x,y)=>walk(x,y)&&!inPolyG(F,(x+.5)*TILE,(y+.5)*TILE),pathTo=(sx,sy,gx,gy)=>{const w0=WK;WK=out;const p=astar(sx,sy,(x,y)=>x===gx&&y===gy,gx,gy,true);WK=w0;return p||[]};
+    if(!sIn){let g=Gs[0],bd=1e9;for(const q of Gs){const d=Math.hypot(q.o[0]-u.x,q.o[1]-u.y)+Math.hypot(q.i[0]-E.x,q.i[1]-E.y);if(d<bd){bd=d;g=q;}}
+      const p=pathTo(tl(u.x),tl(u.y),tl(g.o[0]),tl(g.o[1]));return p.concat([{x:g.o[0],y:g.o[1]},{x:g.i[0],y:g.i[1]},{x:E.x,y:E.y}]);}
+    let g=Gs[0],bd=1e9;for(const q of Gs){const d=Math.hypot(q.i[0]-u.x,q.i[1]-u.y)+Math.hypot(q.o[0]-E.x,q.o[1]-E.y);if(d<bd){bd=d;g=q;}}
+    const p=pathTo(tl(g.o[0]),tl(g.o[1]),tl(E.x),tl(E.y));return [{x:g.i[0],y:g.i[1]},{x:g.o[0],y:g.o[1]}].concat(p);}}catch(err){}return path;}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -9236,7 +9257,7 @@ $('panel').addEventListener('click',e=>{
   if(act==='rhadd'&&one&&isPen(one)){const R=penLead(one);toast(addHand(R)?'An idle villager is on the way to be a ranch hand':G.ents.filter(e=>e.shep===R.id&&!e.dead).length>=RHAND_MAX?'The ranch has '+RHAND_MAX+' ranch hands already':'No idle villager. Select a villager, then tap the ranch to make them a ranch hand');panelKeyLast='';return;}
   if(act==='rhrem'&&one&&isPen(one)){const R=penLead(one),hs=G.ents.filter(e=>e.shep===R.id&&!e.dead);if(hs.length){const u=hs.sort((a,b)=>Math.hypot(b.x-R.x,b.y-R.y)-Math.hypot(a.x-R.x,a.y-R.y))[0];u.shep=0;u.order=null;u.path=null;toast('Ranch hand released');}panelKeyLast='';return;}
   if(act==='mir'){const Pm=G.players[0];if(!Pm.mirReady){toast('The Miracle is not ready yet');return;}if(arg==='storm'){G.mirAim='storm';toast('Tap where the storm should strike');return;}castMiracle(0,arg);panelKeyLast='';return;}
-  if(act==='mkswing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.pen.cost)){toast(shortMsg?shortMsg(DEF.pen.cost):'Not enough wood');return;}const p={type:'pen',tx:one.tx+one.size,ty:one.ty+1,swing:one.id};G.place=p;swingSnap(p);if(swingWhy(one,p.tx,p.ty,0,true))toast('No room beside the ranch: clear the trees, rocks or buildings next to it');panelKeyLast='';return;}
+  if(act==='mkswing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.pen.cost)){toast(shortMsg?shortMsg(DEF.pen.cost):'Not enough wood');return;}const p={type:'pen',tx:one.tx-3,ty:one.ty+Math.floor(one.size/2)-1,swing:one.id};G.place=p;swingSnap(p);if(swingWhy(one,p.tx,p.ty,0,true))toast('No room beside the ranch: clear the trees, rocks or buildings next to it');panelKeyLast='';return;}
   if(act==='swingb'&&one&&one.type==='ranch'){const W=one.swing&&G.byId.get(one.swing);if(W&&!W.built){const n=wingBuilders(W,2);toast(n?n+' villagers sent to build the sheep wing':'No free villagers');}panelKeyLast='';return;}
   if(act==='mksteam'&&one&&one.type==='bakery'){const pr=mgBakery(one);if(!pr){toast('Build a second bakery first');return;}beginMerge('steam',[one,pr]);panelKeyLast='';return;}
   if(act==='steamb'&&one){const a=one.mergeJob?one:G.byId.get(one.mergeWait);if(a&&a.upT>0){sendBuilder(a);toast('Builder sent');}panelKeyLast='';return;}
