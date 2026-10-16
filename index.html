@@ -8867,6 +8867,9 @@ try{if(typeof GFX!=='undefined'){
     return cSet};
   GFX.groundKeyOf=function(e,k){try{if(GFX.GP_DIRT.has(e.type))return null;return clustered().has(e.id)?k:null}catch(err){return k}};
 }}catch(err){}
+/* Josh (Oct 16): after 6 coops merge into a poultry yard, the old coops' flags kept waving in mid-air. A coop that is part of a
+   yard drawn as one picture (GFX.yardPic) no longer runs the moving-cloth pass; the yard picture keeps its own flag. */
+try{if(typeof GFX!=='undefined'&&GFX.wvOn){const _wv=GFX.wvOn;GFX.wvOn=function(e){if(e&&e.type==='coop'&&e.yard&&GFX.yardPic&&GFX.yardPic())return false;return _wv.apply(this,arguments)}}}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
