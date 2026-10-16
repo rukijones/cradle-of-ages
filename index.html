@@ -2310,7 +2310,7 @@ function aiFoundTown(o,st){
 function aiBuild(type,near,vills,r0,o){
   const P=G.players[o],d=DEF[type];if(!canAfford(P,d.cost)||!vills.length||(d.age||0)>P.age)return false;
   const cx=tl(near.x),cy=tl(near.y),s=d.size;let spot=null;
-  for(let r=r0;r<=(d.size>=3?20:15)&&!spot;r++)for(let dy=-r;dy<=r&&!spot;dy++)for(let dx=-r;dx<=r&&!spot;dx++){
+  for(let r=r0;r<=(d.size>=5?26:d.size>=3?20:15)&&!spot;r++)for(let dy=-r;dy<=r&&!spot;dy++)for(let dx=-r;dx<=r&&!spot;dx++){
     if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const tx=cx+dx-(s>>1),ty=cy+dy-(s>>1);if(placeOK(type,tx,ty,o,false,(type==='goldmine'||type==='stonemine'||type==='dock'||type==='towncenter')?0:1))spot={x:tx,y:ty};
   }
   if(!spot)return false;
@@ -8819,6 +8819,9 @@ const ATKMOVE={off:false};
     return r;};
 }
 /* ===== END attack-move ===== */
+/* Josh (Oct 16): the Medieval castle looked smaller than the town center. Castle footprint 4x4 -> 5x5 (picture scales with size).
+   Castles already built in old saves keep their own e.size. */
+try{if(DEF.castle)DEF.castle.size=5}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
