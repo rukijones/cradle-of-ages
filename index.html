@@ -6899,9 +6899,16 @@ try{(function(){
    her table, walk back in, wait inside. The two are offset by half a cycle. Steins she sets down stay on the table for a few seconds. ===== */
 (function(){const M={"fw": 113, "fh": 128, "seg": {"carry": [0, 12], "set": [12, 11], "walk": [23, 12]}, "g": [{"foot": 115.1, "bodyH": 88.3}, {"foot": 115.0, "bodyH": 95.9}]};let AT=null,ati=null;
   function aload(){if(ati)return;ati=new Image();ati.onload=()=>{AT=ati};ati.onerror=()=>{setTimeout(()=>{ati=null},5000)};ati.src=GFX.ART+'a1_bmaid.webp?v='+GFX.ARTV}
-  const RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]],T=16;
+  const RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]];
   // pub image px: door step, serve spot (feet), table-top spot for the set-down steins, far = behind the table (drawn before the table overlay)
-  const R=[{door:[244,380],serve:[196,392],top:[150,348],far:0},{door:[250,384],serve:[268,414],top:[292,446],far:1}];
+  /* Josh (Oct 15): walk around outside more: door -> side of the pub -> stand a moment -> round the tables -> set the steins down ->
+     back in the front door -> out again with a fresh load. Route points in pub image px; V = walking speed (image px / s). */
+  const V=42,R=[{out:[[244,380],[205,424],[80,430]],round:[[80,430],[140,450],[196,394]],back:[[196,394],[244,380]],top:[150,348]},
+               {out:[[250,384],[322,404],[440,458]],round:[[440,458],[412,502],[352,470]],back:[[352,470],[322,410],[250,384]],top:[292,446]}];
+  const PAUSE=1.6,SET=2.6,INSIDE=3;
+  const plen=P=>{let L=0;for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return L};
+  const at=(P,d)=>{for(let i=1;i<P.length;i++){const l=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);if(d<=l||i===P.length-1){const u=Math.min(1,d/(l||1));return {p:[P[i-1][0]+(P[i][0]-P[i-1][0])*u,P[i-1][1]+(P[i][1]-P[i-1][1])*u],dx:P[i][0]-P[i-1][0],dy:P[i][1]-P[i-1][1]}}d-=l}return {p:P[P.length-1],dx:1,dy:0}};
+  const TM=R.map(r=>{const a=plen(r.out)/V,b=plen(r.round)/V,c=plen(r.back)/V;return {a,b,c,T:a+PAUSE+b+SET+c+INSIDE}});
   const dir8=(dx,dy)=>((Math.round(Math.atan2(dy,dx)/(Math.PI/4))%8)+8)%8;
   function frame(c,gi,seg,k,d,x,y){const S=M.seg[seg],[row,mir]=RM[d],fw=M.fw,fh=M.fh,sc=23.5/92,w=fw*sc,h=fh*sc,g=M.g[gi];
     c.fillStyle='rgba(15,20,8,.26)';c.beginPath();c.ellipse(x,y+5.4,7,2.3,0,0,7);c.fill();
@@ -6909,12 +6916,15 @@ try{(function(){
     if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(AT,sx,sy,fw,fh,-w/2,y+5.6-g.foot*sc,w,h)}else c.drawImage(AT,sx,sy,fw,fh,x-w/2,y+5.6-g.foot*sc,w,h);c.restore()}
   function steins(c,x,y,a){c.save();c.globalAlpha=a;for(const [ox,oy] of [[-4,-1],[-1.3,-2],[1.4,-1],[4,-2],[-2.6,1],[2.6,1]]){const px=x+ox,py=y+oy;
       c.fillStyle='#3a4f8f';c.fillRect(px-1.1,py-2.6,2.2,2.6);c.fillStyle='#8c8f90';c.fillRect(px-1.1,py-.5,2.2,.5);c.fillStyle='#f3ead0';c.beginPath();c.ellipse(px,py-2.7,1.3,.7,0,0,7);c.fill()}c.restore()}
-  function plan(b,now,gi){const t=((now/1000+gi*T/2+(b.id||0)*1.7)%T),r=R[gi],P=(ix,iy)=>GFX.pubPt(b,ix,iy),D=P(...r.door),S=P(...r.serve);
-    const lerp=(u)=>[D[0]+(S[0]-D[0])*u,D[1]+(S[1]-D[1])*u];
-    if(t<3){const u=t/3,p=lerp(u);return {p,seg:'carry',k:Math.floor((t/.875%1)*12),d:dir8(S[0]-D[0],S[1]-D[1]),far:r.far&&u>.7,tab:0}}
-    if(t<5.6){const u=(t-3)/2.6;return {p:S,seg:'set',k:Math.min(10,Math.floor(u*11)),d:dir8(...(()=>{const q=P(...r.top);return [q[0]-S[0],q[1]-S[1]]})()),far:r.far,tab:u>.85?1:0}}
-    if(t<8.6){const u=(t-5.6)/3,p=lerp(1-u);return {p,seg:'walk',k:Math.floor((t/1.1667%1)*12),d:dir8(D[0]-S[0],D[1]-S[1]),far:r.far&&u<.3,tab:1}}
-    return {p:null,tab:t<11.5?1:0,ta:t<11.5?Math.min(1,(11.5-t)/1):0}}
+  function plan(b,now,gi){const r=R[gi],m=TM[gi],T=m.T;let t=((now/1000+gi*T/2+(b.id||0)*1.7)%T);const W=(ix,iy)=>GFX.pubPt(b,ix,iy);
+    const walk=(P,tt,seg,per)=>{const q=at(P,tt*V),w=W(q.p[0],q.p[1]);return {p:w,seg,k:Math.floor((tt/per%1)*12),d:dir8(q.dx,q.dy),far:0}};
+    const serve=r.round[r.round.length-1],face=dir8(r.top[0]-serve[0],r.top[1]-serve[1]);
+    if(t<m.a)return {...walk(r.out,t,'carry',.875),tab:0};t-=m.a;
+    if(t<PAUSE){const q=r.out[r.out.length-1];return {p:W(q[0],q[1]),seg:'set',k:0,d:dir8(serve[0]-q[0],serve[1]-q[1]),far:0,tab:0}}t-=PAUSE;
+    if(t<m.b)return {...walk(r.round,t,'carry',.875),tab:0};t-=m.b;
+    if(t<SET){const u=t/SET;return {p:W(serve[0],serve[1]),seg:'set',k:Math.min(10,Math.floor(u*11)),d:face,far:0,tab:u>.85?1:0}}t-=SET;
+    if(t<m.c)return {...walk(r.back,t,'walk',1.1667),tab:1};t-=m.c;
+    return {p:null,tab:t<2.5?1:0,ta:t<2.5?Math.min(1,(2.5-t)/1):0}}
   function hook(){if(!GFX.pubScene||GFX.pubScene._bm){setTimeout(hook,500);return}
     const prev=GFX.pubScene;GFX.pubScene=function(c,b,now){let L=null;
       try{if(GFX.mode==='V23D'&&GFX.bmaid!==false&&GFX.pubPt&&b&&b.type==='pub'&&GFX.piSpr(b)){aload();
