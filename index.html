@@ -786,7 +786,7 @@ function approach(u,t,R){
   u.repath-=STEP;
   if(!u.path||!u.path.length||(t.kind==='unit'&&u.repath<=0&&(u.ptx!==ttx||u.pty!==tty))){
     if(G.pathBudget<=0){if(u.path&&u.path.length)follow(u,STEP);return false;}G.pathBudget--;
-    const far=Math.hypot(t.x-u.x,t.y-u.y)>28*TILE;WK=u.naval?wwalk:walk;ASTAR_LIM=u.type==='tradecart'?160000:24000;PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>distPtEnt((x+.5)*TILE,(y+.5)*TILE,t)<=R,ttx,tty,far&&u.type!=='tradecart');PASSO=-1;ASTAR_LIM=24000;WK=walk;
+    const far=Math.hypot(t.x-u.x,t.y-u.y)>28*TILE;WK=u.naval?wwalk:wkFor(u,ttx,tty,t);ASTAR_LIM=u.type==='tradecart'?160000:24000;PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>distPtEnt((x+.5)*TILE,(y+.5)*TILE,t)<=R,ttx,tty,far&&u.type!=='tradecart');PASSO=-1;ASTAR_LIM=24000;WK=walk;
     u.ptx=ttx;u.pty=tty;u.repath=.6;
     if(!u.path)return 'fail';if(far&&u.path.length<2){u.path=null;return 'fail';}
   }
@@ -1605,7 +1605,7 @@ function updUnit(u,dt){
     return;
   }
   if(o.type==='move'){
-    if(!u.path){if(G.pathBudget<=0)return;G.pathBudget--;WK=u.naval?wwalk:walk;PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>x===o.x&&y===o.y,o.x,o.y,true);PASSO=-1;WK=walk;if(!u.path){u.order=null;return;}}
+    if(!u.path){if(G.pathBudget<=0)return;G.pathBudget--;WK=u.naval?wwalk:wkFor(u,o.x,o.y,null);PASSO=u.owner<2?u.owner:-1;u.path=astar(tl(u.x),tl(u.y),(x,y)=>x===o.x&&y===o.y,o.x,o.y,true);PASSO=-1;WK=walk;if(!u.path){u.order=null;return;}}
     if(follow(u,dt)){if(o.face!==undefined)u.face=o.face;u.order=null;}
     return;
   }
@@ -8343,6 +8343,21 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
       for(const R of Rs){const W=R.wing&&G.byId.get(R.wing);if(!W||W.dead||!W.built||!isWing(W))continue;const x=it[2],y=it[3];if(x<W.tx*TILE||x>=(W.tx+W.size)*TILE||y<W.ty*TILE||y>=(W.ty+W.size)*TILE)continue;if(wBehind(W,x,y))it[0]=W.ty*TILE+(y-W.ty*TILE)*1e-3;break;}}}}catch(err){}return r}})(townDecor)}catch(err){}
   try{if(typeof BANIM!=='undefined')BANIM.dairy=(function(prev){return function(c,b,now){const r=prev?prev.apply(this,arguments):undefined;try{roof(c,b);}catch(err){}return r}})(BANIM.dairy)}catch(err){}
 })();
+/* ===== Ranches and dairy wings are not a short-cut (Josh, Oct 15: "The donkey caravan drives right through the dairy and ranch, as if it
+   were a painting"). A path may only cross a ranch (and its dairy wing's open corners) when it starts there, ends there, or is going to that
+   ranch; everyone else walks around. Its own animals, hands and caravans still go in and out. ===== */
+let RANCH_OK=new Set(),WCORN=null,WCORN_T=-1;
+function wingCornerMap(){if(WCORN&&G.t-WCORN_T<1)return WCORN;WCORN=new Map();WCORN_T=G.t;for(const W of G.ents){if(W.type!=='dairy'||W.dead||!W.ranch)continue;const n=W.size||4;
+  for(let dy=0;dy<n;dy++)for(let dx=0;dx<n;dx++)if(wingCorner(dx,dy,n)){const x=W.tx+dx,y=W.ty+dy;if(inB(x,y))WCORN.set(ti(x,y),W.ranch);}}return WCORN;}
+function ranchAt(x,y){if(!inB(x,y))return 0;const i=ti(x,y),w=G.wocc[i];if(w){const e=G.byId.get(w);if(e&&e.type==='ranch'&&!e.dead)return e.id;}const c=wingCornerMap().get(i);if(c)return c;const o=G.occ[i];if(o){const e=G.byId.get(o);if(e&&e.type==='dairy'&&e.ranch)return e.ranch;}return 0;}
+function walkNR(x,y){if(!walk(x,y))return false;const r=ranchAt(x,y);return !r||RANCH_OK.has(r);}
+function wkFor(u,gx,gy,t){RANCH_OK=new Set();const a=ranchAt(tl(u.x),tl(u.y)),b=ranchAt(gx,gy);if(a)RANCH_OK.add(a);if(b)RANCH_OK.add(b);
+  if(t){if(t.type==='ranch')RANCH_OK.add(t.id);if(t.type==='dairy'&&t.ranch)RANCH_OK.add(t.ranch);if(t.type==='pen'&&t.sranch)RANCH_OK.add(t.sranch);}
+  if(u.shep)RANCH_OK.add(u.shep);if(u.dairyId)RANCH_OK.add(u.dairyId);if(u.home)RANCH_OK.add(u.home);return walkNR;}
+/* ===== Keep / Guard tower look on towers joined to walls (Josh, Oct 15: "the keep isn't updating to the newer version. Even i built a new
+   version and then it turns back into the older version"): a tower touching a wall used the plain wall-kit tower, so after Keeps it looked
+   un-upgraded. In the Medieval / Renaissance Ages, with Guard towers or Keeps researched, it now shows art chat 2's upgraded tower too. ===== */
+try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='tower'&&e.owner<2&&GFX.mode==='V23D'&&GFX.towerTierSpr&&GFX.wallTower){try{if(GFX.wallTower(e)){const s=GFX.towerTierSpr(e.owner,e.size||2);if(s)return s;}}catch(err){}}return prev(e)}})(bldSpr0)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
