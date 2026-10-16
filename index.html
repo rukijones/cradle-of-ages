@@ -8624,6 +8624,31 @@ function gateFix(u,path){try{if(!path||!path.length||u.naval||u.air)return path;
       const p=pathTo(tl(u.x),tl(u.y),tl(g.o[0]),tl(g.o[1]));return p.concat([{x:g.o[0],y:g.o[1]},{x:g.i[0],y:g.i[1]},{x:E.x,y:E.y}]);}
     let g=Gs[0],bd=1e9;for(const q of Gs){const d=Math.hypot(q.i[0]-u.x,q.i[1]-u.y)+Math.hypot(q.o[0]-E.x,q.o[1]-E.y);if(d<bd){bd=d;g=q;}}
     const p=pathTo(tl(g.o[0]),tl(g.o[1]),tl(E.x),tl(E.y));return [{x:g.i[0],y:g.i[1]},{x:g.o[0],y:g.o[1]}].concat(p);}}catch(err){}return path;}
+/* ===== Keep training (repeat), gameplay chat 2 (Josh, Oct 16 2026: late-game shift feature 1, "from the start", every age) =====
+   A "Repeat" toggle on any of your buildings that trains units. When its queue is empty it re-orders the last unit you
+   queued there (upgraded to the newest kind, e.g. clubman → axeman), as long as you can pay and have room. Works for
+   soldiers, villagers and animals. b.rep = on, b.repK = last unit. KEEPTRAIN.off=true turns it off. */
+const KEEPTRAIN={off:false};
+{const upK=(o,t)=>{const P=G.players[o];for(let n=0;n<5;n++){let ch=false;for(const k in CONV)if(CONV[k][0]===t&&P.tech[k]){t=CONV[k][1];ch=true;}if(!ch)break;}return t;};
+  const _enq=enqueue;
+  enqueue=function(b,k){const r=_enq(b,k);if(r&&b&&DEF[k]&&DEF[k].kind==='unit'&&b.owner===0&&b.repK!==k){b.repK=k;panelKeyLast='';}return r;};
+  const trains=b=>b&&b.kind==='bld'&&DEF[b.type]&&DEF[b.type].trains&&DEF[b.type].trains.length;
+  function repTick(){if(KEEPTRAIN.off||!G)return;
+    for(const b of G.ents){if(!b.rep||b.dead||!b.built||b.owner!==0||b.queue.length||!b.repK)continue;
+      if(popUsed(0)>=popCap(0))continue;
+      const k=upK(0,b.repK);if(!canQueue(b,k))continue;if(k==='donkey'&&typeof donkCount==='function'&&donkCount(0)>=donkCap(0))continue;
+      if(_enq(b,k))b.repK=k;}}
+  const _tt=troopTick;troopTick=function(){try{repTick();}catch(err){}return _tt.apply(this,arguments);};
+  const _rp=renderPanel;renderPanel=function(sel){_rp(sel);try{
+    const one=sel&&sel.length===1?sel[0]:null;if(!one||one.owner!==0||!one.built||!trains(one)||G.place)return;
+    const k=one.repK?upK(0,one.repK):null,nm=k?DEF[k].name.toLowerCase():'';
+    const h=btn('krep','Repeat: '+(one.rep?'On':'Off'),'<span class="cost">'+(one.rep?(k?'Keeps training '+nm:'Train one to start'):'Tap to keep training')+'</span>','',false,0,'wide'+(one.rep?' on':''),'');
+    const ac=$('acts');if(ac)ac.insertAdjacentHTML('afterbegin',h);}catch(err){}};
+  $('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act="krep"]');if(!b||!G)return;const sel=selEnts(),one=sel.length===1?sel[0]:null;if(!one||!trains(one))return;
+    one.rep=!one.rep;if(one.rep&&!one.repK&&one.queue.length){const q=one.queue.find(x=>DEF[x]&&DEF[x].kind==='unit');if(q)one.repK=q;}
+    toast(one.rep?(one.repK?'Repeat on: keeps training '+DEF[upK(0,one.repK)].name.toLowerCase():'Repeat on: train a unit and it will keep coming'):'Repeat off');panelKeyLast='';});
+}
+/* ===== END keep training ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
