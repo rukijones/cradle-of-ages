@@ -8734,6 +8734,33 @@ const REINFORCE={off:false};
     groupsKey='';renderGroups();},true);
 }
 /* ===== END add new soldiers to a group ===== */
+/* ===== Attack-move, gameplay chat 2 (Josh, Oct 16 2026: late-game shift feature 3, "always on"; double-tap = march, ignore enemies) =====
+   When you send soldiers to a spot with a tap, they now fight enemies they meet on the way (anything in their sight),
+   then carry on to the spot. Double-tap the ground to march there and ignore enemies (the old behaviour). Only your
+   soldiers (not villagers, animals or carts). u.order.am = attack-move; u._amDest = where to carry on to.
+   ATKMOVE.off=true turns it off. */
+const ATKMOVE={off:false};
+{const sold=u=>u&&u.kind==='unit'&&u.owner===0&&!NONMIL.has(u.type)&&!DEF[u.type].animal&&DEF[u.type].atk>0&&!u.air;
+  let lastTap={x:0,y:0,t:-1e9};
+  const _tap=onTap;onTap=function(wx,wy){
+    const before=new Map();try{if(G)for(const id of G.sel){const u=G.byId.get(id);if(u)before.set(id,u.order);}}catch(err){}
+    const now=performance.now(),dbl=now-lastTap.t<380&&Math.hypot(wx-lastTap.x,wy-lastTap.y)<(40/(cam.z||1));lastTap={x:wx,y:wy,t:dbl?-1e9:now};
+    const r=_tap.apply(this,arguments);
+    try{if(!ATKMOVE.off&&G){let n=0;for(const id of G.sel){const u=G.byId.get(id);if(!sold(u)||!before.has(id))continue;if(u.order===before.get(id))continue;
+      u._amDest=null;if(u.order&&u.order.type==='move'){u.order.am=!dbl;n++;}}
+      if(dbl&&n)toast('Marching: ignoring enemies on the way');}}catch(err){}
+    return r;};
+  const _uu=updUnit;updUnit=function(u,dt){
+    if(!ATKMOVE.off&&u.owner===0&&!u.dead){const o=u.order;
+      if(o&&o.type==='move'&&o.am&&sold(u)){u._amT=(u._amT||0)-dt;if(u._amT<=0){u._amT=.4;
+        const t=nearestEnemy(u,DEF[u.type].sight*TILE,u.type==='ram'||u.type==='trebuchet');
+        if(t){u._amDest={x:o.x,y:o.y};u.order={type:'attack',id:t.id,auto:true};u.path=null;}}}}
+    const r=_uu.apply(this,arguments);
+    try{if(!ATKMOVE.off&&u._amDest&&!u.dead&&!u.order){const t=nearestEnemy(u,DEF[u.type].sight*TILE,u.type==='ram'||u.type==='trebuchet');
+      if(t){u.order={type:'attack',id:t.id,auto:true};u.path=null;}else{u.order={type:'move',x:u._amDest.x,y:u._amDest.y,am:true};u.path=null;u._amDest=null;}}}catch(err){}
+    return r;};
+}
+/* ===== END attack-move ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
