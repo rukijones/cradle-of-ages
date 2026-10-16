@@ -7154,6 +7154,10 @@ try{(function(){
 (function(){
   GFX.KEEP3D=GFX.KEEP3D!==false;const CC=new Map();
   function at(x,y,o){try{const m=GFX.wmap();const q=m.get(ti(x,y));return q&&q.owner===o&&(q.type==='wall'||q.type==='gate')&&!q.dead?q:null}catch(err){return null}}
+  // corners: [corner tile outside the tower, tower tile at that corner, straight diagonal piece bits (34 = NW-SE, 136 = NE-SW)]
+  const DIAG=e=>{const n=e.size||2,x0=e.tx,y0=e.ty,x1=e.tx+n-1,y1=e.ty+n-1;return [[x0-1,y0-1,x0,y0,34],[x1+1,y1+1,x1,y1,34],[x1+1,y0-1,x1,y0,136],[x0-1,y1+1,x0,y1,136]]};
+  const diagOnly=e=>{try{for(const [cx,cy] of DIAG(e))if(at(cx,cy,e.owner))return true}catch(err){}return false};
+  GFX.keepDiag=diagOnly;
   function build(e,top,prev){const n=e.size||2,o=e.owner,P=[];
     // a straight wall-kit piece on each of the tower's tiles in line with the wall (a stand-in wall at that tile sees the wall on one side and
     // the tower on the other, so the kit hands back its straight run piece with the right tile parity)
@@ -7161,6 +7165,9 @@ try{(function(){
     const piece=(x,y,ew)=>{try{const s=GFX.wallSpr(fake(x,y));return s&&s.w>1?s:null}catch(err){return null}};
     for(let i=0;i<n;i++){if(at(e.tx-1,e.ty+i,o)||at(e.tx+n,e.ty+i,o))for(let k=0;k<n;k++){const s=piece(e.tx+k,e.ty+i);if(s)P.push([s,e.tx+k,e.ty+i])}
       if(at(e.tx+i,e.ty-1,o)||at(e.tx+i,e.ty+n,o))for(let k=0;k<n;k++){const s=piece(e.tx+i,e.ty+k);if(s)P.push([s,e.tx+i,e.ty+k])}}
+    // a diagonal wall that only touches the tower's corner (Josh, Oct 16: walls didn't meet the keep at the far left/right): carry the
+    // diagonal run on into the tower's corner tile, so it reaches the tower's body instead of stopping at the plot corner
+    for(const [cx,cy,ix,iy,cn] of DIAG(e))if(at(cx,cy,o)){try{const f=fake(ix,iy);f.conn=cn;const s=GFX.wallSpr(f);if(s&&s.w>1)P.push([s,ix,iy])}catch(err){}}
     const key=e.owner+'|'+(top._kid||(top._kid=Math.random()))+'|'+P.map(p=>(p[1]-e.tx)+','+(p[2]-e.ty)+','+(p[0]._kid||(p[0]._kid=Math.random()))).join(';');
     let c=CC.get(key);if(c)return c;
     const ws=P;if(!ws.length)return top;
@@ -7172,7 +7179,9 @@ try{(function(){
     g.drawImage(top,(-(top.dx||0)-x0)*k,(-top.ov-y0)*k,top.w*k,top.h*k);
     for(const p of Object.keys(top))if(!(p in c))c[p]=top[p];c.w=x1-x0;c.h=y1-y0;c.dx=-x0;c.ov=-y0;
     if(CC.size>200)CC.clear();CC.set(key,c);return c}
-  setTimeout(()=>{try{bldSpr0=(function(prev){return function(e){try{if(GFX.KEEP3D&&e&&e.type==='tower'&&GFX.mode==='V23D'&&(function(){const a=G.players[e.owner]&&G.players[e.owner].age;return a===3||a===4})()&&GFX.wallTower&&GFX.wallTower(e)&&GFX.towerTierSpr){const s=GFX.towerTierSpr(e.owner,e.size||2);if(s)return build(e,s,prev)}}catch(err){}return prev(e)}})(bldSpr0)}catch(err){}},60);
+  setTimeout(()=>{try{bldSpr0=(function(prev){return function(e){try{if(GFX.KEEP3D&&e&&e.type==='tower'&&GFX.mode==='V23D'&&(function(){const a=G.players[e.owner]&&G.players[e.owner].age;return a===3||a===4})()&&GFX.wallTower&&GFX.wallTower(e)&&GFX.towerTierSpr){const s=GFX.towerTierSpr(e.owner,e.size||2);if(s)return build(e,s,prev)}
+      // any age: a tower that only meets walls at its corners keeps its own picture, with the diagonal runs carried in under it
+      if(GFX.KEEP3D&&e&&e.type==='tower'&&e.built&&GFX.mode==='V23D'&&diagOnly(e)&&!(GFX.wallTower&&GFX.wallTower(e))){const s=prev(e);if(s&&s.w>1)return build(e,s,prev)}}catch(err){}return prev(e)}})(bldSpr0)}catch(err){}},60);
 })();
 
 /* ===== Medieval wall kit (art chat 1, Oct 16; Josh's pick W2 straight / D1 diagonal: walls in the keep's own grey stone with square merlons,
