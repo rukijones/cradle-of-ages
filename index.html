@@ -8649,6 +8649,26 @@ const KEEPTRAIN={off:false};
     toast(one.rep?(one.repK?'Repeat on: keeps training '+DEF[upK(0,one.repK)].name.toLowerCase():'Repeat on: train a unit and it will keep coming'):'Repeat off');panelKeyLast='';});
 }
 /* ===== END keep training ===== */
+/* ===== Reinforce a group, gameplay chat 2 (Josh, Oct 16 2026: late-game shift feature 2, "from the start") =====
+   A "New soldiers → group N" button in the panel of your military buildings (tap to cycle Off, 1–5). Each soldier it
+   trains joins that group slot and walks to the group (the middle of its living members; the building's rally point
+   if the group is empty). b.rein = 0..5. REINFORCE.off=true turns it off. */
+const REINFORCE={off:false};
+{const milB=b=>b&&b.kind==='bld'&&DEF[b.type]&&(DEF[b.type].trains||[]).some(t=>DEF[t]&&!NONMIL.has(t)&&!DEF[t].animal&&t!=='villager');
+  const _sp=spawnFrom;spawnFrom=function(b,type){const u=_sp.apply(this,arguments);try{
+    if(!REINFORCE.off&&u&&b&&b.owner===0&&b.rein&&u.kind==='unit'&&!NONMIL.has(u.type)&&!DEF[u.type].animal){const i=b.rein-1;
+      const ids=(G.groups[i]||[]).filter(id=>{const e=G.byId.get(id);return e&&!e.dead;});
+      let x=0,y=0,n=0;for(const id of ids){const e=G.byId.get(id);if(e.kind==='unit'){x+=e.x;y+=e.y;n++;}}
+      ids.push(u.id);G.groups[i]=ids;groupsKey='';
+      if(n){const a=Math.random()*6.28,r=TILE*(1+Math.random()*1.5);orderMove([u],x/n+Math.cos(a)*r,y/n+Math.sin(a)*r);}}}catch(err){}return u;};
+  const _rp=renderPanel;renderPanel=function(sel){_rp(sel);try{
+    const one=sel&&sel.length===1?sel[0]:null;if(REINFORCE.off||!one||one.owner!==0||!one.built||!milB(one)||G.place)return;
+    const n=one.rein||0,h=btn('krein',n?'New → group '+n:'New soldiers','<span class="cost">'+(n?'Join group '+n+'. Tap to change':'Stay here. Tap: join a group')+'</span>','',false,0,'wide'+(n?' on':''),'');
+    const ac=$('acts');if(!ac)return;const rb=ac.querySelector('button[data-act="krep"]');if(rb)rb.insertAdjacentHTML('afterend',h);else ac.insertAdjacentHTML('afterbegin',h);}catch(err){}};
+  $('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act="krein"]');if(!b||!G)return;const sel=selEnts(),one=sel.length===1?sel[0]:null;if(!one||!milB(one))return;
+    one.rein=((one.rein||0)+1)%6;toast(one.rein?'New soldiers from here join group '+one.rein+((G.groups[one.rein-1]||[]).length?'':' (empty now: they wait at the rally point)'):'New soldiers stay at the building');panelKeyLast='';});
+}
+/* ===== END reinforce a group ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
