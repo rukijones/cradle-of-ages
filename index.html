@@ -8232,7 +8232,7 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
 (function(){const RDIA=[[35,465],[480,710],[990,450]],WDIA=[[40,470],[510,735],[980,480]],ROOF=[[452,108],[892,298],[892,326],[754,424],[462,294],[448,172]];
   const on=()=>typeof GFX!=='undefined'&&GFX.FLAT8!==false&&GFX.ranch8&&GFX.ranch8();
   const isWing=e=>e.type==='dairy'&&e.ranch&&G.byId.get(e.ranch)&&!G.byId.get(e.ranch).dead;
-  function clipTop(c,P){const [L,B,Rt]=P;c.beginPath();c.moveTo(L[0]-80,L[1]-3000);c.lineTo(L[0]-80,L[1]);c.lineTo(L[0],L[1]);c.lineTo(B[0],B[1]);c.lineTo(Rt[0],Rt[1]);c.lineTo(Rt[0]+80,Rt[1]);c.lineTo(Rt[0]+80,Rt[1]-3000);c.closePath();c.clip();}
+  function clipTop(c,P){const xs=P.slice().sort((a,b)=>a[0]-b[0]),L=xs[0],Rt=xs[2],B=xs[1];c.beginPath();c.moveTo(L[0]-80,L[1]-3000);c.lineTo(L[0]-80,L[1]);c.lineTo(L[0],L[1]);c.lineTo(B[0],B[1]);c.lineTo(Rt[0],Rt[1]);c.lineTo(Rt[0]+80,Rt[1]);c.lineTo(Rt[0]+80,Rt[1]-3000);c.closePath();c.clip();}
   try{drawBuilding=(function(prev){return function(c,e,now){if(!e||!e.built||e.owner>1||!on()||!(e.type==='ranch'||isWing(e)))return prev.apply(this,arguments);
     let P=null;try{P=e.type==='ranch'?RDIA.map(p=>GFX.ranch8Pt(e,p[0],p[1])):WDIA.map(p=>GFX.wing8Pt(e,p[0],p[1]));}catch(err){}
     if(!P||P.some(p=>!p))return prev.apply(this,arguments);
@@ -8242,6 +8242,22 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
     c.save();c.beginPath();Q.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.clip();c.drawImage(sp,e.tx*TILE-(sp.dx||0),e.ty*TILE-sp.ov,sp.w,sp.h);c.restore();}
   /* the second stall's cow stood at the open gable end with its head above the roof: move that stall spot in under the roof */
   try{const wl=GFX.wingLay;GFX.wingLay=function(e){const L=wl?wl.apply(this,arguments):null;try{if(L&&L.slot&&L.slot.length>1&&on()&&isWing(e)){const left=GFX.wingLeft(e),q=900/1092;L.slot=L.slot.slice();L.slot[1]=[(left?1092-772:772)*q,468*q];}}catch(err){}return L}}catch(err){}
+  /* the lane from the ranch gate to the dairy yard: starts under the ranch's own dirt path at the open gate (main gate, or the lower-left
+     opening for a wing on the left), runs round the wing's near corner and into the yard's open side, so both ends meet the painted paths */
+  const RMOUTH={R:[[684,552],[714,618]],L:[[276,540],[250,618]]},WCOR=[40,470],WGAP=[318,592],WCEN=[510,475];
+  function lanePts(W){const R=G.byId.get(W.ranch);if(!R||R.dead||!R.built)return null;const left=W.tx<R.tx,m=RMOUTH[left?'L':'R'];
+    const A=GFX.ranch8Pt(R,m[0][0],m[0][1]),B=GFX.ranch8Pt(R,m[1][0],m[1][1]),K0=GFX.wing8Pt(W,WCOR[0],WCOR[1]),M=GFX.wing8Pt(W,WGAP[0],WGAP[1]),Cn=GFX.wing8Pt(W,WCEN[0],WCEN[1]);
+    if(!A||!B||!K0||!M||!Cn)return null;const out=(p,d)=>{const dx=p[0]-Cn[0],dy=p[1]-Cn[1],l=Math.hypot(dx,dy)||1;return [p[0]+dx/l*d,p[1]+dy/l*d]};
+    const K=out(K0,18),C=out(M,18),D=out(M,-14);const P=[A,B];if(Math.hypot(K[0]-B[0],K[1]-B[1])>10)P.push(K);P.push(C,D);return P;}
+  function laneTrace(c,P){c.beginPath();c.moveTo(P[0][0],P[0][1]);for(let i=1;i<P.length-1;i++){const m=[(P[i][0]+P[i+1][0])/2,(P[i][1]+P[i+1][1])/2];c.quadraticCurveTo(P[i][0],P[i][1],m[0],m[1]);}const z=P[P.length-1];c.lineTo(z[0],z[1]);}
+  function laneDraw2(c,P){c.save();c.lineCap='round';c.lineJoin='round';
+    laneTrace(c,P);c.strokeStyle='rgba(96,72,40,.22)';c.lineWidth=22;c.stroke();
+    laneTrace(c,P);c.strokeStyle='rgba(150,112,66,.6)';c.lineWidth=18;c.stroke();
+    const gr=c.createLinearGradient(P[0][0],P[0][1],P[P.length-1][0],P[P.length-1][1]);gr.addColorStop(0,'#b38c5c');gr.addColorStop(1,'#a07e56');laneTrace(c,P);c.strokeStyle=gr;c.lineWidth=14;c.stroke();
+    try{if(GFX.pat&&GFX.tex&&GFX.tex.dirt){laneTrace(c,P);c.globalAlpha=.3;c.strokeStyle=GFX.pat(c,'dirt');c.lineWidth=11;c.stroke()}}catch(err){}c.restore();}
+  try{const wl0=GFX.wingLane;GFX.wingLane=function(e){if(on()&&e&&isWing(e))return null;return wl0?wl0.apply(this,arguments):null}}catch(err){}
+  try{const sl=shadowLayer;shadowLayer=function(c){sl(c);try{if(!on())return;for(const e of G.ents){if(e.type!=='dairy'||e.dead||!e.ranch||e.owner>1)continue;if(e.owner!==0&&!(G.exp&&G.exp[0][ti(e.tx,e.ty)]))continue;
+      if(Math.abs(e.x-(cam.x+W/cam.z/2))>W/cam.z/2+300||Math.abs(e.y-(cam.y+H/cam.z/2))>H/cam.z/2+300)continue;const P=lanePts(e);if(P)laneDraw2(c,P)}}catch(err){}}}catch(err){}
   try{if(typeof BANIM!=='undefined')BANIM.dairy=(function(prev){return function(c,b,now){const r=prev?prev.apply(this,arguments):undefined;try{roof(c,b);}catch(err){}return r}})(BANIM.dairy)}catch(err){}
 })();
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
