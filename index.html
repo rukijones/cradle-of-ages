@@ -5709,6 +5709,14 @@ try{(function(){
   // outermost (after every block has wrapped bldSpr0): gameplay's wall-tower wrapper hands back the lone tier picture; this one wins when ready
   setTimeout(()=>{try{bldSpr0=(function(prev){return function(e){const s=e&&e.type==='tower'?wallUp(e):null;return s||prev(e)}})(bldSpr0)}catch(err){}},0);
 })()}catch(err){}
+/* ----- art chat 2: Medieval/Renaissance castle drawn bigger (Oct 16 2026, Josh: "keep the existing one, but make it bigger").
+   Same picture, grown x CASTLE_K from the middle of the plot's bottom edge (so it still stands on its tiles). GFX.CASTLE_K to tune. ----- */
+try{(function(){GFX.CASTLE_K=1.25;const C=new WeakMap();
+  function grow(s,k,S){let m=C.get(s);if(!m){m={};C.set(s,m)}const key=k+'_'+S;if(m[key])return m[key];const c=document.createElement('canvas');c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);
+    for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;c.ov=-S+(S+ov)*k;c._castleK=k;return m[key]=c}
+  bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(!s||!s.w||!e||e.type!=='castle'||!(e.owner===0||e.owner===1)||GFX.mode!=='V23D')return s;const a=G.players[e.owner].age;if(a!==3&&a!==4)return s;
+      const k=GFX.CASTLE_K||1;if(k===1)return s;return grow(s,k,(e.size||DEF.castle.size)*TILE)}catch(err){return s}}})(bldSpr0);
+})()}catch(err){}
 /* ===== END art chat 2: renunits ===== */
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
    Every flame painted into a Stone/Bronze/Iron building (braziers, fire pits, forge and kiln mouths) now flickers with live flames,
