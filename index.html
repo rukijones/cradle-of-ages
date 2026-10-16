@@ -5143,7 +5143,7 @@ GFX.gpSpr=function(s,soft){const k=s+(soft?'s':'');let c=GFX._gp[k];if(c)return 
     g.translate(rx,ry);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.72,'rgba(0,0,0,.95)');gr.addColorStop(.86,'rgba(0,0,0,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=gr;g.fillRect(-rx,-rx,2*rx,2*rx);c.rx=rx;c.ry=ry;return MK[s]=c}
   const L={c:document.createElement('canvas'),m:document.createElement('canvas'),x:0,y:0,w:0,h:0,z:0,sig:''};
-  const keyOf=e=>{const P=G.players&&G.players[e.owner];return P?GFX.GROUND_AGE[P.age]||null:null};
+  const keyOf=e=>{const P=G.players&&G.players[e.owner];const k=P?GFX.GROUND_AGE[P.age]||null:null;return (k&&GFX.groundKeyOf)?GFX.groundKeyOf(e,k):k};/* gameplay hook (Oct 16, Josh's paving rules) */
   try{shadowLayer=(function(prev){return function(c){try{if(GFX.mode==='V23D'&&GFX.texReady){
     const z=cam.z,vw=W/z,vh=H/z,vx=cam.x,vy=cam.y,inside=vx>=L.x&&vy>=L.y&&vx+vw<=L.x+L.w&&vy+vh<=L.y+L.h&&Math.abs(L.z-z)<.001;
     const bx=inside?L.x:vx-vw*.4,by=inside?L.y:vy-vh*.4,bw=inside?L.w:vw*1.8,bh=inside?L.h:vh*1.8;const paved=[];let sig='';
@@ -8852,6 +8852,21 @@ var _pintI=null;function pintIcon(){if(typeof GFX!=='undefined'&&GFX.PINT_ICON)r
   foam();g.fillStyle='#fffaf0';g.fill();g.strokeStyle='#24170c';g.lineWidth=3.5;g.stroke();
   g.fillStyle='rgba(225,205,160,.6)';for(const[x,y,r]of[[34,26,3],[46,22,3.5],[58,25,3],[66,22,2.4],[40,17,2.2]]){g.beginPath();g.arc(x,y,r,0,7);g.fill();}
   return c.toDataURL();}catch(err){return ''}})();return _pintI}
+/* Josh (Oct 16): which buildings get the age paving. Hooked into art chat 1's ground layer through GFX.groundKeyOf(e,key):
+   1) countryside / work sites keep the dirt patch; 2) GPSKIP types have no patch (art chat 1's set, unchanged);
+   3) a paved-type building is paved only when its patch overlaps another paved-type building of the same owner (town center counts),
+   so a lone building stays dirt and paving only shows where buildings cluster. */
+try{if(typeof GFX!=='undefined'){
+  GFX.GP_DIRT=new Set(['mill','coop','ranch','dairy','pen','goldmine','stonemine','shaft','inn','forester','tower','corral']);
+  const paveType=e=>e&&e.kind==='bld'&&!e.dead&&!GFX.GP_DIRT.has(e.type)&&!(GFX.GPSKIP&&GFX.GPSKIP.has(e.type))&&!(e.yard&&GFX.yardPic&&GFX.yardPic());
+  let cT=-1,cN=-1,cSet=null;
+  const clustered=()=>{if(cSet&&cT===G.t&&cN===G.ents.length)return cSet;cT=G.t;cN=G.ents.length;cSet=new Set();
+    const L=G.ents.filter(paveType).map(e=>{const s=e.size||(DEF[e.type]&&DEF[e.type].size)||2,rx=(s*.69+(GFX.GPR||1.35))*TILE;return [e,(e.tx+s/2)*TILE,(e.ty+s/2)*TILE,rx,rx*.73]});
+    for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(a[0].owner!==b[0].owner)continue;const dx=(a[1]-b[1])/(a[3]+b[3]),dy=(a[2]-b[2])/(a[4]+b[4]);
+      if(dx*dx+dy*dy<.8){cSet.add(a[0].id);cSet.add(b[0].id)}}
+    return cSet};
+  GFX.groundKeyOf=function(e,k){try{if(GFX.GP_DIRT.has(e.type))return null;return clustered().has(e.id)?k:null}catch(err){return k}};
+}}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
