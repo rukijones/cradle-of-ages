@@ -7556,7 +7556,7 @@ function draw(){
     else if(e.kind==='poi'){if(e.type==='ruin')drawRuin(c,e,now);else if(e.type==='tradepost')drawTradepost(c,e,now);else drawSacred(c,e,now);}
     else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&(e.yard||yardJobBox(e)))||(e.type==='bakery'&&(e.sgrp||steamJobBox(e)))||(e.type==='farm'&&e.frow);c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else if(!(GFX._ranchOutline&&GFX._ranchOutline(c,e)))c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.dOpen!==undefined){try{drawDoorAnim(c,e);}catch(err){}}if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
     else{const ux=it[2],uy=it[3];
-      if(selSet.has(e.id)){c.save();c.strokeStyle=e.owner===0?'#ffffff':'#ff8a7a';c.lineWidth=1.6;c.setLineDash([5,3]);c.lineDashOffset=-now/50;c.beginPath();c.ellipse(ux,uy+5,10.5,4.6,0,0,7);c.stroke();c.restore();}
+      if(selSet.has(e.id)&&!uHidden(e)){c.save();c.strokeStyle=e.owner===0?'#ffffff':'#ff8a7a';c.lineWidth=1.6;c.setLineDash([5,3]);c.lineDashOffset=-now/50;c.beginPath();c.ellipse(ux,uy+5,10.5,4.6,0,0,7);c.stroke();c.restore();}
       else if(e.owner<2&&!(GFX.noRing&&GFX.noRing(e))){c.strokeStyle=e.owner===0?'rgba(90,150,240,.55)':'rgba(230,80,64,.55)';c.lineWidth=1.1;c.beginPath();c.ellipse(ux,uy+5,8,3.3,0,0,7);c.stroke();}
       if(e.door&&e.door.clip&&e.door.t<e.door.dur*.45){const q=e.door.clip;c.save();c.beginPath();c.rect(q[0]-1,q[1]-2,q[2]+2,q[3]+60);c.clip();drawUnitR(c,e,ux,uy,now);c.restore();}else drawUnitR(c,e,ux,uy,now);if(e.rank&&(e.owner===0||V[ti(tl(e.x),tl(e.y))])){c.save();c.font='bold 8px system-ui';c.textAlign='center';c.fillStyle='#ffd34a';c.strokeStyle='rgba(0,0,0,.7)';c.lineWidth=2;const st='★'.repeat(e.rank);c.strokeText(st,ux,uy-31);c.fillText(st,ux,uy-31);c.restore();}if(e.buff&&e.buff.until>G.t&&(e.owner===0||V[ti(tl(e.x),tl(e.y))])){c.save();c.fillStyle=e.buff.type==='morale'?'#ff8a3a':'#ffd34a';c.globalAlpha=.85;c.beginPath();c.arc(ux+7,uy-26,1.8,0,7);c.fill();c.restore();}if(G.cheat.anim&&e.anim){const A=e.anim;c.save();c.font='bold 7px system-ui';c.textAlign='center';c.fillStyle=A.impact||(A.state==='attack'&&Math.abs(A.phase-.5)<.06)?'#ff4a3a':'#fff';c.strokeStyle='rgba(0,0,0,.7)';c.lineWidth=2;const tx=A.state+' '+A.phase.toFixed(2)+(A.hit?' HIT':'');c.strokeText(tx,ux,uy-30);c.fillText(tx,ux,uy-30);c.fillStyle='rgba(0,0,0,.5)';c.fillRect(ux-10,uy-28,20,2);c.fillStyle='#ffd34a';c.fillRect(ux-10,uy-28,20*A.phase,2);c.restore();}emitForUnit(e,ux,uy,frameDt);if(e.flash>0)e.flash-=frameDt;}
   }
@@ -7566,8 +7566,8 @@ function draw(){
     else if(!(p.bz&&typeof GFX!=='undefined'&&GFX.mode==='V23D')){c.fillStyle='#4a4842';circ(c,p.x,p.y-lift,2);c.fill();c.fillStyle='#c4c1b6';circ(c,p.x-.5,p.y-lift-.5,1.3);c.fill();}}
   for(const F of G.flights||[]){if(F.o!==0&&!V[ti(Math.max(0,Math.min(MW-1,tl(F.x))),Math.max(0,Math.min(MH-1,tl(F.y))))])continue;const n=F.kind==='recon'?1:Math.max(0,F.alive);for(let k=0;k<n;k++){const ox=(k%3-1)*18-Math.floor(k/3)*10,oy=Math.floor(k/3)*16+(k%3===1?-8:0),ca=Math.cos(F.a),sa=Math.sin(F.a);const px=F.x+ox*ca-oy*sa,py=F.y+ox*sa+oy*ca;drawPlane(c,px,py,F.a,F.o,F.kind==='recon'?.7:1,true);drawPlane(c,px,py-40,F.a,F.o,F.kind==='recon'?.7:1,false);}}
   for(const f of G.fx)if((f.type==='puff'||f.type==='float'||f.type==='zap'||f.type==='treefall')&&V[ti(Math.max(0,Math.min(MW-1,tl(f.x))),Math.max(0,Math.min(MH-1,tl(f.y))))])drawFx(c,f,now);
-  for(const it of list){const e=it[1];if(e.kind==='unit'&&(selSet.has(e.id)||e.hp<e.maxHp-.5))hpBar(c,it[2]-11,it[3]-26,22,e.hp/e.maxHp,e.owner);}
-  for(const it of list){const e=it[1];if(e.type==='villager'&&e.owner===0&&e.carry&&e.carry.amt>0)carryBar(c,it[2]-11,it[3]-((selSet.has(e.id)||e.hp<e.maxHp-.5)?31:26),22,e.carry.amt/(capOf(e)||CARRY),RCOL[e.carry.r]||'#e6c34a');}
+  for(const it of list){const e=it[1];if(e.kind==='unit'&&(selSet.has(e.id)||e.hp<e.maxHp-.5)&&!uHidden(e))hpBar(c,it[2]-11,it[3]-26,22,e.hp/e.maxHp,e.owner);}
+  for(const it of list){const e=it[1];if(e.type==='villager'&&e.owner===0&&e.carry&&e.carry.amt>0&&!uHidden(e))carryBar(c,it[2]-11,it[3]-((selSet.has(e.id)||e.hp<e.maxHp-.5)?31:26),22,e.carry.amt/(capOf(e)||CARRY),RCOL[e.carry.r]||'#e6c34a');}
   try{drawHints(c,now);}catch(err){}try{drawNeedWork(c,now);}catch(err){}try{drawGrazeWarn(c,now);}catch(err){}try{drawStallWarn(c,now);}catch(err){}try{if(!G._sbT||now-G._sbT>250){G._sbT=now;sickBarTick();}}catch(err){}
   for(const it of list){const e=it[1];if(e.kind==='bld'&&(selSet.has(e.id)||e.hp<e.maxHp-.5||!e.built)&&(e.owner===0||V[ti(tl(e.x),tl(e.y))])){const S=e.size*TILE,sp=bldSpr(e);hpBar(c,e.tx*TILE+8,e.ty*TILE-sp.ov*(e.built?1:e.progress)-2,S-16,e.hp/e.maxHp,e.owner);}}
   drawParts(c);drawSky(c,now);
@@ -8441,6 +8441,13 @@ function donkeyPub(u,dt){const b=G.byId.get(u.pubD);
   if(!best){for(const e of G.ents){if(e.type!=='mill'||e.owner!==u.owner||!e.built||e.dead||((e.grain||0)+(e.flour||0))<8)continue;const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<bd){bd=d;best=e;}}}
   if(best){u.psrc=best.id;u.pleg='go';u.lw=0;}else if(Math.hypot(u.x-b.x,u.y-b.y)>4*TILE)approach(u,b,TILE*2);
   return true;}
+/* ===== No empty rings / health bars where a hidden unit stands (Josh, Oct 15: "When there was a round at the pub, the people became ghosts
+   standing outside. This i notice happens in other scenarios too"). People drinking at a pub, and cows tied in the dairy, are drawn by the
+   building's own scene, but their selection ring, ground ring, health bar and carry bar were still drawn where the real unit stands. ===== */
+function uHidden(u){try{if(!u||typeof GFX==='undefined'||GFX.mode!=='V23D')return false;const o=u.order;
+  if(o&&o.type==='pub'&&o.sat){const pb=G.byId.get(o.id);if(pb&&pb.type==='pub'&&GFX.piSpr&&GFX.piSpr(pb)&&GFX.VIL3D&&GFX.VIL3D.mmclink)return true;}
+  if(u.type==='cow'&&GFX._tied&&performance.now()-(GFX._tied.get(u.id)||-1e9)<400)return true;}catch(err){}return false;}
+try{(function(){const nr=GFX.noRing;GFX.noRing=function(e){if(uHidden(e))return true;return nr?nr(e):false};})()}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
