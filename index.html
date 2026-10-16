@@ -7820,7 +7820,7 @@ function draw(){
   if(G.alert&&G.t-G.alert.t<10){const k=G.t-G.alert.t,pl=.6+.4*Math.sin(now/120),sx=(G.alert.x-cam.x)*cam.z,sy=(G.alert.y-cam.y)*cam.z,m=46;
     if(sx<m||sy<m+20||sx>W-m||sy>H-m-70){const cx=W/2,cy=H/2,a=Math.atan2(sy-cy,sx-cx),ex=Math.max(m,Math.min(W-m,sx)),ey=Math.max(m+20,Math.min(H-m-70,sy));c.save();c.translate(ex,ey);c.rotate(a);c.globalAlpha=pl;c.fillStyle='#ff3b2f';c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.moveTo(18,0);c.lineTo(-10,-12);c.lineTo(-4,0);c.lineTo(-10,12);c.closePath();c.fill();c.stroke();c.restore();}
     else{c.save();c.globalAlpha=pl;c.strokeStyle='#ff3b2f';c.lineWidth=3;c.beginPath();c.arc(sx,sy,22+k*2,0,7);c.stroke();c.restore();}}
-  if(gest&&gest.t==='boxarm'){c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=2;c.setLineDash([4,3]);c.beginPath();c.arc(gest.sx,gest.sy,14+Math.sin(now/90)*2,0,7);c.stroke();c.setLineDash([]);}
+  if(gest&&gest.t==='boxarm'){c.fillStyle='rgba(255,255,255,.12)';c.beginPath();c.arc(gest.sx,gest.sy,34,0,7);c.fill();c.strokeStyle='rgba(255,255,255,.95)';c.lineWidth=2.5;c.setLineDash([5,4]);c.beginPath();c.arc(gest.sx,gest.sy,34+Math.sin(now/90)*3,0,7);c.stroke();c.setLineDash([]);}
   if(gest&&gest.t==='box'){c.strokeStyle='#fff';c.lineWidth=1.5;c.fillStyle='rgba(255,255,255,.08)';const x=Math.min(gest.sx,gest.lx),y=Math.min(gest.sy,gest.ly),w=Math.abs(gest.lx-gest.sx),h=Math.abs(gest.ly-gest.sy);c.fillRect(x,y,w,h);c.strokeRect(x,y,w,h);}
 }
 function hpBar(c,x,y,w,f,o){c.fillStyle='rgba(0,0,0,.6)';c.fillRect(x-1,y-1,w+2,5);c.fillStyle=o!==0?'#e0634f':f>.5?'#7fd05a':f>.25?'#e6b43c':'#e0473a';c.fillRect(x,y,w*Math.max(0,f),3);}
@@ -8983,12 +8983,12 @@ function sp(e){const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.
 cv.addEventListener('pointerdown',e=>{
   if(!G)return;closeUpPop();try{cv.setPointerCapture(e.pointerId);}catch(_){}
   const p=sp(e);PT.set(e.pointerId,p);
-  if(PT.size===1){gest={t:'tap',sx:p.x,sy:p.y,lx:p.x,ly:p.y};if(e.shiftKey)gest.t='boxarm';else{const g0=gest;g0.hold=setTimeout(()=>{if(gest===g0&&g0.t==='tap'){g0.t='boxarm';try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}}},260);}}
+  if(PT.size===1){gest={t:'tap',sx:p.x,sy:p.y,lx:p.x,ly:p.y};if(e.shiftKey)gest.t='boxarm';else{const g0=gest;g0.hold=setTimeout(()=>{if(gest===g0&&g0.t==='tap'){g0.t='boxarm';try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}}},200);/* Josh Oct 16: hold to box-select arms after 0.2 s (was 0.26 s) */}}
   else if(PT.size===2){if(gest&&gest.hold)clearTimeout(gest.hold);const[a,b]=[...PT.values()];const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;gest={t:'pinch',d0:Math.hypot(a.x-b.x,a.y-b.y)||1,z0:cam.z,wx:cam.x+mx/cam.z,wy:cam.y+my/cam.z};}
 });
 cv.addEventListener('pointermove',e=>{
   if(!PT.has(e.pointerId)||!gest)return;const p=sp(e);PT.set(e.pointerId,p);
-  if(gest.t==='tap'&&Math.hypot(p.x-gest.sx,p.y-gest.sy)>9){clearTimeout(gest.hold);gest.t=G.boxMode?'box':'pan';}
+  if(gest.t==='tap'&&Math.hypot(p.x-gest.sx,p.y-gest.sy)>14){clearTimeout(gest.hold);gest.t=G.boxMode?'box':'pan';}
   if(gest.t==='boxarm'&&Math.hypot(p.x-gest.sx,p.y-gest.sy)>9)gest.t='box';
   if(gest.t==='pan'){cam.x-=(p.x-gest.lx)/cam.z;cam.y-=(p.y-gest.ly)/cam.z;gest.lx=p.x;gest.ly=p.y;clampCam();}
   else if(gest.t==='box'){gest.lx=p.x;gest.ly=p.y;}
