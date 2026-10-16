@@ -1734,10 +1734,11 @@ function updUnit(u,dt){
     const rt=t.type==='farm'&&t.millUse==='flax'?'g':RES[t.type].r;
     if(u.carry.amt>0&&u.carry.r!==rt)u.carry.amt=0;
     if(u.carry.amt>=capOf(u)){o.phase='drop';o.drop=0;u.path=null;return;}
-    const r=approachWork(u,t,TILE*.8);
+    const r=approachWork(u,t,(t.type==='fish'&&u.type==='villager')?TILE*2.6:TILE*.8);/* Josh Oct 16: villagers cast a line up to ~3 tiles out, so pond fish can be reached from the shore */
     if(r==='fail'){
-      o.bad++;if(o.bad>4){u.order=null;return;}
-      const alt=nearestRes(o.rtype,u.x,u.y,9*TILE,t.id,u.owner);if(alt){o.id=alt.id;u.path=null;}else u.order=null;return;
+      const tooFar=()=>{if(t.type==='fish'&&u.owner===0&&G.t-(G.fishMsg||-99)>8){G.fishMsg=G.t;toast('That fish is too far from the shore to catch. Build a dock and send a fishing boat')}};
+      o.bad++;if(o.bad>4){tooFar();u.order=null;return;}
+      const alt=nearestRes(o.rtype,u.x,u.y,9*TILE,t.id,u.owner);if(alt){o.id=alt.id;u.path=null;}else{tooFar();u.order=null;}return;
     }
     if(r===true){
       if(!u.working)u.face=Math.atan2(t.y-u.y,t.x-u.x);u.carry.r=rt;u.carry.meat=t.type==='carcass';if(t.type==='fish'){const U=G.players[u.owner].unlock||(G.players[u.owner].unlock={});U.fish=1;}u.working=true;u.face=Math.atan2(t.y-u.y,t.x-u.x);
@@ -8926,7 +8927,7 @@ try{if(typeof GFX!=='undefined'){
 try{if(typeof GFX!=='undefined'&&GFX.wvOn){const _wv=GFX.wvOn;GFX.wvOn=function(e){if(e&&e.type==='coop'&&e.yard&&GFX.yardPic&&GFX.yardPic())return false;return _wv.apply(this,arguments)}}}catch(err){}
 /* Josh (Oct 16): "make it so a person can't walk under the back right corner of the new castle. Many of the buildings are like that."
    The painted 45-degree buildings are wider than their square plot, so their back corners hang over free tiles. G.abk marks the free tiles
-   that lie under a building's painted base (outside the plot; the row in front of the plot and the tiles next to a unit's goal stay open); unit paths
+   that touch a building's painted base outline (outside the plot, with an ~11 px margin; the row in front of the plot and the tiles next to a unit's goal stay open); unit paths
    (walkNR) avoid them, except right next to the unit's own goal. The base is read from each picture: its lowest painted pixel per column
    is the front edge, mirrored about the side corners for the back edge. */
 const ABK_SKIP=new Set(['farm','wall','gate','ranch','pen','corral','dock','pylon','outpost']);const ABK_PROF=new WeakMap();let ABK_SIG='';
@@ -8941,8 +8942,10 @@ function abkRefresh(){if(!G||!G.ents)return;let sig='',n=0;for(const e of G.ents
   for(const e of G.ents){if(e.kind!=='bld'||e.dead||!e.built||ABK_SKIP.has(e.type)||e.yard)continue;let sp=null;try{sp=bldSpr0(e)}catch(err){}if(!sp||!sp.w||!sp.width)continue;
     const P=abkProfile(sp);if(!P)continue;const s=e.size||DEF[e.type].size||2,sc=sp.w/P.W,X0=e.tx*TILE-(sp.dx||0),Y0=e.ty*TILE-(sp.ov||0),midY=(e.ty+s*.5)*TILE;
     for(let ty=e.ty-3;ty<e.ty+s;ty++)for(let tx=e.tx-3;tx<e.tx+s+3;tx++){if(!inB(tx,ty))continue;if(tx>=e.tx&&tx<e.tx+s&&ty>=e.ty&&ty<e.ty+s)continue;
-      const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE;const px=Math.round((cx-X0)/sc);if(px<=P.x0||px>=P.x1)continue;const lo=P.low[px];if(lo<0)continue;
-      const yl=Y0+lo*sc,yb=Y0+(2*P.yc-lo)*sc;if(cy<yl-6&&cy>yb+6)A[ti(tx,ty)]=1}}}
+      const cx=(tx+.5)*TILE,cy=(ty+.5)*TILE,M=(GFX.ABK_M!=null?GFX.ABK_M:11);let hit=false;
+      for(const ox of [-12,0,12]){const px=Math.round((cx+ox-X0)/sc);if(px<=P.x0||px>=P.x1)continue;const lo=P.low[px];if(lo<0)continue;
+        const yl=Y0+lo*sc,yb=Y0+(2*P.yc-lo)*sc;if(yl-yb<4)continue;if(cy<=yl+M&&cy>=yb-M){hit=true;break}}
+      if(hit)A[ti(tx,ty)]=1}}}
 
 /* draw order beside wide buildings: a unit standing next to a building's plot but in front of that building's painted base (e.g. just
    right of the castle's right tower) is drawn over the building instead of being covered by it, so nobody looks like they are under it. */
