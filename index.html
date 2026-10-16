@@ -7038,6 +7038,34 @@ try{(function(){
       const sp=bldSpr(e);if(!sp||!sp.w)continue;const a=aoOf(sp);if(!a)continue;
       c.drawImage(a.c,x-(sp.dx||0),y-sp.ov,a.w,a.h)}}catch(err){}}}catch(err){}
 })();
+
+/* ===== Wall-joined towers in 3D (art chat 1, Oct 16; Josh: "the medieval keep is the wrong angle and not 3D"). A tower touching a wall
+   draws the same 45-degree 3D tier picture as a lone tower (art chat 2's Guard tower / Keep, my Bronze/Iron tiers). The wall running into it is
+   carried on under the tower (copies of the neighbouring wall piece across the tower's tiles), so walls meet it with no gap.
+   GFX.KEEP3D=false goes back to the wall-kit tower. ===== */
+(function(){
+  GFX.KEEP3D=GFX.KEEP3D!==false;const CC=new Map();
+  function at(x,y,o){try{const m=GFX.wmap();const q=m.get(ti(x,y));return q&&q.owner===o&&(q.type==='wall'||q.type==='gate')&&!q.dead?q:null}catch(err){return null}}
+  function build(e,top,prev){const n=e.size||2,o=e.owner,P=[];
+    // a straight wall-kit piece on each of the tower's tiles in line with the wall (a stand-in wall at that tile sees the wall on one side and
+    // the tower on the other, so the kit hands back its straight run piece with the right tile parity)
+    const fake=(x,y)=>({type:'wall',kind:'bld',tx:x,ty:y,x:(x+.5)*TILE,y:(y+.5)*TILE,size:1,owner:o,hp:1,maxHp:1,built:true,id:-1});
+    const piece=(x,y,ew)=>{try{const s=GFX.wallSpr(fake(x,y));return s&&s.w>1?s:null}catch(err){return null}};
+    for(let i=0;i<n;i++){if(at(e.tx-1,e.ty+i,o)||at(e.tx+n,e.ty+i,o))for(let k=0;k<n;k++){const s=piece(e.tx+k,e.ty+i);if(s)P.push([s,e.tx+k,e.ty+i])}
+      if(at(e.tx+i,e.ty-1,o)||at(e.tx+i,e.ty+n,o))for(let k=0;k<n;k++){const s=piece(e.tx+i,e.ty+k);if(s)P.push([s,e.tx+i,e.ty+k])}}
+    const key=e.owner+'|'+(top._kid||(top._kid=Math.random()))+'|'+P.map(p=>(p[1]-e.tx)+','+(p[2]-e.ty)+','+(p[0]._kid||(p[0]._kid=Math.random()))).join(';');
+    let c=CC.get(key);if(c)return c;
+    const ws=P;if(!ws.length)return top;
+    const X0=e.tx*TILE,Y0=e.ty*TILE;let x0=-(top.dx||0),y0=-top.ov,x1=x0+top.w,y1=y0+top.h;
+    for(const [s,tx,ty] of ws){const ax=(tx*TILE-X0)-(s.dx||0),ay=(ty*TILE-Y0)-(s.ov||0);x0=Math.min(x0,ax);y0=Math.min(y0,ay);x1=Math.max(x1,ax+s.w);y1=Math.max(y1,ay+s.h)}
+    const k=top.width/top.w;c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*k);c.height=Math.ceil((y1-y0)*k);const g=c.getContext('2d');g.imageSmoothingQuality='high';
+    ws.sort((a,b)=>a[2]-b[2]||a[1]-b[1]);
+    for(const [s,tx,ty] of ws){const ax=(tx*TILE-X0)-(s.dx||0),ay=(ty*TILE-Y0)-(s.ov||0);g.drawImage(s,(ax-x0)*k,(ay-y0)*k,s.w*k,s.h*k)}
+    g.drawImage(top,(-(top.dx||0)-x0)*k,(-top.ov-y0)*k,top.w*k,top.h*k);
+    for(const p of Object.keys(top))if(!(p in c))c[p]=top[p];c.w=x1-x0;c.h=y1-y0;c.dx=-x0;c.ov=-y0;
+    if(CC.size>200)CC.clear();CC.set(key,c);return c}
+  setTimeout(()=>{try{bldSpr0=(function(prev){return function(e){try{if(GFX.KEEP3D&&e&&e.type==='tower'&&GFX.mode==='V23D'&&(function(){const a=G.players[e.owner]&&G.players[e.owner].age;return a===3||a===4})()&&GFX.wallTower&&GFX.wallTower(e)&&GFX.towerTierSpr){const s=GFX.towerTierSpr(e.owner,e.size||2);if(s)return build(e,s,prev)}}catch(err){}return prev(e)}})(bldSpr0)}catch(err){}},60);
+})();
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
   SPR.ruin=ruinSprite();
