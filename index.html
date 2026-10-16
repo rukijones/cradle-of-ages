@@ -255,7 +255,7 @@ const DEF={
   longsword:{kind:'unit',needTech:'bronzework',name:'Long swordsman',plural:'Long swordsmen',hp:95,atk:12,arm:3,range:0,cd:1.25,speed:76,sight:5,r:9,cost:{f:55,g:40},time:20,age:3},
   halberdier:{kind:'unit',name:'Halberdier',plural:'Halberdiers',hp:65,atk:6,arm:1,range:0,cd:1.3,speed:76,sight:5,r:9,cost:{f:35,w:30},time:16,age:3},
   trebuchet:{kind:'unit',name:'Trebuchet',plural:'Trebuchets',hp:170,atk:70,arm:1,range:13,cd:7,speed:22,sight:13,r:15,cost:{w:260,g:200},time:45,age:3},
-  ranch:{kind:'bld',name:'Ranch',hp:350,size:8,sight:4,trains:['donkey','caravan','tradecart','ox','truck'],techs:[],cost:{w:200},time:35,age:2,walkable:1},
+  ranch:{kind:'bld',name:'Ranch',hp:350,size:7,sight:4,trains:['donkey','caravan','tradecart','ox','truck'],techs:[],cost:{w:200},time:35,age:2,walkable:1},
   corral:{kind:'bld',name:'Corral',hp:200,size:3,sight:3,trains:['donkey','caravan','ox','truck'],cost:{w:120},time:25,age:2,walkable:1},
   university:{kind:'bld',name:'University',hp:450,size:3,sight:6,trains:['explorer'],techs:['surveying','printing','cartography','medicine','chemistry'],cost:{w:300,s:150,g:200},time:60,age:4},
   airfield:{kind:'bld',name:'Airfield',hp:1200,size:4,sight:7,trains:['bomber'],cost:{w:250,s:450,g:300},time:70,age:6},
@@ -7487,7 +7487,7 @@ function draw(){
     if(e.kind==='decor'){drawDecor(c,e,now);continue;}
     if(e.kind==='res')drawRes(c,e);
     else if(e.kind==='poi'){if(e.type==='ruin')drawRuin(c,e,now);else if(e.type==='tradepost')drawTradepost(c,e,now);else drawSacred(c,e,now);}
-    else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&(e.yard||yardJobBox(e)))||(e.type==='bakery'&&(e.sgrp||steamJobBox(e)))||(e.type==='farm'&&e.frow);c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.dOpen!==undefined){try{drawDoorAnim(c,e);}catch(err){}}if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
+    else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&(e.yard||yardJobBox(e)))||(e.type==='bakery'&&(e.sgrp||steamJobBox(e)))||(e.type==='farm'&&e.frow);c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else if(!(GFX._ranchOutline&&GFX._ranchOutline(c,e)))c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.dOpen!==undefined){try{drawDoorAnim(c,e);}catch(err){}}if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
     else{const ux=it[2],uy=it[3];
       if(selSet.has(e.id)){c.save();c.strokeStyle=e.owner===0?'#ffffff':'#ff8a7a';c.lineWidth=1.6;c.setLineDash([5,3]);c.lineDashOffset=-now/50;c.beginPath();c.ellipse(ux,uy+5,10.5,4.6,0,0,7);c.stroke();c.restore();}
       else if(e.owner<2&&!(GFX.noRing&&GFX.noRing(e))){c.strokeStyle=e.owner===0?'rgba(90,150,240,.55)':'rgba(230,80,64,.55)';c.lineWidth=1.1;c.beginPath();c.ellipse(ux,uy+5,8,3.3,0,0,7);c.stroke();}
@@ -7850,7 +7850,7 @@ function pick(wx,wy){
   for(const e of G.ents)if(e.type==='coop'&&e.yard&&e.yard.anchor===e.id&&!e.dead){const g=e.yard;if(e.owner!==0&&!G.exp[0][ti(tl(e.x),tl(e.y))])continue;if(wx>=g.x0*TILE&&wx<g.x1*TILE&&wy>=g.y0*TILE&&wy<g.y1*TILE)return e;}
   for(const e of G.ents)if(e.kind==='bld'){
     if(e.owner!==0&&!G.exp[0][ti(tl(e.x),tl(e.y))])continue;if(!innSeen(e,0))continue;
-    if(wx>=e.tx*TILE&&wx<(e.tx+e.size)*TILE&&wy>=e.ty*TILE&&wy<(e.ty+e.size)*TILE){const R=e.type==='dairy'&&e.ranch&&e.built&&G.byId.get(e.ranch);if(R&&!R.dead){G.rtab='c';return R;}const R2=e.type==='pen'&&e.sranch&&G.byId.get(e.sranch);if(R2&&!R2.dead&&e.built){G.rtab='s';return R2;}const R3=e.type==='bakery'&&e.steamOf&&G.byId.get(e.steamOf);if(R3&&!R3.dead)return R3;const R4=e.type==='farm'&&e.frow&&G.byId.get(e.frow.anchor);if(R4&&!R4.dead)return R4;return e;}
+    const rh=(e.type==='ranch'||e.type==='dairy')&&GFX._ranchHit?GFX._ranchHit(e,wx,wy):null;if(rh===false)continue;if(rh||(wx>=e.tx*TILE&&wx<(e.tx+e.size)*TILE&&wy>=e.ty*TILE&&wy<(e.ty+e.size)*TILE)){const R=e.type==='dairy'&&e.ranch&&e.built&&G.byId.get(e.ranch);if(R&&!R.dead){G.rtab='c';return R;}const R2=e.type==='pen'&&e.sranch&&G.byId.get(e.sranch);if(R2&&!R2.dead&&e.built){G.rtab='s';return R2;}const R3=e.type==='bakery'&&e.steamOf&&G.byId.get(e.steamOf);if(R3&&!R3.dead)return R3;const R4=e.type==='farm'&&e.frow&&G.byId.get(e.frow.anchor);if(R4&&!R4.dead)return R4;return e;}
   }
   for(const e of G.ents)if((e.kind==='poi'||e.noOcc)&&G.exp[0][ti(e.tx,e.ty)]&&Math.hypot(e.x-wx,e.y-wy+(e.kind==='poi'?8:0))<Math.max(20,26/cam.z))return e;
   const tx=tl(wx),ty=tl(wy);if(!inB(tx,ty)||!G.exp[0][ti(tx,ty)])return null;
@@ -8207,7 +8207,7 @@ function cart3D(c,d,now){if(typeof GFX==='undefined'||GFX.mode!=='V23D'||typeof 
    true-scale pictures (a1_r8) are drawn for these sizes. Old saves: a smaller ranch grows in place where there is room, and its dairy wing /
    sheep wing move to the new fence; if there is no room everything stays as it was. ===== */
 function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
-  for(const R of G.ents.filter(e=>e.type==='ranch'&&!e.dead&&e.size<n)){const o=R.size,W=R.wing&&G.byId.get(R.wing),P=R.swing&&G.byId.get(R.swing);
+  for(const R of G.ents.filter(e=>e.type==='ranch'&&!e.dead&&e.size!==n)){const o=R.size,W=R.wing&&G.byId.get(R.wing),P=R.swing&&G.byId.get(R.swing);
     const D=W&&!W.dead&&W.type==='dairy'?W:null,S=P&&!P.dead&&P.type==='pen'?P:null,old={R:[R.tx,R.ty,R.size],D:D&&[D.tx,D.ty,D.size],S:S&&[S.tx,S.ty]};
     const unmark=(e,arr)=>{for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++)if(inB(x,y)&&arr[ti(x,y)]===e.id)arr[ti(x,y)]=0;};
     const mark=(e,arr,skip)=>{for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++)if(inB(x,y)&&!(skip&&skip(x-e.tx,y-e.ty)))arr[ti(x,y)]=e.id;};
@@ -8229,7 +8229,7 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
      fence (the raised-block look) are not shown and the yard meets the grass directly;
    - after the dairy wing (and its milking scene) is drawn, the shed roof is drawn again on top, so tied cows are under the roof.
    Art chat 1: if you repaint these pictures flat and with the roof in its own layer, set GFX.FLAT8=false (or delete this block). ===== */
-(function(){const RDIA=[[35,465],[480,710],[990,450]],WDIA=[[40,470],[510,735],[980,480]],ROOF=[[452,108],[892,298],[892,326],[754,424],[462,294],[448,172]];
+(function(){const STALLS=[[548,420],[662,446],[784,472]];const RDIA=[[35,465],[480,710],[990,450]],WDIA=[[40,470],[510,735],[980,480]],ROOF=[[452,108],[892,298],[892,326],[754,424],[462,294],[448,172]];
   const on=()=>typeof GFX!=='undefined'&&GFX.FLAT8!==false&&GFX.ranch8&&GFX.ranch8();
   const isWing=e=>e.type==='dairy'&&e.ranch&&G.byId.get(e.ranch)&&!G.byId.get(e.ranch).dead;
   function clipTop(c,P){const xs=P.slice().sort((a,b)=>a[0]-b[0]),L=xs[0],Rt=xs[2],B=xs[1];c.beginPath();c.moveTo(L[0]-80,L[1]-3000);c.lineTo(L[0]-80,L[1]);c.lineTo(L[0],L[1]);c.lineTo(B[0],B[1]);c.lineTo(Rt[0],Rt[1]);c.lineTo(Rt[0]+80,Rt[1]);c.lineTo(Rt[0]+80,Rt[1]-3000);c.closePath();c.clip();}
@@ -8241,7 +8241,7 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
   function roof(c,e){if(!e||!e.built||e.owner>1||!on()||!isWing(e))return;const sp=GFX.wingSpr(e);if(!sp||!sp.w)return;const Q=ROOF.map(p=>GFX.wing8Pt(e,p[0],p[1]));if(Q.some(p=>!p))return;
     c.save();c.beginPath();Q.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.clip();c.drawImage(sp,e.tx*TILE-(sp.dx||0),e.ty*TILE-sp.ov,sp.w,sp.h);c.restore();}
   /* the second stall's cow stood at the open gable end with its head above the roof: move that stall spot in under the roof */
-  try{const wl=GFX.wingLay;GFX.wingLay=function(e){const L=wl?wl.apply(this,arguments):null;try{if(L&&L.slot&&L.slot.length>1&&on()&&isWing(e)){const left=GFX.wingLeft(e),q=900/1092;L.slot=L.slot.slice();L.slot[1]=[(left?1092-772:772)*q,468*q];}}catch(err){}return L}}catch(err){}
+  try{const wl=GFX.wingLay;GFX.wingLay=function(e){const L=wl?wl.apply(this,arguments):null;try{if(L&&L.slot&&L.slot.length>1&&on()&&isWing(e)){const left=GFX.wingLeft(e),q=900/1092;L.slot=STALLS.map(([x,y])=>[(left?1092-x:x)*q,y*q]);}}catch(err){}return L}}catch(err){}
   /* the lane from the ranch gate to the dairy yard: starts under the ranch's own dirt path at the open gate (main gate, or the lower-left
      opening for a wing on the left), runs round the wing's near corner and into the yard's open side, so both ends meet the painted paths */
   const RMOUTH={R:[[684,552],[714,618]],L:[[276,540],[250,618]]},WCOR=[40,470],WGAP=[318,592],WCEN=[510,475];
@@ -8258,6 +8258,34 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
   try{const wl0=GFX.wingLane;GFX.wingLane=function(e){if(on()&&e&&isWing(e))return null;return wl0?wl0.apply(this,arguments):null}}catch(err){}
   try{const sl=shadowLayer;shadowLayer=function(c){sl(c);try{if(!on())return;for(const e of G.ents){if(e.type!=='dairy'||e.dead||!e.ranch||e.owner>1)continue;if(e.owner!==0&&!(G.exp&&G.exp[0][ti(e.tx,e.ty)]))continue;
       if(Math.abs(e.x-(cam.x+W/cam.z/2))>W/cam.z/2+300||Math.abs(e.y-(cam.y+H/cam.z/2))>H/cam.z/2+300)continue;const P=lanePts(e);if(P)laneDraw2(c,P)}}catch(err){}}}catch(err){}
+  /* animals standing in the barn are drawn behind its front posts and roof edge */
+  const BARN=[[[296,206],[342,206],[342,382],[296,382]],[[466,150],[640,62],[640,330],[502,406],[466,406]]],BSP=[[395,372],[470,345]],AN=new Set(['ox','donkey','caravan','cow','sheep','tradecart']);
+  try{drawUnitR=(function(prev){return function(c,e,x,y,now){const r=prev.apply(this,arguments);try{if(e&&AN.has(e.type)&&on()){for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built||R.owner>1)continue;if(Math.abs(e.x-R.x)>R.size*TILE||Math.abs(e.y-R.y)>R.size*TILE)continue;
+      const near=BSP.some(p=>{const q=GFX.ranch8Pt(R,p[0],p[1]);return q&&Math.hypot(q[0]-e.x,q[1]-e.y)<16});if(!near)continue;const sp=bldSpr(R);if(!sp||!sp.w)break;
+      c.save();c.beginPath();for(const poly of BARN){poly.forEach((p,i)=>{const q=GFX.ranch8Pt(R,p[0],p[1]);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();}c.clip();c.drawImage(sp,R.tx*TILE-(sp.dx||0),R.ty*TILE-sp.ov,sp.w,sp.h);c.restore();break;}}}catch(err){}return r}})(drawUnitR)}catch(err){}
+  /* tapping: the ranch and its dairy wing are hit only on their painted pixels (not the empty corners of their squares) */
+  const AC=new WeakMap();function alphaOf(sp){let a=AC.get(sp);if(a)return a;try{const g=sp.getContext('2d');a={w:sp.width,h:sp.height,d:g.getImageData(0,0,sp.width,sp.height).data};}catch(err){a={w:0};}AC.set(sp,a);return a;}
+  function onPix(e,sp,P,wx,wy){const x0=e.tx*TILE-(sp.dx||0),y0=e.ty*TILE-sp.ov,a=alphaOf(sp);if(!a.w)return null;const xs=P.slice().sort((p,q)=>p[0]-q[0]),L=xs[0],Rt=xs[2],B=xs[1];
+    const ok=(x,y)=>{if(x<L[0]||x>Rt[0])return false;const ey=x<B[0]?L[1]+(B[1]-L[1])*(x-L[0])/((B[0]-L[0])||1):B[1]+(Rt[1]-B[1])*(x-B[0])/((Rt[0]-B[0])||1);if(y>ey+1)return false;
+      const px=Math.floor((x-x0)/sp.w*a.w),py=Math.floor((y-y0)/sp.h*a.h);if(px<0||py<0||px>=a.w||py>=a.h)return false;return a.d[(py*a.w+px)*4+3]>40;};
+    const m=3;return ok(wx,wy)||ok(wx-m,wy)||ok(wx+m,wy)||ok(wx,wy-m)||ok(wx,wy+m);}
+  GFX._ranchHit=function(e,wx,wy){if(!on()||!e.built||e.owner>1)return null;try{if(e.type==='ranch'){const sp=bldSpr(e);if(!sp||!sp.w)return null;return onPix(e,sp,RDIA.map(p=>GFX.ranch8Pt(e,p[0],p[1])),wx,wy);}
+      if(isWing(e)){const sp=GFX.wingSpr(e);if(!sp||!sp.w)return null;return onPix(e,sp,WDIA.map(p=>GFX.wing8Pt(e,p[0],p[1])),wx,wy);}}catch(err){}return null;};
+  /* selected ranch: an outline that hugs the ranch and its dairy wing instead of a big oval */
+  GFX._ranchOutline=function(c,e){if(!on()||e.type!=='ranch'||!e.built||e.owner>1)return false;const pts=[[35,465],[480,710],[990,450],[505,215]].map(p=>GFX.ranch8Pt(e,p[0],p[1]));
+    const W=e.wing&&G.byId.get(e.wing);if(W&&!W.dead&&W.built&&isWing(W))for(const p of [[40,470],[510,735],[980,480],[490,215]])pts.push(GFX.wing8Pt(W,p[0],p[1]));if(pts.some(p=>!p))return false;
+    const s=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]),cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];for(const p of s){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+    for(let i=s.length-1;i>=0;i--){const p=s[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}const H=lo.slice(0,-1).concat(up.slice(0,-1));
+    const cx=H.reduce((a,p)=>a+p[0],0)/H.length,cy=H.reduce((a,p)=>a+p[1],0)/H.length;H.forEach((p,i)=>{const dx=p[0]-cx,dy=p[1]-cy,l=Math.hypot(dx,dy)||1,q=[p[0]+dx/l*4,p[1]+dy/l*4];i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();return true;};
+  /* draw order: the ranch is drawn like ground (before what stands on it), so anyone standing behind the barn or the cottage, or on the
+     grass behind the ranch inside its square, was drawn on top of the roofs (a deer stood on the cottage roof). Those are now drawn before the
+     ranch picture, so the buildings hide them; animals at the barn's front spots and everyone in the yard are drawn as before. */
+  const MASS=[[[307,375],[492,447],[665,330],[600,170],[420,140],[300,230]],[[630,375],[720,445],[905,352],[880,225],[760,190],[640,255]]],BSP2=[[395,372],[470,345]];
+  const inPoly=(P,x,y)=>{let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;};
+  function behind(R,sp,x,y){const k=sp.w/1092,px=(x-(R.tx*TILE-(sp.dx||0)))/k,py=(y-(R.ty*TILE-sp.ov))/k;const top=px<505?465-(px-35)*(250/470):215+(px-505)*(235/485);
+    if(py<top)return true;if(MASS.some(P=>inPoly(P,px,py))){for(const s of BSP2)if(Math.hypot(px-s[0],py-s[1])*k<18)return false;return true;}return false;}
+  try{townDecor=(function(prev){return function(c,now,E,V,list){const r=prev.apply(this,arguments);try{if(on()){const Rs=G.ents.filter(R=>R.type==='ranch'&&!R.dead&&R.built&&R.owner<2);if(Rs.length)for(const it of list){const e=it[1];if(!e||e.kind!=='unit'||it[2]===undefined)continue;
+      for(const R of Rs){const x=it[2],y=it[3];if(x<R.tx*TILE||x>=(R.tx+R.size)*TILE||y<R.ty*TILE||y>=(R.ty+R.size)*TILE)continue;const sp=bldSpr(R);if(sp&&sp.w&&behind(R,sp,x,y))it[0]=R.ty*TILE-1-(R.ty*TILE-y)*1e-3;break;}}}}catch(err){}return r}})(townDecor)}catch(err){}
   try{if(typeof BANIM!=='undefined')BANIM.dairy=(function(prev){return function(c,b,now){const r=prev?prev.apply(this,arguments):undefined;try{roof(c,b);}catch(err){}return r}})(BANIM.dairy)}catch(err){}
 })();
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
@@ -8515,7 +8543,7 @@ function drawNeedWork(c,now){if(!G)return;if(!G._nwT||G.t-G._nwT>.5){G._nwT=G.t;
   c.restore();}
 /* ===== gameplay chat (Josh, Oct 14): ranch cows, "Next" build badge, army meter (you vs the enemy you have seen), animals that eat crops ===== */
 try{if(typeof GFX!=='undefined'&&GFX.GPSKIP)GFX.GPSKIP.add('ranch');}catch(e){}
-const COW_CAP=4;
+const COW_CAP=3;
 function ranchCowTick(b,dt){const P=G.players[b.owner];if(!b.built||!ranchDairy(b)){b.cFlock=0;b.milked=0;return;}
   if(!b.cowsGiven){b.cowsGiven=1;for(let i=0;i<2;i++){const z=penSpot(b,'c');const cw=mkUnit('cow',b.owner,(z[0]+.5)*TILE,(z[1]+.5)*TILE);cw.dairyId=b.id;}}
   const herd=G.ents.filter(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&(e.dairyId===b.id||inPenArea(b,e,.8,'c'))),adults=herd.filter(e=>!youngOf(e)),healthy=adults.filter(e=>!e.sick),cs=herd.filter(e=>e.sick).length;
