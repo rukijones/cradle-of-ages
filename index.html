@@ -255,7 +255,7 @@ const DEF={
   longsword:{kind:'unit',needTech:'bronzework',name:'Long swordsman',plural:'Long swordsmen',hp:95,atk:12,arm:3,range:0,cd:1.25,speed:76,sight:5,r:9,cost:{f:55,g:40},time:20,age:3},
   halberdier:{kind:'unit',name:'Halberdier',plural:'Halberdiers',hp:65,atk:6,arm:1,range:0,cd:1.3,speed:76,sight:5,r:9,cost:{f:35,w:30},time:16,age:3},
   trebuchet:{kind:'unit',name:'Trebuchet',plural:'Trebuchets',hp:170,atk:70,arm:1,range:13,cd:7,speed:22,sight:13,r:15,cost:{w:260,g:200},time:45,age:3},
-  ranch:{kind:'bld',name:'Ranch',hp:350,size:6,sight:4,trains:['donkey','caravan','tradecart','ox','truck'],techs:[],cost:{w:200},time:35,age:2,walkable:1},
+  ranch:{kind:'bld',name:'Ranch',hp:350,size:8,sight:4,trains:['donkey','caravan','tradecart','ox','truck'],techs:[],cost:{w:200},time:35,age:2,walkable:1},
   corral:{kind:'bld',name:'Corral',hp:200,size:3,sight:3,trains:['donkey','caravan','ox','truck'],cost:{w:120},time:25,age:2,walkable:1},
   university:{kind:'bld',name:'University',hp:450,size:3,sight:6,trains:['explorer'],techs:['surveying','printing','cartography','medicine','chemistry'],cost:{w:300,s:150,g:200},time:60,age:4},
   airfield:{kind:'bld',name:'Airfield',hp:1200,size:4,sight:7,trains:['bomber'],cost:{w:250,s:450,g:300},time:70,age:6},
@@ -275,7 +275,7 @@ const DEF={
   forester:{kind:'bld',name:"Forester's lodge",hp:250,size:2,sight:5,drop:1,dropOnly:'w',techs:['sawmill'],cost:{w:120},time:30,age:3},
   mill:{kind:'bld',name:'Windmill',hp:300,size:3,sight:4,drop:1,dropOnly:'f',techs:[],cost:{w:150},time:30,age:3},
   bakery:{kind:'bld',name:'Bakery',hp:250,size:4,sight:3,techs:['grandbake'],cost:{w:150,s:50},time:30,age:3},
-  dairy:{kind:'bld',name:'Dairy',hp:300,size:4,sight:4,techs:[],cost:{w:200},time:35,age:3},
+  dairy:{kind:'bld',name:'Dairy',hp:300,size:5,sight:4,techs:[],cost:{w:200},time:35,age:3},
   weaver:{kind:'bld',name:'Weaver',hp:220,size:3,sight:3,cost:{w:150},time:30,age:3},
   market:{kind:'bld',name:'Market',hp:500,size:3,sight:5,trains:['tradecart'],techs:['banking','guilds'],cost:{w:250},time:45,age:4},
   bomber:{kind:'unit',name:'Bomber',plural:'Bombers',hp:1,atk:0,range:0,cd:9,speed:0,sight:0,r:1,cost:{w:150,g:250},time:35,age:6,pop:2},
@@ -638,7 +638,7 @@ function loadGame(){let raw=null;try{raw=localStorage.getItem(SAVE_KEY);}catch(e
   audioInit();CELE.on=false;$('ageUp').classList.remove('show');
   G=o.G;G.byId=new Map();for(const e of G.ents){delete e._kick;delete e._kdx;delete e._pop;G.byId.set(e.id,e);}G.rand=mulberry(((G.seed||1)^((G.t*1000)|0))>>>0);G.vis=[new Uint8Array(MW*MH),new Uint8Array(MW*MH)];G.paused=false;G.place=null;G.aground=false;
   SEL_CULT=ONLY_WEST?'west':(o.cult||'west');if(ONLY_WEST)G.culture=['west','west'];for(const q of[0,1])if(!SPR.cult||SPR.cult[q]!==G.culture[q]){genAgeSprites(q,G.culture[q]);if(q===0)refreshThumbs0();}
-  try{growOld();}catch(e){}renderGround();computeVis();
+  try{growOld();}catch(e){}try{growRanchOld();}catch(e){}renderGround();computeVis();
   VIS.parts=[];VIS.birds=[];VIS.birdT=8;spawnClouds();
   if(o.cam){cam.z=clampZ(o.cam.z||1);cam.x=o.cam.x;cam.y=o.cam.y;}
   panelKeyLast='';G.lastSaveT=G.t;$('start').hidden=true;$('end').hidden=true;$('pause').hidden=true;toast('Game resumed');return true;}
@@ -862,19 +862,22 @@ const isPen=e=>!!e&&(e.type==='pen'||e.type==='ranch'),isCor=e=>!!e&&(e.type==='
    ranch gets its cows; the shepherds milk them and the wing shows the milking (art chat 1's dairy scene). w.ranch = ranch id, ranch.wing = wing id.
    The wing's 4 corner tiles (outside its drawn diamond) stay walkable, so its square can overlap the ranch square's empty corner. ---- */
 const WING_OFF=[[3,3],[4,2],[2,4],[-2,3],[-1,4],[-3,2],[5,1],[1,5],[-4,1],[0,5]];
-function wOff(R){const S=(R&&R.size)||5,L=[];for(let x=S-4;x<=S;x++)L.push([x,2*S-4-x]);for(let x=-4;x<=0;x++)L.push([x,x+S]);const c=S-2;return L.sort((a,b)=>Math.abs(a[0]-(a[0]>0?c:-2))-Math.abs(b[0]-(b[0]>0?c:-2)));}
+function wOff(R){const S=(R&&R.size)||8,n=DEF.dairy.size,a=Math.ceil(1.5*S-n/2)+1,b=Math.ceil(S/2+n/2)+1,L=[];for(let x=S-n-2;x<=S+1;x++)L.push([x,a-x,1]);for(let x=-n-1;x<=1;x++)L.push([x,x+b,0]);
+  let gR=[R.tx+.75*S,R.ty+.75*S],gL=[R.tx+.25*S,R.ty+.75*S];try{if(GFX.ranch8&&GFX.ranch8()&&GFX.ranch8Pt){const p=GFX.ranch8Pt(R,706,624),q=GFX.ranch8Pt(R,238,592);if(p)gR=[p[0]/TILE,p[1]/TILE];if(q)gL=[q[0]/TILE,q[1]/TILE];}}catch(err){}
+  const d=q=>{const m=q[2]?[R.tx+q[0]+n/4,R.ty+q[1]+n/4]:[R.tx+q[0]+3*n/4,R.ty+q[1]+n/4],g=q[2]?gR:gL;return Math.hypot(m[0]-g[0],m[1]-g[1])+(q[2]?0:3);};
+  return L.sort((p,q)=>d(p)-d(q)).map(q=>[q[0],q[1]]);}
 /* Josh (Oct 14): the wing often had nowhere to go (map edge, a neighbour 1 tile away). More spots along each gate, and the 1-tile gap is now only a preference */
-function wingTight(R,tx,ty){const FREE=new Set(['wall','gate','farm','pylon','outpost']);for(const e of G.ents){if(e.kind!=='bld'||e.dead||e===R||FREE.has(e.type)||(DEF[e.type]&&DEF[e.type].walkable))continue;const es=e.size||DEF[e.type].size;if(tx-1<e.tx+es&&tx+5>e.tx&&ty-1<e.ty+es&&ty+5>e.ty)return true;}return false;}
+function wingTight(R,tx,ty){const FREE=new Set(['wall','gate','farm','pylon','outpost']);for(const e of G.ents){if(e.kind!=='bld'||e.dead||e===R||FREE.has(e.type)||(DEF[e.type]&&DEF[e.type].walkable))continue;const es=e.size||DEF[e.type].size;if(tx-1<e.tx+es&&tx+DEF.dairy.size+1>e.tx&&ty-1<e.ty+es&&ty+DEF.dairy.size+1>e.ty)return true;}return false;}
 function ranchDairy(b){if(!b||b.type!=='ranch')return false;const W=b.wing&&G.byId.get(b.wing);if(W&&!W.dead&&W.built)return true;return !b.wing&&!!b.cowsGiven&&!!(G.players[b.owner]&&G.players[b.owner].tech.dairyfarm);}
-function wingCorner(dx,dy){return (dx===0||dx===3)&&(dy===0||dy===3);}
+function wingCorner(dx,dy,n){n=n||DEF.dairy.size;return Math.abs(dx+.5-n/2)+Math.abs(dy+.5-n/2)>n/2;}
 function wingWhy(R,tx,ty,o,needExp){if(!R||R.dead||!R.built)return 'Build it at a finished ranch';if(!wOff(R).some(q=>R.tx+q[0]===tx&&R.ty+q[1]===ty))return 'The dairy wing joins the ranch at one of its gates';
-  for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){const x=tx+dx,y=ty+dy;if(wingCorner(dx,dy))continue;if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);
+  const WN=DEF.dairy.size;for(let dy=0;dy<WN;dy++)for(let dx=0;dx<WN;dx++){const x=tx+dx,y=ty+dy;if(wingCorner(dx,dy,WN))continue;if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);
     if(G.terrain[i])return 'Water or cliffs in the way at the ranch gate';if(G.occ[i]&&!clearableTree(G.occ[i])){const e=G.byId.get(G.occ[i]);return e&&e.kind==='bld'&&DEF[e.type]?(e.owner===o?'Your ':'A ')+DEF[e.type].name.toLowerCase()+' is in the way at the ranch gate':'Blocked. Clear the ground at the ranch gate';}
-    if(G.wocc[i]&&!(G.wocc[i]===R.id&&Math.abs(x+.5-R.tx-R.size/2)+Math.abs(y+.5-R.ty-R.size/2)>2.5))return 'Blocked. Clear the ground at the ranch gate';
+    if(G.wocc[i]&&!(G.wocc[i]===R.id&&Math.abs(x+.5-R.tx-R.size/2)+Math.abs(y+.5-R.ty-R.size/2)>R.size/2))return 'Blocked. Clear the ground at the ranch gate';
     if(needExp&&!G.exp[0][i])return 'Pick explored ground';}
   return null;}
-function wingSnap(p){const R=G.byId.get(p.wing);if(!R)return;const cx=p.tx+2,cy=p.ty+2;let best=null,bd=1e9;for(const q of wOff(R)){const x=R.tx+q[0],y=R.ty+q[1],d=Math.hypot(x+2-cx,y+2-cy)+(wingWhy(R,x,y,0,true)?50:0)+(wingTight(R,x,y)?6:0);if(d<bd){bd=d;best=[x,y];}}if(best){p.tx=best[0];p.ty=best[1];}}
-function wingInit(bl,rid){const R=G.byId.get(rid);bl.ranch=rid;if(R)R.wing=bl.id;for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++)if(wingCorner(dx,dy)){const i=ti(bl.tx+dx,bl.ty+dy);if(G.occ[i]===bl.id)G.occ[i]=0;}
+function wingSnap(p){const R=G.byId.get(p.wing);if(!R)return;const h=DEF.dairy.size/2,cx=p.tx+h,cy=p.ty+h;let best=null,bd=1e9;for(const q of wOff(R)){const x=R.tx+q[0],y=R.ty+q[1],d=Math.hypot(x+h-cx,y+h-cy)+(wingWhy(R,x,y,0,true)?50:0)+(wingTight(R,x,y)?6:0);if(d<bd){bd=d;best=[x,y];}}if(best){p.tx=best[0];p.ty=best[1];}}
+function wingInit(bl,rid){const R=G.byId.get(rid);bl.ranch=rid;if(R)R.wing=bl.id;const WN=bl.size||DEF.dairy.size;for(let dy=0;dy<WN;dy++)for(let dx=0;dx<WN;dx++)if(wingCorner(dx,dy,WN)){const i=ti(bl.tx+dx,bl.ty+dy);if(G.occ[i]===bl.id)G.occ[i]=0;}
   if(!bl.built&&!G.ents.some(u=>u.order&&u.order.type==='build'&&u.order.id===bl.id))wingBuilders(bl,2);}
 function wingBuilders(bl,n){const vs=G.ents.filter(u=>u.type==='villager'&&u.owner===bl.owner&&!u.dead&&!(u.order&&u.order.type==='build')).sort((a,b)=>Math.hypot(a.x-bl.x,a.y-bl.y)-Math.hypot(b.x-bl.x,b.y-bl.y)).slice(0,n);for(const u of vs)orderBuild(u,bl);return vs.length;}
 function aiWing(R,built){const P=G.players[R.owner];if(!built&&!canAfford(P,DEF.dairy.cost))return false;const qs=wOff(R).sort((a,b)=>wingTight(R,R.tx+a[0],R.ty+a[1])-wingTight(R,R.tx+b[0],R.ty+b[1]));for(const q of qs){const x=R.tx+q[0],y=R.ty+q[1];if(wingWhy(R,x,y,R.owner,false))continue;if(!built)pay(P,DEF.dairy.cost);const bl=mkBld('dairy',R.owner,x,y,!!built);displaceUnits(bl);wingInit(bl,R.id);return true;}return false;}
@@ -7949,7 +7952,7 @@ function ranchZone(b,k){const L=rSpots(b,k||'s');if(L){let x0=1e9,y0=1e9,x1=-1e9
 const SW_OFF=(()=>{const L=[];for(let d=-2;d<=4;d++)L.push([5,d],[d,5],[-3,d],[d,-3]);return L;})();
 function swOff(R){const S=(R&&R.size)||5,L=[];for(let d=-2;d<=S-1;d++)L.push([S,d],[d,S],[-3,d],[d,-3]);return L;}
 function swingWhy(R,tx,ty,o,needExp){if(!R||R.dead||!R.built)return 'Build it at a finished ranch';if(!swOff(R).some(q=>R.tx+q[0]===tx&&R.ty+q[1]===ty))return 'The sheep wing joins the ranch on one of its sides';
-  const D=R.wing&&G.byId.get(R.wing);if(D&&!D.dead&&tx<D.tx+4&&tx+3>D.tx&&ty<D.ty+4&&ty+3>D.ty)return 'The dairy wing is in the way';
+  const D=R.wing&&G.byId.get(R.wing);if(D&&!D.dead&&tx<D.tx+D.size&&tx+3>D.tx&&ty<D.ty+D.size&&ty+3>D.ty)return 'The dairy wing is in the way';
   for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){const x=tx+dx,y=ty+dy;if(!inB(x,y))return 'Too close to the edge of the map';const i=ti(x,y);
     if(G.terrain[i])return 'Water or cliffs in the way';if(G.occ[i]&&!clearableTree(G.occ[i])){const e=G.byId.get(G.occ[i]);return e&&e.kind==='bld'&&DEF[e.type]?(e.owner===o?'Your ':'A ')+DEF[e.type].name.toLowerCase()+' is in the way':'Blocked. Clear the ground beside the ranch';}
     if(G.wocc[i])return 'Blocked. Clear the ground beside the ranch';if(needExp&&!G.exp[0][i])return 'Pick explored ground';}
@@ -8048,7 +8051,7 @@ const RSP_A=[[1.3,3.7],[2.0,3.25],[2.1,4.2],[2.9,3.6],[2.9,4.6],[3.65,4.2],[3.55
   RSP_S=[[.45,1.6],[1.0,1.55],[1.6,1.75],[2.15,1.8],[.7,2.05],[1.3,2.15],[1.85,2.25],[1.5,2.55]],RHAND_MAX=3;
 function rSpots(R,k){if(!R||R.type!=='ranch')return null;
   if(k==='a'){const f=(R.size||6)/6;return RSP_A.map(p=>[R.tx+p[0]*f,R.ty+p[1]*f]);}
-  if(k==='c'){const W=R.wing&&G.byId.get(R.wing);if(!W||W.dead||!W.built)return null;const left=W.tx<R.tx;return RSP_C.map(p=>[W.tx+(left?4-p[0]:p[0]),W.ty+p[1]]);}
+  if(k==='c'){const W=R.wing&&G.byId.get(R.wing);if(!W||W.dead||!W.built)return null;const left=W.tx<R.tx,f=(W.size||4)/4;return RSP_C.map(p=>[W.tx+(left?W.size-p[0]*f:p[0]*f),W.ty+p[1]*f]);}
   const W=swingOf(R);if(!W||!W.built)return null;return RSP_S.map(p=>[W.tx+p[0],W.ty+p[1]]);}
 function spotBusy(p,skip){for(const u of G.ents){if(u.kind!=='unit'||u.dead||u===skip)continue;if(Math.abs(u.x/TILE-p[0])<.45&&Math.abs(u.y/TILE-p[1])<.45)return true;}return false;}
 function freeSpot(L){const fr=[];for(let i=0;i<L.length;i++)if(!spotBusy(L[i]))fr.push(i);return fr.length?fr[(Math.random()*fr.length)|0]:(Math.random()*L.length)|0;}
@@ -8200,6 +8203,47 @@ function cart3D(c,d,now){if(typeof GFX==='undefined'||GFX.mode!=='V23D'||typeof 
   const sk=GFX._flourSack;if(sk&&sk.complete&&sk.naturalWidth){let by=d.y-13;try{if(GFX.beastBackY)by=GFX.beastBackY('donkey',d.y);}catch(err){}const w=9,h=w*sk.height/sk.width;
     c.drawImage(sk,d.x-w-1,by-h+2,w,h);c.drawImage(sk,d.x+1,by-h+2,w,h);}
   return true;}
+/* ===== Ranch 8x8 + dairy wing 5x5 (Josh, Oct 15: "the cows don't fit in their slots... the dairy wing needs to be bigger"). Art chat 1's
+   true-scale pictures (a1_r8) are drawn for these sizes. Old saves: a smaller ranch grows in place where there is room, and its dairy wing /
+   sheep wing move to the new fence; if there is no room everything stays as it was. ===== */
+function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
+  for(const R of G.ents.filter(e=>e.type==='ranch'&&!e.dead&&e.size<n)){const o=R.size,W=R.wing&&G.byId.get(R.wing),P=R.swing&&G.byId.get(R.swing);
+    const D=W&&!W.dead&&W.type==='dairy'?W:null,S=P&&!P.dead&&P.type==='pen'?P:null,old={R:[R.tx,R.ty,R.size],D:D&&[D.tx,D.ty,D.size],S:S&&[S.tx,S.ty]};
+    const unmark=(e,arr)=>{for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++)if(inB(x,y)&&arr[ti(x,y)]===e.id)arr[ti(x,y)]=0;};
+    const mark=(e,arr,skip)=>{for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++)if(inB(x,y)&&!(skip&&skip(x-e.tx,y-e.ty)))arr[ti(x,y)]=e.id;};
+    const put=(e,tx,ty,sz)=>{e.tx=tx;e.ty=ty;e.size=sz;e.x=(tx+sz/2)*TILE;e.y=(ty+sz/2)*TILE;};
+    const free=(tx,ty,sz)=>{for(let y=ty;y<ty+sz;y++)for(let x=tx;x<tx+sz;x++){if(!inB(x,y))return false;const i=ti(x,y);if(G.terrain[i]||G.wocc[i])return false;const id=G.occ[i];if(id&&!clearableTree(id))return false;}return true;};
+    unmark(R,G.wocc);if(D)unmark(D,G.occ);if(S)unmark(S,G.wocc);let done=false;
+    for(const[dx,dy]of[[-1,-1],[0,0],[-1,0],[0,-1]]){const tx=R.tx+dx*(n-o)/2|0,ty=R.ty+dy*(n-o)/2|0;if(!free(tx,ty,n))continue;
+      put(R,tx,ty,n);mark(R,G.wocc);let ok=true;
+      if(D){const sz0=D.size;D.size=wn;let at=null;for(const q of wOff(R)){if(!wingWhy(R,R.tx+q[0],R.ty+q[1],R.owner,false)){at=q;break;}}if(at){put(D,R.tx+at[0],R.ty+at[1],wn);mark(D,G.occ,(x,y)=>wingCorner(x,y,wn));}else{D.size=sz0;ok=false;}}
+      if(ok&&S){let at=null;for(const q of swOff(R)){if(!swingWhy(R,R.tx+q[0],R.ty+q[1],R.owner,false)){at=q;break;}}if(at){put(S,R.tx+at[0],R.ty+at[1],S.size);mark(S,G.wocc);}else ok=false;}
+      if(ok){done=true;break;}
+      unmark(R,G.wocc);if(D){unmark(D,G.occ);put(D,old.D[0],old.D[1],old.D[2]);}put(R,old.R[0],old.R[1],old.R[2]);}
+    if(!done){put(R,old.R[0],old.R[1],old.R[2]);mark(R,G.wocc);if(D){put(D,old.D[0],old.D[1],old.D[2]);mark(D,G.occ,(x,y)=>wingCorner(x,y,old.D[2]));}if(S){put(S,old.S[0],old.S[1],S.size);mark(S,G.wocc);}continue;}
+    for(const e of [R,D,S])if(e){try{displaceUnits(e);}catch(err){}}
+    for(const e of [R,D,S])if(e)for(let y=e.ty;y<e.ty+e.size;y++)for(let x=e.tx;x<e.tx+e.size;x++){const id=G.occ[ti(x,y)];if(id&&clearableTree(id)){kill(G.byId.get(id));G.occ[ti(x,y)]=0;}}}}
+/* ===== Ranch + dairy wing sit on the ground, cows stand under the shed roof (Josh, Oct 15: "the dairy and ranch are raised above the
+   ground"; "the cows ... are taller than the roof of the slots they are supposed to be under"). Gameplay-side, outside the art blocks:
+   - the true-scale pictures (a1_r8) are drawn clipped at the bottom edges of their top surface, so the painted earth sides under the
+     fence (the raised-block look) are not shown and the yard meets the grass directly;
+   - after the dairy wing (and its milking scene) is drawn, the shed roof is drawn again on top, so tied cows are under the roof.
+   Art chat 1: if you repaint these pictures flat and with the roof in its own layer, set GFX.FLAT8=false (or delete this block). ===== */
+(function(){const RDIA=[[35,465],[480,710],[990,450]],WDIA=[[40,470],[510,735],[980,480]],ROOF=[[452,108],[892,298],[892,326],[754,424],[462,294],[448,172]];
+  const on=()=>typeof GFX!=='undefined'&&GFX.FLAT8!==false&&GFX.ranch8&&GFX.ranch8();
+  const isWing=e=>e.type==='dairy'&&e.ranch&&G.byId.get(e.ranch)&&!G.byId.get(e.ranch).dead;
+  function clipTop(c,P){const [L,B,Rt]=P;c.beginPath();c.moveTo(L[0]-80,L[1]-3000);c.lineTo(L[0]-80,L[1]);c.lineTo(L[0],L[1]);c.lineTo(B[0],B[1]);c.lineTo(Rt[0],Rt[1]);c.lineTo(Rt[0]+80,Rt[1]);c.lineTo(Rt[0]+80,Rt[1]-3000);c.closePath();c.clip();}
+  try{drawBuilding=(function(prev){return function(c,e,now){if(!e||!e.built||e.owner>1||!on()||!(e.type==='ranch'||isWing(e)))return prev.apply(this,arguments);
+    let P=null;try{P=e.type==='ranch'?RDIA.map(p=>GFX.ranch8Pt(e,p[0],p[1])):WDIA.map(p=>GFX.wing8Pt(e,p[0],p[1]));}catch(err){}
+    if(!P||P.some(p=>!p))return prev.apply(this,arguments);
+    c.save();clipTop(c,P);let r;try{r=prev.apply(this,arguments);}finally{c.restore();}
+    return r}})(drawBuilding)}catch(err){}
+  function roof(c,e){if(!e||!e.built||e.owner>1||!on()||!isWing(e))return;const sp=GFX.wingSpr(e);if(!sp||!sp.w)return;const Q=ROOF.map(p=>GFX.wing8Pt(e,p[0],p[1]));if(Q.some(p=>!p))return;
+    c.save();c.beginPath();Q.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.clip();c.drawImage(sp,e.tx*TILE-(sp.dx||0),e.ty*TILE-sp.ov,sp.w,sp.h);c.restore();}
+  /* the second stall's cow stood at the open gable end with its head above the roof: move that stall spot in under the roof */
+  try{const wl=GFX.wingLay;GFX.wingLay=function(e){const L=wl?wl.apply(this,arguments):null;try{if(L&&L.slot&&L.slot.length>1&&on()&&isWing(e)){const left=GFX.wingLeft(e),q=900/1092;L.slot=L.slot.slice();L.slot[1]=[(left?1092-772:772)*q,468*q];}}catch(err){}return L}}catch(err){}
+  try{if(typeof BANIM!=='undefined')BANIM.dairy=(function(prev){return function(c,b,now){const r=prev?prev.apply(this,arguments):undefined;try{roof(c,b);}catch(err){}return r}})(BANIM.dairy)}catch(err){}
+})();
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
