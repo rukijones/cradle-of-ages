@@ -8179,8 +8179,8 @@ try{(function(){
     // bakery end: the bakery's wall facing the mill, a bit inside the footprint, at eave height
     // the painted bakery house sits in the back-left of the 4x4 lot: aim at its wall facing the mill
     const hcx=bx0+Sb*.38,hcy=by0+Sb*.44;const a=Math.atan2(hcy-my,hcx-mx),ca=Math.cos(a),sa=Math.sin(a);
-    const ex=hcx-ca*Sb*.2,ey=hcy-sa*Sb*.13,gx=ex,gy=ey+30;
-    let sx,sy;if(M&&M.k){sx=lx+(HC[0]+HRX*ca)*M.k;sy=ty+(HC[1]+HRY*sa)*M.k}else{sx=mx+ca*Sm*.32;sy=my+sa*Sm*.2-Sm*.55}
+    const ex=hcx-ca*Sb*.2,ey0=hcy-sa*Sb*.13,gx=ex,gy=ey0+30,ey=gy-((GFX.CHUTE&&GFX.CHUTE.endH!=null)?GFX.CHUTE.endH:-22);/* Josh Oct 16: end low on the bakery wall */
+    let sx,sy;if(M&&M.k){const hy=(GFX.CHUTE&&GFX.CHUTE.hatchY)||146;sx=lx+(HC[0]+HRX*.82*ca)*M.k;sy=ty+(hy+HRY*.82*sa)*M.k}/* Josh Oct 16: hatch high on the tower so sacks slide down */else{sx=mx+ca*Sm*.32;sy=my+sa*Sm*.2-Sm*.55}
     const g0x=mx+ca*Sm*.42,g0y=my+sa*Sm*.42;
     return {sx,sy,ex,ey,g0x,g0y,g1x:gx,g1y:gy,behind:sa<-.15,a}}
   const W={dark:'#33200f',side:'#5c3a1f',side2:'#6e4626',rim:'#8a5a30',hi:'#b98550',floor:'#c9a676',floor2:'#9c7448',band:'#34312d',bandHi:'#77716a'};
