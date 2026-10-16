@@ -6111,7 +6111,7 @@ try{(function(){
 /* ===== V23D Industrial/Modern live touches (art chat 3, Josh Oct 15 2026: "Go for it"): live forge fires; poultry houses get their own small live hens
    inside the painted run (art chat 1's big yard hens, nest and crate are skipped for the painted Industrial poultry house and Modern poultry farm, which
    draw on a 2x2 plot now) and spinning vent fans on the Modern farm; the Modern artillery factory's painted-open bay is an open doorway (units drive out
-   of it, no roll-up). Tower / bunker upgrade looks: art/c/nf_tower.webp (+1 file). Moving flags via art chat 1's wave. ===== */
+   of it, no roll-up). Tower / bunker upgrade looks: art/c/nf_tower.webp (+1 file). Moving flags via art chat 1's wave. Repaints in the same file: Industrial castle, Modern house, Modern poultry farm. ===== */
 (function(){try{
   if(typeof GFX==='undefined'||typeof bldSpr0==='undefined')return;
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
@@ -6120,9 +6120,10 @@ try{(function(){
     nb_forge:{m:[[115,226,1.5]],s:[[148,8,1]]},
     nx_forge:{m:[[150,242,1.6]],s:[[322,45,1]]}})}}catch(err){}
   /* hens */
-  const CP={icoop:{W:860,hs:40,A:[[86,316,46,18],[352,418,26,12]]},nx_coop:{W:423,hs:22,A:[[352,108,26,8]],fans:[[167.5,178.8],[192.5,165],[216,152.5],[241,137.5],[266,124],[291,110]]}};
+  const CP={icoop:{W:860,hs:40,A:[[86,316,46,18],[352,418,26,12]]},nx_coop:{W:423,hs:22,A:[[352,108,26,8]],fans:[[167.5,178.8],[192.5,165],[216,152.5],[241,137.5],[266,124],[291,110]]},
+    nt_xcoop:{W:916,hs:30,fs:2.1,A:[[748,250,46,13]],fans:[[362,385],[419,358],[471,327],[523,296],[575,267],[629,240]]}};
   function keyOf(e){if(GFX.mode!=='V23D'||!e||e.type!=='coop'||e.owner==null||e.owner<0||e.owner>1||e.yard)return null;const a=ageOf(e.owner);
-    if(a>=6)return 'nx_coop';if(a===5){try{if(typeof NF!=='undefined'&&NF.keyFor&&NF.keyFor('coop',e.owner,false)==='icoop')return 'icoop'}catch(err){}}return null}
+    if(a>=6)return (GFX.imgs&&GFX.imgs.nt_xcoop)?'nt_xcoop':'nx_coop';if(a===5){try{if(typeof NF!=='undefined'&&NF.keyFor&&NF.keyFor('coop',e.owner,false)==='icoop')return 'icoop'}catch(err){}}return null}
   const ST=new WeakMap();
   function pick(P,i){const R=P.A[i%P.A.length],a=Math.random()*6.283,r=Math.sqrt(Math.random());return [R[0]+Math.cos(a)*R[2]*r,R[1]+Math.sin(a)*R[3]*r]}
   function hen(c,x,y,h,face,peck,col,chick){c.save();c.translate(x,y);if(face<0)c.scale(-1,1);
@@ -6140,14 +6141,14 @@ try{(function(){
     c.fillStyle='#d8322a';c.beginPath();c.ellipse(hx-h*.02,hy-h*.11,h*.07,h*.05,0,0,7);c.fill();c.beginPath();c.ellipse(hx+h*.06,hy+h*.08,h*.03,h*.05,0,0,7);c.fill();
     c.fillStyle='#e8a224';c.beginPath();c.moveTo(hx+h*.09,hy-h*.02);c.lineTo(hx+h*.19,hy+h*.02);c.lineTo(hx+h*.09,hy+h*.05);c.fill();
     c.fillStyle='#1a1a1a';c.beginPath();c.arc(hx+h*.03,hy-h*.02,h*.022,0,7);c.fill();c.restore()}
-  function fan(c,x,y,a){c.save();c.translate(x,y);c.fillStyle='#2b2d31';c.beginPath();c.ellipse(0,0,5.6,3.6,-.45,0,7);c.fill();
+  function fan(c,x,y,a,fs){c.save();c.translate(x,y);if(fs)c.scale(fs,fs);c.fillStyle='#2b2d31';c.beginPath();c.ellipse(0,0,5.6,3.6,-.45,0,7);c.fill();
     c.fillStyle='#9aa1a8';for(let i=0;i<3;i++){const b=a+i*2.094;c.beginPath();c.ellipse(Math.cos(b)*2.4,Math.sin(b)*1.6,2.3,.9,b,0,7);c.fill()}
     c.fillStyle='#d6dbe0';c.beginPath();c.arc(0,0,.8,0,7);c.fill();c.restore()}
   function scene(c,e,now,k){let sp=null;try{sp=bldSpr0(e)}catch(err){}if(!sp||!sp.w)return false;const P=CP[k],q=sp.w/P.W,X=e.tx*TILE-(sp.dx||0),Y=e.ty*TILE-sp.ov;
     let s=ST.get(e);if(!s){s={B:[],t:now,fill:0};ST.set(e,s)}const dt=Math.min(.1,Math.max(0,(now-s.t)/1000));s.t=now;
     const gt=(typeof G!=='undefined'&&G)?G.t:0,birds=(e.birds||[-999]).slice(0,7);while(s.B.length<birds.length){const i=s.B.length,[x,y]=pick(P,i);s.B.push({i,x,y,tx:x,ty:y,f:1,m:0,mt:Math.random()*2,col:(e.id*7+i)%3===2?1:0})}
     s.B.length=birds.length;c.save();c.translate(X,Y);c.scale(q,q);
-    if(P.fans){const a=now/1000*9;for(let i=0;i<P.fans.length;i++)fan(c,P.fans[i][0],P.fans[i][1],a+i*1.3)}
+    if(P.fans){const a=now/1000*9;for(let i=0;i<P.fans.length;i++)fan(c,P.fans[i][0],P.fans[i][1],a+i*1.3,P.fs)}
     const D=[];let nh=0;
     birds.forEach((t0,i)=>{const age=gt-t0;if(age<20)return;const b=s.B[i],chick=age<60;if(!chick)nh++;
       if(!G.paused){b.mt-=dt;if(b.m===1){const dx=b.tx-b.x,dy=b.ty-b.y,d=Math.hypot(dx,dy),v=(chick?22:16)*P.hs/22*dt;if(d<=v){b.x=b.tx;b.y=b.ty;b.m=0;b.mt=1+Math.random()*3}else{b.x+=dx/d*v;b.y+=dy/d*v;if(Math.abs(dx)>.5)b.f=dx>0?1:-1}}
@@ -6170,13 +6171,13 @@ try{(function(){
   /* tower upgrade looks (Josh's picks Oct 15): Industrial watchtower Guard tower = 2A (sandbag + wire ring, steel-plated top), Keep = 3A (concrete tower,
      steel turret with twin guns); Modern bunker Guard tower = 2B (two guns, roof searchlight, wire), Keep = 3A (armoured, roof turret, hedgehogs).
      Sentry tower keeps the plain picture. Lone towers only (towers set in walls keep art chat 1's wall kit). art/c/nf_tower.webp, masks half size. */
-  const TL={"it2":[0,0,586,1134,942,1188,293,567],"it3":[588,0,654,1186,1237,1188,327,593],"xb2":[1244,0,1081,959,1566,1188,541,480],"xb3":[0,1188,940,1051,2109,1188,470,526]};
-  const TF={it2:[1.1,.04],it3:[1.16,.04],xb2:[1.18,.04],xb3:[1.12,.04]};
+  const TL={"it2":[656,0,586,1134,1343,2149,293,567],"it3":[0,0,654,1186,1014,2149,327,593],"xb2":[0,1188,1081,959,472,3057,541,480],"xb3":[1244,0,940,1051,0,3057,470,526],"icastle":[0,2149,1012,906,1417,3057,506,453],"xhouse":[1083,1188,800,928,1015,3057,400,464],"xcoop":[1638,2149,916,531,1925,3057,458,266]};
+  const TF={it2:[1.1,.04],it3:[1.16,.04],xb2:[1.18,.04],xb3:[1.12,.04],icastle:[1.15,.04],xhouse:[1.1,.05],xcoop:[1.1,.04]};
   const TIM=new Image();let tcut=false;const TC={};
   function tready(){if(tcut)return true;if(!(TIM.complete&&TIM.naturalWidth))return false;for(const k in TL){const [x,y,w,h,mx,my,mw,mh]=TL[k];
       const a=document.createElement('canvas');a.width=w;a.height=h;a.getContext('2d').drawImage(TIM,x,y,w,h,0,0,w,h);
       const m=document.createElement('canvas');m.width=w;m.height=h;const g=m.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(TIM,mx,my,mw,mh,0,0,w,h);
-      GFX.imgs['nt_'+k]=a;GFX.imgs['nt_'+k+'_m']=m;try{if(!GFX_ART['nt_'+k])GFX_ART['nt_'+k]={age:k[0]==='x'?6:5,culture:'both',smoke:null}}catch(e){}}return tcut=true}
+      GFX.imgs['nt_'+k]=a;GFX.imgs['nt_'+k+'_m']=m;try{if(!GFX_ART['nt_'+k])GFX_ART['nt_'+k]={age:(k[0]==='x'?6:5),culture:'both',smoke:null}}catch(e){}}return tcut=true}
   function ttier(o){try{const T=G.players[o].tech||{};return T.keeps?3:T.guardtower?2:T.sentry?1:0}catch(e){return 0}}
   function tkey(o){if(GFX.mode!=='V23D'||o==null||o<0||o>1)return null;const a=ageOf(o);if(a<5)return null;const t=ttier(o);if(t<2)return null;return (a>=6?'xb':'it')+t}
   function tspr(k,o,sz){if(!tready())return null;const ck=k+o+'_'+sz;if(TC[ck])return TC[ck];const [wf,dn]=TF[k];let sp=GFX.spr('nt_'+k,o,sz*TILE,wf,dn);
@@ -6184,7 +6185,18 @@ try{(function(){
   GFX.towerUpSpr=function(o,sz){const k=tkey(o);return k?tspr(k,o,sz||((DEF.tower&&DEF.tower.size)||2)):null};
   bldSpr0=(function(prev){return function(e){if(e&&e.type==='tower'){try{const k=tkey(e.owner);if(k&&!(GFX.wallTower&&GFX.wallTower(e))){const s=tspr(k,e.owner,e.size||DEF.tower.size);if(s)return s}}catch(err){}}return prev(e)}})(bldSpr0);
   try{sprFor=(function(prev){return function(type,o){if(type==='tower'){try{const k=tkey(o);if(k){const s=tspr(k,o,DEF.tower.size);if(s)return s}}catch(err){}}return prev(type,o)}})(sprFor)}catch(err){}
-  TIM.onload=function(){try{tready()}catch(e){}};TIM.src=GFX.ART+'nf_tower.webp?v='+GFX.ARTV;
+  /* repaints (Josh's picks Oct 15, same atlas file): Industrial castle A (Victorian brick fortress; the Industrial Age showed the Medieval castle), Modern house A
+     (taller door under a porch; gameplay's interim x1.2 for it is dropped), Modern poultry farm with a whole silo (A). Doors: castle double doors swing. */
+  const RDOOR={icastle:[.28,.6,.065,.18,'l','closed']};
+  function rspr(k,o,sz){const s=tspr(k,o,sz);if(s&&RDOOR[k])s.door=RDOOR[k].slice();return s}
+  bldSpr0=(function(prev){return function(e){if(e&&e.owner!=null&&e.owner>=0&&e.owner<2&&GFX.mode==='V23D'&&(e.type==='castle'||e.type==='house'||e.type==='coop')){try{const a=ageOf(e.owner),sz=e.size||DEF[e.type].size;let k=null;
+      if(e.type==='castle'&&a===5)k='icastle';else if(e.type==='house'&&a>=6&&!(e.lvl>0)&&!e.grp&&!e.mergeJob&&!e.mergeWait)k='xhouse';else if(e.type==='coop'&&a>=6&&!e.yard)k='xcoop';
+      if(k){const s=rspr(k,e.owner,sz);if(s)return s}}catch(err){}}return prev(e)}})(bldSpr0);
+  try{sprFor=(function(prev){return function(type,o){if(o!=null&&o>=0&&o<2&&GFX.mode==='V23D'&&(type==='castle'||type==='house'||type==='coop')){try{const a=ageOf(o);let k=null;
+      if(type==='castle'&&a===5)k='icastle';else if(type==='house'&&a>=6)k='xhouse';else if(type==='coop'&&a>=6)k='xcoop';if(k){const s=rspr(k,o,DEF[type].size);if(s)return s}}catch(err){}}return prev(type,o)}})(sprFor)}catch(err){}
+  try{if(GFX.FX)Object.assign(GFX.FX,{nt_icastle:{w:[[378,52,472,138,'l'],[226,503,254,602,'t',.5],[381,583,414,697,'t',.5]],s:[[553,118],[655,300]]},
+    nt_xhouse:{w:[[492,0,562,88,'l']],s:[[462,80]]},nt_xcoop:{w:[[72,12,138,88,'l']]}})}catch(err){}
+  TIM.onload=function(){try{tready()}catch(e){}};TIM.src=GFX.ART+'nf_tower.webp?r=2&v='+GFX.ARTV;
 }catch(err){}})();
 /* ===== END art chat 3: late ===== */
 
@@ -8376,7 +8388,7 @@ try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='tower'&&e.owner<2
    are big enough"; Medieval is the standard; his pick: enlarge now, art chats repaint later). The pictures below were drawn small next to
    villagers (doors 0.5-0.8x a villager vs ~1.1-1.4x in the Medieval Age). They are drawn bigger on the same plot, grown from the middle of the
    plot's bottom edge, so they still stand on their tiles. Remove an entry when its repaint lands. GFX.SCALEFIX=false turns it off. ===== */
-const SCALEFIX={1:{house:1.2,storage:1.2},2:{house:1.25,storage:1.25,barracks:1.15},3:{house:1.08},5:{storage:1.15},6:{house:1.2}};
+const SCALEFIX={1:{house:1.2,storage:1.2},2:{house:1.25,storage:1.25,barracks:1.15},3:{house:1.08},5:{storage:1.15}};
 try{(function(){const C=new WeakMap();
   function grow(s,k,S){let m=C.get(s);if(!m){m={};C.set(s,m);}const key=k+'_'+S;if(m[key])return m[key];const c=document.createElement('canvas');c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);
     for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;c.ov=-S+(S+ov)*k;c._scaled=k;return m[key]=c;}
