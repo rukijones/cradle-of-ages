@@ -9102,6 +9102,47 @@ function nogoTile(u,tx,ty){if(!u||!inB(tx,ty))return false;const i=ti(tx,ty),ux=
   try{const r=ranchAt(tx,ty);if(r&&r!==ranchAt(ux,uy)&&!(DEF[u.type]&&DEF[u.type].animal)&&u.home!==r&&u.shep!==r&&u.dairyId!==r)return true}catch(err){}
   return false}
 try{cornerOK=(function(prev){return function(u,nx,ny){return prev(u,nx,ny)&&!nogoTile(u,tl(nx),tl(ny))}})(cornerOK)}catch(err){}
+/* ===== Save slots, gameplay chat 2 (Josh, Oct 16 2026: "make it so that you can save up to 3 games in game slots, and return to them at any time") =====
+   Three named save slots in the Menu (pause) screen and on the start screen. A slot holds a full copy of the game made by the
+   game's own saveGame() and is kept in IndexedDB (room for big late-game saves). Loading copies the slot back into the normal save
+   and runs the game's own loadGame(), so all its old-save fixes still apply. The automatic "Continue" save is unchanged. ===== */
+const SLOTS={n:3};
+{const DBN='cradle-slots',ST='s';let dbp=null;
+  const db=()=>dbp||(dbp=new Promise((res,rej)=>{try{const r=indexedDB.open(DBN,1);r.onupgradeneeded=()=>r.result.createObjectStore(ST);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e)}}));
+  const put=(k,v)=>db().then(d=>new Promise((res,rej)=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>rej(t.error);}));
+  const get=k=>db().then(d=>new Promise((res,rej)=>{const t=d.transaction(ST,'readonly'),q=t.objectStore(ST).get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);}));
+  const del=k=>db().then(d=>new Promise((res,rej)=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).delete(k);t.oncomplete=()=>res(true);t.onerror=()=>rej(t.error);}));
+  const metaTxt=m=>{if(!m)return 'Empty';const mm=Math.floor(m.t/60),ss=String(Math.floor(m.t%60)).padStart(2,'0'),d=new Date(m.when);
+    return AGES[m.age]+' · '+mm+':'+ss+(m.diff?' · '+m.diff:'')+'<br><span style="opacity:.7">'+d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})+'</span>';};
+  try{const cs=document.createElement('style');cs.textContent='.slots{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}.slot{flex:1;min-width:150px;max-width:200px;background:rgba(42,32,23,.9);border:1px solid var(--edge);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px}.slot .sn{font-family:Cinzel,Georgia,serif;font-weight:800;color:var(--gold);font-size:13px}.slot .si{font-size:12px;color:var(--ink);min-height:30px;line-height:1.3}.slot .sb2{display:flex;gap:6px}.slot button{flex:1;background:var(--btn);border:1px solid var(--edge);border-radius:7px;padding:7px 4px;font-weight:700;font-size:12px}.slot button.go{border-color:var(--gold)}.slot button:disabled{opacity:.4}.slh{font-size:12px;color:var(--muted);margin:2px 0 0}';document.head.appendChild(cs);}catch(err){}
+  function boxes(where){const id='slots-'+where;let el=document.getElementById(id);
+    if(!el){el=document.createElement('div');el.id=id;el.innerHTML='<p class="slh">'+(where==='p'?'Save slots: keep up to 3 games and come back to any of them.':'Your saved games')+'</p><div class="slots"></div>';
+      const card=$(where==='p'?'pause':'start').querySelector('.card');if(where==='p'){const ch=card.querySelector('.cheat');card.insertBefore(el,ch);}else{const r=$('contRow');r.parentNode.insertBefore(el,r.nextSibling);}
+      el.addEventListener('click',onClick);}
+    return el;}
+  async function render(where){const el=boxes(where),wrap=el.querySelector('.slots');let h='',any=false;
+    for(let i=1;i<=SLOTS.n;i++){let m=null;try{m=await get('meta'+i);}catch(e){}if(m)any=true;
+      h+='<div class="slot"><div class="sn">Slot '+i+'</div><div class="si">'+metaTxt(m)+'</div><div class="sb2">'+(where==='p'?'<button data-ss="save" data-i="'+i+'">'+(m?'Save over':'Save')+'</button>':'')+'<button class="go" data-ss="load" data-i="'+i+'"'+(m?'':' disabled')+'>Load</button>'+(m?'<button data-ss="del" data-i="'+i+'" style="flex:0 0 34px" aria-label="Delete">✕</button>':'')+'</div></div>';}
+    wrap.innerHTML=h;el.hidden=where==='s'&&!any;}
+  async function onClick(e){const b=e.target.closest('button[data-ss]');if(!b||b.disabled)return;e.stopPropagation();const i=+b.dataset.i,a=b.dataset.ss,where=b.closest('#slots-p')?'p':'s';
+    try{if(a==='save'){if(!G||G.over){toast('Nothing to save');return;}if(G.aiPlayers&&G.aiPlayers.includes(0)){toast('Turn off watch mode to save');return;}
+        saveGame();const data=localStorage.getItem(SAVE_KEY),meta=saveMeta();if(!data||!meta){toast('Could not save on this device');return;}
+        b.disabled=true;await put('data'+i,data);await put('meta'+i,meta);toast('Saved to slot '+i);await render(where);}
+      else if(a==='load'){const data=await get('data'+i);if(!data){toast('That slot is empty');return;}
+        if(where==='p'&&G&&!G.over&&!(G.aiPlayers&&G.aiPlayers.includes(0)))saveGame();
+        const keep=localStorage.getItem(SAVE_KEY),keepM=localStorage.getItem(SAVE_KEY+'-meta');
+        try{localStorage.setItem(SAVE_KEY,data);localStorage.setItem(SAVE_KEY+'-meta',JSON.stringify(await get('meta'+i)));}catch(err){toast('Not enough room on this device to load');return;}
+        if(!loadGame()){try{if(keep)localStorage.setItem(SAVE_KEY,keep);if(keepM)localStorage.setItem(SAVE_KEY+'-meta',keepM);}catch(err){}toast('Could not load slot '+i);return;}
+        toast('Loaded slot '+i);}
+      else if(a==='del'){if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent='Sure?';b.style.flex='0 0 54px';setTimeout(()=>{if(b.isConnected){b.dataset.sure='';b.textContent='✕';b.style.flex='0 0 34px';}},3000);return;}
+        await del('data'+i);await del('meta'+i);toast('Slot '+i+' cleared');await render(where);}}
+    catch(err){toast('Save slots are not available on this device');}}
+  const _rc=refreshContinue;refreshContinue=function(){const r=_rc.apply(this,arguments);render('s').catch(()=>{});return r;};
+  $('menuBtn').addEventListener('click',()=>{setTimeout(()=>render('p').catch(()=>{}),0);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')setTimeout(()=>{if(!$('pause').hidden)render('p').catch(()=>{});},0);});
+  setTimeout(()=>render('s').catch(()=>{}),0);
+}
+/* ===== END save slots ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
