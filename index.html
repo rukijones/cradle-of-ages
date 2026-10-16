@@ -8986,8 +8986,9 @@ function zbList(){const now=performance.now();if(now-ZB_T<250)return ZB;ZB_T=now
     const P=abkProfile(sp);if(!P)continue;const s=e.size||DEF[e.type].size||2;ZB.push({e,P,sc:sp.w/P.W,X0:e.tx*TILE-(sp.dx||0),Y0:e.ty*TILE-(sp.ov||0),fx0:e.tx*TILE,fx1:(e.tx+s)*TILE,key:(e.ty+s)*TILE-2})}
   return ZB}
 try{zOverOf=(function(prev){return function(e){const r=prev(e);if(r||!e||e.kind!=='unit'||e.air||e.naval)return r;let best=0;try{
-  for(const B of zbList()){if(e.y>=B.key||e.y<B.Y0)continue;if(e.x>=B.fx0&&e.x<=B.fx1)continue;const px=Math.round((e.x-B.X0)/B.sc);if(px<B.P.x0||px>B.P.x1)continue;const lo=B.P.low[px];if(lo<0)continue;
-    if(e.y>=B.Y0+lo*B.sc-3&&B.key+1>best)best=B.key+1}}catch(err){}return best||r}})(zOverOf)}catch(err){}
+  for(const B of zbList()){if(e.y>=B.key||e.y<B.Y0)continue;if(e.x>=B.fx0&&e.x<=B.fx1)continue;const hw=(GFX.ZB_HW!=null?GFX.ZB_HW:9);let n=0,ok=false;
+    for(const dx of [-hw,-hw/2,0,hw/2,hw]){const px=Math.round((e.x+dx-B.X0)/B.sc);if(px<B.P.x0||px>B.P.x1)continue;const lo=B.P.low[px];if(lo<0)continue;n++;if(e.y>=B.Y0+lo*B.sc-3){ok=true;break}}
+    if(n&&ok&&B.key+1>best)best=B.key+1}}catch(err){}return best||r}})(zOverOf)}catch(err){}
 /* ===== Pub round timer, gameplay chat 2 (Josh, Oct 16 2026: "When soldiers go for a round at the pub, there needs to be a place when you have them highlighted where it shows a ticker of the time left with the extra attack and armour") =====
    With soldiers selected, a card at the start of the bottom bar shows the pub-round bonus (+10% attack, +1 armor), how
    long it has left (counting down every second) and how many of the selected soldiers have it. Reads u.buff
@@ -9179,6 +9180,96 @@ try{pick=(function(prev){return function(wx,wy){const r=prev(wx,wy);if(r)return 
   for(const e of G.ents){if(e.kind!=='res'||e.dead||!RES[e.type]||!ROCKR.has(RES[e.type].r)||e.type==='goldmine'||e.type==='stonemine')continue;if(!G.exp[0][ti(e.tx,e.ty)])continue;const sz=(e.size||1)*TILE,x0=e.tx*TILE,y0=e.ty*TILE;
     if(wx<x0-sd||wx>x0+sz+sd||wy<y0-up||wy>y0+sz+sd)continue;const d=Math.hypot(wx-e.x,(wy-(e.y-sz*.4))*.8);if(d<bd){bd=d;best=e}}
   return best}catch(err){return null}}})(pick)}catch(err){}
+/* ===== gameplay chat 1: upgrade effect lines + next-step tips (Josh, Oct 16: "It isn't clear in the game what the upgrades do, such as bronze working"; "Need more direction early in game - bronze age don't really know to upgrade pick axes etc.").
+   1) Every upgrade button in the building panel shows one short line saying what it does (TECHFX[k] or TECH[k].desc).
+   2) Bronze tools could not be researched anywhere (no building listed it); it is now at the storage pit, after Bronze working.
+   ===== */
+const TECHFX={bronzework:'Unlocks swordsmen, bronze tools, weapons and armor',bronze:'Next age: new buildings, units and upgrades',iron:'Next age: new buildings, units and upgrades',medieval:'Next age: castles, knights and more',renaissance:'Next age: gunpowder, university and more',industrial:'Next age: factories, rail and steam',modern:'Next age: modern army and machines',
+  grandbake:'Cakes from flour + eggs: 2.2x food, crates sell for 30 gold',bakeworks:'Steam ovens 1.5x; add milk for 3.4x food',harvesters:'Machines farm for you, no farmers needed',surveying:'Villagers can dig for hidden stone and gold',cartography:'Reveals the whole map',medicine:'Your people heal slowly out of combat',dairyfarm:'Cows join your ranches for milk or cheese',roadinns:'Pubs rent rooms to travelers for gold',
+  picks:'Stone mining +25%, unlocks gold mining',axes:'Wood gathering +25%',plow:'Farming +25%',wheel:'Villagers move 25% faster',coppicing:'Trees near your town regrow from the stump',automatic:'Riflemen become infantry: rapid fire'};
+function techFx(k){const it=TECH[k];if(!it)return '';let t=TECHFX[k]||it.desc||'';if(t.length>64){const i=t.indexOf('. ');if(i>0&&i<64)t=t.slice(0,i);else t=t.slice(0,61).replace(/\s\S*$/,'')+'…'}return t}
+try{const cs=document.createElement('style');cs.textContent='.b.tech:has(.tfx){padding-top:7px;padding-bottom:1px;justify-content:flex-start;gap:0;min-width:150px}.b .fxw{display:flex;flex-direction:column;align-items:center}.b .tfx{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500;font-size:8.5px;line-height:1.12;color:#f1dfb8;opacity:.92;max-width:160px;white-space:normal;text-align:center;margin:0 0 1px}.b.tech.fx{display:grid;grid-template-columns:26px auto;column-gap:5px;align-items:center;min-width:150px;max-width:190px;padding:3px 7px}.b.tech.fx>img{grid-row:1/span 2;grid-column:1;width:26px;height:26px;object-fit:contain}.b.tech.fx>span:not(.badge){grid-column:2;text-align:left}.b.tech.fx .fxw{align-items:flex-start}.b.tech.fx .tfx{text-align:left;max-width:150px}';document.head.appendChild(cs)}catch(err){}
+try{btn=(function(prev){return function(act,label,sub,img,dis,badge,cls,pill){try{if(typeof act==='string'&&act.indexOf('train:')===0&&cls&&/\btech\b/.test(cls)){const k=act.slice(6);if(TECH[k]){const fx=techFx(k);if(fx){sub='<span class="fxw"><span class="tfx">'+fx.replace(/</g,'&lt;')+'</span>'+(sub||'')+'</span>';if(img)cls+=' fx'}}}}catch(err){}return prev(act,label,sub,img,dis,badge,cls,pill)}})(btn)}catch(err){}
+try{if(DEF.storage&&DEF.storage.techs&&!DEF.storage.techs.includes('bronzetools'))DEF.storage.techs.splice(3,0,'bronzetools')}catch(err){}
+/* ===== gameplay chat 1: step-by-step tutorial (Josh, Oct 16: "whenever something new happens, there should be a step by step tutorial how to use it ... Just the core stuff"; he picked the core 6 lessons and half speed while a lesson runs).
+   Lessons run once each, when the thing first comes up: start (town center, gathering, house), soldiers, farms, first raid, upgrades, next age.
+   A card at the lower left shows the step; action steps wait for you to do it (a gold ring shows what to tap), text steps have a Next button.
+   While a lesson runs the game is at half speed (window.TUTSLOW). Done lessons are kept in localStorage coa.tut.v1. Pause menu: "Tutorial: On/Off", "Replay tutorial". ===== */
+const TUT={on:true,done:{},cur:null,step:0,stT:0,q:[],box:null,ring:null};
+try{const j=JSON.parse(localStorage.getItem('coa.tut.v1')||'{}');TUT.done=j.done||{};if(j.off)TUT.on=false}catch(err){}
+function tutSave(){try{localStorage.setItem('coa.tut.v1',JSON.stringify({done:TUT.done,off:!TUT.on}))}catch(err){}}
+const tMine=t=>G.ents.filter(e=>e.owner===0&&!e.dead&&e.type===t);
+const tSel=()=>{try{return selEnts()}catch(err){return []}};
+const tSol=e=>e.kind==='unit'&&!NONMIL.has(e.type)&&!(DEF[e.type]&&DEF[e.type].animal);
+function tGath(r){return G.ents.some(u=>u.owner===0&&!u.dead&&u.type==='villager'&&u.order&&u.order.type==='gather'&&(()=>{const t=G.byId.get(u.order.id);return t&&RES[t.type]&&RES[t.type].r===r})())}
+function tNear(type,f){const tc=tMine('towncenter')[0];if(!tc)return null;let b=null,bd=1e9;for(const e of G.ents){if(e.dead||e.type!==type||(f&&!f(e)))continue;if(e.owner===0||e.kind==='res'){if(e.kind==='res'&&!G.exp[0][ti(e.tx,e.ty)])continue;const d=Math.hypot(e.x-tc.x,e.y-tc.y);if(d<bd){bd=d;b=e}}}return b}
+function tRes(r){const tc=tMine('towncenter')[0];if(!tc)return null;let b=null,bd=1e9;for(const e of G.ents){if(e.dead||e.kind!=='res'||!RES[e.type]||RES[e.type].r!==r||e.type==='carcass'||e.type==='fish'||e.stump||!G.exp[0][ti(e.tx,e.ty)])continue;const d=Math.hypot(e.x-tc.x,e.y-tc.y);if(d<bd){bd=d;b=e}}return b}
+const nxAge=()=>['bronze','iron','medieval','renaissance','industrial','modern'][G.players[0].age];
+const LESSONS=[
+ {id:'start',when:()=>G.t>1.5&&G.players[0].age===0&&tMine('towncenter').length,steps:[
+  {t:'<b>Welcome!</b> This is your <b>town center</b>, your home base. It trains <b>villagers</b>, the workers who gather and build.',ent:()=>tMine('towncenter')[0]},
+  {t:'Tap your <b>town center</b>.',ent:()=>tMine('towncenter')[0],done:()=>tSel().some(e=>e.type==='towncenter'&&e.owner===0)},
+  {t:'Tap <b>Villager</b> to train one (50 food). You can line up several.',dom:['[data-act="train:villager"]'],done:()=>tMine('towncenter').some(b=>b.queue.includes('villager'))||tMine('villager').length>(TUT.v0||0)},
+  {t:'Villagers gather. Tap a <b>villager</b>, then tap a <b>berry bush</b> to pick food.',ent:()=>tSel().some(e=>e.type==='villager')?tRes('f'):tMine('villager')[0],done:()=>tGath('f')},
+  {t:'Now tap a villager, then a <b>tree</b>, to chop <b>wood</b>.',ent:()=>tSel().some(e=>e.type==='villager')?tNear('tree',e=>!e.stump&&!e.sapling):tMine('villager')[0],done:()=>tGath('w')},
+  {t:'And one to mine <b>stone</b>: tap a villager, then a grey rock.',ent:()=>tSel().some(e=>e.type==='villager')?tRes('s'):tMine('villager')[0],done:()=>tGath('s')},
+  {t:'Villagers carry what they gather back to the town center. A <b>storage pit</b> built next to trees or rocks saves them the walk.'},
+  {t:'Build a <b>house</b>: tap a villager, tap <b>House</b>, then tap the ground where it should go.',dom:['[data-act="build:house"]','[data-act="tab:eco"]'],ent:()=>tSel().some(e=>e.type==='villager')?null:tMine('villager')[0],done:()=>tMine('house').length>(TUT.h0||0)},
+  {t:'Each house lets you have more people (<b>Pop</b> at the top). Keep training villagers and gathering. New lessons appear when new things unlock.',last:1}]},
+ {id:'army',when:()=>TUT.done.start&&(G.t>200||tMine('barracks').length),steps:[
+  {t:'Enemies will come for you. The <b>barracks</b> trains <b>soldiers</b>, the same way the town center trains villagers.'},
+  {t:'Build a <b>barracks</b>: tap a villager, tap <b>Barracks</b>, place it.',dom:['[data-act="build:barracks"]','[data-act="tab:mil"]'],ent:()=>tSel().some(e=>e.type==='villager')?null:tMine('villager')[0],skip:()=>tMine('barracks').length>0,done:()=>tMine('barracks').length>0},
+  {t:'When the barracks is finished, tap it and train a soldier.',ent:()=>tMine('barracks')[0],done:()=>G.ents.some(e=>e.owner===0&&!e.dead&&tSol(e))||tMine('barracks').some(b=>b.queue.length)},
+  {t:'To move soldiers, tap one (or hold and drag to box several), then tap where they should go. Tap an enemy to attack it. <b>Army</b> on the right selects all of them.',last:1}]},
+ {id:'farm',when:()=>G.players[0].age>=1&&!!DEF.farm,steps:[
+  {t:'<b>Bronze Age!</b> Berry bushes run out, so <b>farms</b> are your steady food from now on.'},
+  {t:'Build a <b>farm</b>: tap a villager, tap <b>Farm</b>, then place it near your town center or a storage pit.',dom:['[data-act="build:farm"]','[data-act="tab:eco"]'],ent:()=>tSel().some(e=>e.type==='villager')?null:tMine('villager')[0],done:()=>tMine('farm').length>0},
+  {t:'The villager who builds a farm starts farming it. One farmer per farm. The closer the farm is to where food is dropped off, the faster food comes in.',last:1}]},
+ {id:'raid',when:()=>{const tc=tMine('towncenter')[0];if(!tc)return false;return G.ents.some(e=>e.owner===1&&!e.dead&&tSol(e)&&G.vis[0][ti(tl(e.x),tl(e.y))]&&Math.hypot(e.x-tc.x,e.y-tc.y)<18*TILE)},steps:[
+  {t:'<b>Enemies are attacking!</b> Tap <b>Army</b> on the right to select your soldiers, then tap an enemy to attack it.',dom:['#armyBtn','[data-sel="army"]'],done:()=>G.ents.some(e=>e.owner===0&&!e.dead&&tSol(e)&&e.order&&e.order.type==='attack'),wait:25},
+  {t:'Villagers can hide: tap your town center and <b>Ring town bell</b>. They shelter inside and the town center shoots back. Tap <b>All clear</b> when it is safe.',ent:()=>tMine('towncenter')[0],last:1}]},
+ {id:'upg',when:()=>G.players[0].age>=1&&tMine('forge').some(b=>b.built),steps:[
+  {t:'Buildings like the <b>forge</b> and the <b>storage pit</b> have <b>upgrades</b>. Each button says what it does, like faster gathering or stronger soldiers.'},
+  {t:'Tap your <b>forge</b> and research <b>Bronze working</b>.',ent:()=>tMine('forge')[0],dom:['[data-act="train:bronzework"]'],skip:()=>!!techState(0,'bronzework'),done:()=>!!techState(0,'bronzework')},
+  {t:'Upgrades cost resources and take time, but they last the whole game. <b>Upgrades</b> on the right lists everything you can research.',last:1}]},
+ {id:'age',when:()=>{const k=nxAge();return k&&TECH[k]&&!reqMissing(0,k)&&canAfford(G.players[0],TECH[k].cost)&&!techState(0,k)},steps:[
+  {t:()=>'You can move up to the <b>'+AGES[G.players[0].age+1]+'</b>: new buildings, soldiers and upgrades.'},
+  {t:()=>'Tap your <b>town center</b>, then tap <b>'+AGES[G.players[0].age+1]+'</b>.',ent:()=>tMine('towncenter')[0],dom:()=>['[data-act="train:'+nxAge()+'"]'],done:()=>{const k=nxAge();return !k||!!techState(0,k)}},
+  {t:'Advancing takes a little while. Keep your villagers working in the meantime.',last:1}]}];
+function tutEls(){if(TUT.box)return;const cs=document.createElement('style');cs.textContent=
+  '#tutBox{position:absolute;left:calc(64px + var(--sl,0px));bottom:calc(80px + var(--sb,0px));z-index:6;width:min(300px,44vw);background:rgba(34,24,14,.95);border:1.5px solid #d7a94e;border-radius:11px;padding:9px 11px 8px;color:#fbecc9;font-size:12.5px;line-height:1.35;box-shadow:0 3px 12px rgba(0,0,0,.45);display:none}'+
+  '#tutBox .th{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:#d9b878;font-weight:800;letter-spacing:.3px;margin-bottom:4px}#tutBox .tb b{color:#ffe08a}'+
+  '#tutBox .tf{display:flex;justify-content:flex-end;gap:8px;margin-top:7px}#tutBox button{background:#6b4a22;border:1px solid #d7a94e;color:#fff3d6;border-radius:7px;font-size:12px;font-weight:700;padding:4px 12px}#tutBox button.sk{background:none;border:0;color:#cdb58a;font-weight:600;padding:4px 2px;font-size:11px}#tutBox .wt{font-size:11px;color:#cdb58a;font-style:italic;align-self:center;margin-right:auto}'+
+  '#tutRing{position:absolute;z-index:7;pointer-events:none;border:3px solid #ffd25a;border-radius:50%;box-shadow:0 0 12px #ffd25a;display:none;animation:tutP 1s ease-in-out infinite}#tutRing.sq{border-radius:10px}@keyframes tutP{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.65}}';
+  document.head.appendChild(cs);const host=(document.getElementById('toast')||{}).parentNode||document.body;
+  const b=document.createElement('div');b.id='tutBox';b.innerHTML='<div class="th"><span class="tl"></span><span class="tn"></span></div><div class="tb"></div><div class="tf"><span class="wt"></span><button class="sk">Skip tutorial</button><button class="nx">Next</button></div>';host.appendChild(b);
+  const r=document.createElement('div');r.id='tutRing';host.appendChild(r);TUT.box=b;TUT.ring=r;
+  for(const ev of ['pointerdown','touchstart','mousedown','click'])b.addEventListener(ev,e=>e.stopPropagation());
+  b.querySelector('.nx').onclick=()=>tutAdvance();
+  b.querySelector('.sk').onclick=()=>{for(const L of LESSONS)TUT.done[L.id]=1;tutEnd();tutSave();try{toast('Tutorial skipped. You can replay it from the menu')}catch(err){}}}
+const TITLE={start:'Getting started',army:'Soldiers',farm:'Farms and food',raid:'Under attack',upg:'Upgrades',age:'The next age'};
+function tutStart(L){TUT.cur=L;TUT.step=0;TUT.v0=tMine('villager').length;TUT.h0=tMine('house').length;tutShowStep()}
+function tutShowStep(){const L=TUT.cur;if(!L)return;let st=L.steps[TUT.step];while(st&&st.skip&&st.skip()){TUT.step++;st=L.steps[TUT.step]}if(!st){tutFinish();return}
+  TUT.stT=G.t;TUT.v0=tMine('villager').length;TUT.h0=tMine('house').length;tutEls();const b=TUT.box;
+  b.querySelector('.tl').textContent=TITLE[L.id]||'Tutorial';b.querySelector('.tn').textContent=(TUT.step+1)+' / '+L.steps.length;b.querySelector('.tb').innerHTML=typeof st.t==='function'?st.t():st.t;
+  const nx=b.querySelector('.nx');nx.style.display=st.done?'none':'';nx.textContent=st.last?'Got it':'Next';b.querySelector('.wt').textContent=st.done?'Waiting for you…':'';b.style.display='block';window.TUTSLOW=.5}
+function tutAdvance(){TUT.step++;tutShowStep()}
+function tutFinish(){const L=TUT.cur;if(L)TUT.done[L.id]=1;tutSave();tutEnd()}
+function tutEnd(){TUT.cur=null;window.TUTSLOW=1;if(TUT.box)TUT.box.style.display='none';if(TUT.ring)TUT.ring.style.display='none'}
+function tutRing(){const r=TUT.ring;if(!r)return;const L=TUT.cur,st=L&&L.steps[TUT.step];if(!st){r.style.display='none';return}
+  const dl=typeof st.dom==='function'?st.dom():st.dom;if(dl)for(const q of dl){const el=document.querySelector(q);if(el&&el.offsetParent!==null){const R=el.getBoundingClientRect(),H=r.parentNode.getBoundingClientRect();if(R.width>0){r.className='sq';r.style.left=(R.left-H.left-4)+'px';r.style.top=(R.top-H.top-4)+'px';r.style.width=(R.width+2)+'px';r.style.height=(R.height+2)+'px';r.style.display='block';return}}}
+  const e=st.ent&&st.ent();if(e&&!e.dead){const cvE=document.getElementById('view'),H=r.parentNode.getBoundingClientRect(),C=cvE?cvE.getBoundingClientRect():H,z=cam.z;let rad=e.kind==='bld'?(e.size||2)*TILE*.62:e.kind==='res'?TILE*.7:TILE*.55;const cy=e.kind==='bld'?e.y-(e.size||2)*TILE*.25:e.y-6;
+    const sx=C.left-H.left+(e.x-cam.x)*z,sy=C.top-H.top+(cy-cam.y)*z,R2=Math.max(18,rad*z);r.className='';r.style.left=(sx-R2)+'px';r.style.top=(sy-R2)+'px';r.style.width=(R2*2)+'px';r.style.height=(R2*2)+'px';r.style.display='block';return}
+  r.style.display='none'}
+function tutTick(){try{if(!G||!G.players||G.over||G.watch||!TUT.on){if(TUT.cur)tutEnd();return}
+  if(TUT.cur){const st=TUT.cur.steps[TUT.step];if(st&&st.done&&(st.done()||(st.wait&&G.t-TUT.stT>st.wait)))tutAdvance();else if(TUT.box&&TUT.box.style.display==='none')tutShowStep();return}
+  for(const L of LESSONS){if(TUT.done[L.id])continue;let ok=false;try{ok=L.when()}catch(err){}if(ok){tutStart(L);break}}}catch(err){}}
+setInterval(tutTick,500);
+(function rl(){try{if(TUT.cur&&!G.paused)tutRing();else if(TUT.ring)TUT.ring.style.display='none'}catch(err){}requestAnimationFrame(rl)})();
+try{(function(){const sw=document.getElementById('swapBtn');if(!sw||document.getElementById('tutBtn'))return;const b=document.createElement('button');b.className='big alt';b.id='tutBtn';const lab=()=>{b.textContent='Tutorial: '+(TUT.on?'On':'Off')};lab();
+  b.onclick=()=>{TUT.on=!TUT.on;if(!TUT.on)tutEnd();tutSave();lab()};const r=document.createElement('button');r.className='big alt';r.id='tutReplay';r.textContent='Replay tutorial';r.onclick=()=>{TUT.done={};TUT.on=true;tutEnd();tutSave();lab();try{toast('Tutorial lessons will show again as things come up')}catch(err){}};
+  sw.parentNode.insertBefore(r,sw.nextSibling);sw.parentNode.insertBefore(b,sw.nextSibling)})()}catch(err){}
+window.__tut=TUT;
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -9986,7 +10077,7 @@ function frame(now){
   if(G&&!G.paused&&DPRCAP>1.5&&(window.devicePixelRatio||1)>1.5){slowT=dt>.034?slowT+dt:Math.max(0,slowT-dt*.5);if(slowT>4){DPRCAP=1.5;resize();slowT=0;}}
   if(!G){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#16100a';ctx.fillRect(0,0,cv.width,cv.height);return;}
   if(!G.paused&&!G.over&&G.t-(G.lastSaveT||0)>=45){G.lastSaveT=G.t;saveGame();}
-  if(!G.paused&&!G.over){acc+=dt*speed;let n=0;while(acc>=STEP&&n<40){tick(STEP);acc-=STEP;n++;}if(acc>STEP*3)acc=STEP*3;}
+  if(!G.paused&&!G.over){acc+=dt*speed*(window.TUTSLOW||1);let n=0;while(acc>=STEP&&n<40){tick(STEP);acc-=STEP;n++;}if(acc>STEP*3)acc=STEP*3;}
   alpha=Math.min(1,acc/STEP);
   frameDt=G.paused||G.over?0:dt*speed;if(frameDt)updVisuals(frameDt);
   if(!G.paused)updCele(dt);
