@@ -6169,7 +6169,7 @@ try{(function(){
 /* ===== V23D Industrial/Modern live touches (art chat 3, Josh Oct 15 2026: "Go for it"): live forge fires; poultry houses get their own small live hens
    inside the painted run (art chat 1's big yard hens, nest and crate are skipped for the painted Industrial poultry house and Modern poultry farm, which
    draw on a 2x2 plot now) and spinning vent fans on the Modern farm; the Modern artillery factory's painted-open bay is an open doorway (units drive out
-   of it, no roll-up). Tower / bunker upgrade looks: art/c/nf_tower.webp (+1 file). Moving flags via art chat 1's wave. Repaints in the same file: Industrial castle, Modern house, Modern poultry farm. ===== */
+   of it, no roll-up). Tower / bunker upgrade looks: art/c/nf_tower.webp (+1 file). Moving flags via art chat 1's wave. Repaints in the same file: Industrial castle, Modern house, Modern poultry farm. Wall-joined towers in 3D (art chat 1's rule). ===== */
 (function(){try{
   if(typeof GFX==='undefined'||typeof bldSpr0==='undefined')return;
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
@@ -6254,6 +6254,31 @@ try{(function(){
       if(type==='castle'&&a===5)k='icastle';else if(type==='house'&&a>=6)k='xhouse';else if(type==='coop'&&a>=6)k='xcoop';if(k){const s=rspr(k,o,DEF[type].size);if(s)return s}}catch(err){}}return prev(type,o)}})(sprFor)}catch(err){}
   try{if(GFX.FX)Object.assign(GFX.FX,{nt_icastle:{w:[[378,52,472,138,'l'],[226,503,254,602,'t',.5],[381,583,414,697,'t',.5]],s:[[553,118],[655,300]]},
     nt_xhouse:{w:[[492,0,562,88,'l']],s:[[462,80]]},nt_xcoop:{w:[[72,12,138,88,'l']]}})}catch(err){}
+  /* wall-joined towers in 3D, Industrial/Modern (Josh Oct 16: "copy the logic of chat 1, but you just change the art"): art chat 1's KEEP3D rule for ages
+     5-6. A tower touching a wall draws my lone-tower picture for its tier (watchtower / bunker, Guard tower / Keep looks) and the wall running into it
+     is carried on under the tower (copies of the neighbouring wall piece across the tower's tiles). GFX.KEEP3D=false goes back to the wall-kit tower. */
+  (function(){const CC=new Map();
+    function at(x,y,o){try{const m=GFX.wmap();const q=m.get(ti(x,y));return q&&q.owner===o&&(q.type==='wall'||q.type==='gate')&&!q.dead?q:null}catch(err){return null}}
+    function build(e,top){const n=e.size||2,o=e.owner,P=[];
+      const fake=(x,y)=>({type:'wall',kind:'bld',tx:x,ty:y,x:(x+.5)*TILE,y:(y+.5)*TILE,size:1,owner:o,hp:1,maxHp:1,built:true,id:-1});
+      const piece=(x,y)=>{try{const s=GFX.wallSpr(fake(x,y));return s&&s.w>1?s:null}catch(err){return null}};
+      for(let i=0;i<n;i++){if(at(e.tx-1,e.ty+i,o)||at(e.tx+n,e.ty+i,o))for(let k=0;k<n;k++){const s=piece(e.tx+k,e.ty+i);if(s)P.push([s,e.tx+k,e.ty+i])}
+        if(at(e.tx+i,e.ty-1,o)||at(e.tx+i,e.ty+n,o))for(let k=0;k<n;k++){const s=piece(e.tx+i,e.ty+k);if(s)P.push([s,e.tx+i,e.ty+k])}}
+      if(!P.length)return top;
+      const key=o+'|'+(top._kid||(top._kid=Math.random()))+'|'+P.map(p=>(p[1]-e.tx)+','+(p[2]-e.ty)+','+(p[0]._kid||(p[0]._kid=Math.random()))).join(';');
+      let c=CC.get(key);if(c)return c;
+      const X0=e.tx*TILE,Y0=e.ty*TILE;let x0=-(top.dx||0),y0=-top.ov,x1=x0+top.w,y1=y0+top.h;
+      for(const [s,tx,ty] of P){const ax=(tx*TILE-X0)-(s.dx||0),ay=(ty*TILE-Y0)-(s.ov||0);x0=Math.min(x0,ax);y0=Math.min(y0,ay);x1=Math.max(x1,ax+s.w);y1=Math.max(y1,ay+s.h)}
+      const k=top.width/top.w;c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*k);c.height=Math.ceil((y1-y0)*k);const g=c.getContext('2d');g.imageSmoothingQuality='high';
+      P.sort((a,b)=>a[2]-b[2]||a[1]-b[1]);
+      for(const [s,tx,ty] of P){const ax=(tx*TILE-X0)-(s.dx||0),ay=(ty*TILE-Y0)-(s.ov||0);g.drawImage(s,(ax-x0)*k,(ay-y0)*k,s.w*k,s.h*k)}
+      g.drawImage(top,(-(top.dx||0)-x0)*k,(-top.ov-y0)*k,top.w*k,top.h*k);
+      for(const p of Object.keys(top))if(!(p in c))c[p]=top[p];c.w=x1-x0;c.h=y1-y0;c.dx=-x0;c.ov=-y0;c.fxW=null;/* the cloth wave's boxes/mask are for the lone sprite's frame */
+      if(CC.size>200)CC.clear();CC.set(key,c);return c}
+    function lone(o){try{const k=tkey(o);if(k){const s=tspr(k,o,(DEF.tower&&DEF.tower.size)||2);if(s)return s}return sprFor('tower',o)}catch(err){return null}}
+    setTimeout(()=>{try{bldSpr0=(function(prev){return function(e){try{if(GFX.KEEP3D!==false&&e&&e.type==='tower'&&GFX.mode==='V23D'&&e.owner>=0&&e.owner<2&&ageOf(e.owner)>=5&&GFX.wallTower&&GFX.wallTower(e)){
+        const t=lone(e.owner);if(t&&t.w)return build(e,t)}}catch(err){}return prev(e)}})(bldSpr0)}catch(err){}},80);
+  })();
   TIM.onload=function(){try{tready()}catch(e){}};TIM.src=GFX.ART+'nf_tower.webp?r=2&v='+GFX.ARTV;
 }catch(err){}})();
 /* ===== END art chat 3: late ===== */
