@@ -5144,7 +5144,7 @@ GFX.gpSpr=function(s,soft){const k=s+(soft?'s':'');let c=GFX._gp[k];if(c)return 
     g.translate(rx,ry);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.72,'rgba(0,0,0,.95)');gr.addColorStop(.86,'rgba(0,0,0,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=gr;g.fillRect(-rx,-rx,2*rx,2*rx);c.rx=rx;c.ry=ry;return MK[s]=c}
   const L={c:document.createElement('canvas'),m:document.createElement('canvas'),x:0,y:0,w:0,h:0,z:0,sig:''};
-  const keyOf=e=>{const P=G.players&&G.players[e.owner];return P?GFX.GROUND_AGE[P.age]||null:null};
+  const keyOf=e=>{const P=G.players&&G.players[e.owner];const k=P?GFX.GROUND_AGE[P.age]||null:null;return (k&&GFX.groundKeyOf)?GFX.groundKeyOf(e,k):k};/* gameplay hook (Oct 16, Josh's paving rules) - please keep */
   try{shadowLayer=(function(prev){return function(c){try{if(GFX.mode==='V23D'&&GFX.texReady){
     const z=cam.z,vw=W/z,vh=H/z,vx=cam.x,vy=cam.y,inside=vx>=L.x&&vy>=L.y&&vx+vw<=L.x+L.w&&vy+vh<=L.y+L.h&&Math.abs(L.z-z)<.001;
     const bx=inside?L.x:vx-vw*.4,by=inside?L.y:vy-vh*.4,bw=inside?L.w:vw*1.8,bh=inside?L.h:vh*1.8;const paved=[];let sig='';
