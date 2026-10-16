@@ -5827,9 +5827,10 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
    motor pool (corral x), poultry farm (coop x), power plant, pylon, Tesla coil, airfield, helipad, AA gun (bare keys), and the apartment block
    (a merged 6x4 house group h.grp.k===\'apt\': the anchor house draws the whole block, the others draw nothing). Castle/corral/coop/apt are also
    hooked at draw time (bldSpr0, sprFor) because other blocks draw those types at draw time.
-   House floor levels nL1/nL2 (Industrial) and xL1/xL2 (Modern) and the Modern station/depot/textile mill (station|depot|factory+o+\'x\', drawn from age 6): art/c/nb_mod2.webp, GFX.lvCore. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks). ===== */
+   House floor levels nL1/nL2 (Industrial) and xL1/xL2 (Modern) and the Modern station/depot/textile mill (station|depot|factory+o+\'x\', drawn from age 6): art/c/nb_mod2.webp, GFX.lvCore. Hooks: wraps genTier / dropTier / GFX.apply (no edits inside other blocks).
+   HD (Oct 16): the same pictures AI-upscaled 2x (Modern 1.8x) in the same 4 files, masks at the old size (`hd` layouts); sprites built with GFX.hdUp. ===== */
 (function(){try{
-  const ATL=[{f:'nb_core',lay:{tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]},gap:0},{f:'nb_ind2',lay:{"tower":[0,0,209,466],"factory":[424,0,358,443],"barracks":[1146,0,402,438],"workshop":[0,468,384,413],"stable":[774,468,339,395],"station":[0,883,469,388],"forge":[944,883,354,367],"range":[0,1273,327,361],"depot":[660,1273,308,303]},gap:2},{f:'nb_mod',lay:{"pylon":[0,0,263,473],"towncenter":[530,0,382,472],"castle":[0,475,394,436],"workshop":[792,475,397,419],"tesla":[0,913,268,409],"apt":[540,913,451,406],"storage":[0,1324,334,366],"tower":[672,1324,348,366],"forge":[0,1692,364,350],"power":[732,1692,425,334],"house":[0,2044,285,330],"stable":[574,2044,337,305],"corral":[0,2376,440,304],"airfield":[884,2376,410,304],"barracks":[0,2682,432,290],"aagun":[868,2682,317,286],"range":[0,2974,432,270],"helipad":[868,2974,317,256],"coop":[0,3246,423,245]},gap:2},{f:'nb_mod2',lay:{"nL2":[0,0,223,457],"xL2":[450,0,255,387],"xL1":[964,0,380,345],"nL1":[0,459,227,336],"depot":[458,459,389,335],"factory":[0,797,368,334],"station":[740,797,432,302]},gap:2}];
+  const ATL=[{f:'nb_core',lay:{tc:[0,0,512,483],house:[0,483,384,540],storage:[768,483,400,365]},gap:0,hd:{"tc":[770,0,1024,966,1188,1082,512,483],"house":[0,0,768,1080,802,1082,384,540],"storage":[0,1082,800,730,0,1814,400,365]}},{f:'nb_ind2',lay:{"tower":[0,0,209,466],"factory":[424,0,358,443],"barracks":[1146,0,402,438],"workshop":[0,468,384,413],"stable":[774,468,339,395],"station":[0,883,469,388],"forge":[944,883,354,367],"range":[0,1273,327,361],"depot":[660,1273,308,303]},gap:2,hd:{"tower":[0,0,418,932,1984,1762,209,466],"factory":[420,0,716,886,2195,1762,358,443],"barracks":[1138,0,804,876,0,2498,402,438],"workshop":[0,934,768,826,404,2498,384,413],"stable":[770,934,678,790,790,2498,339,395],"station":[1450,934,938,776,1131,2498,469,388],"forge":[0,1762,708,734,1602,2498,354,367],"range":[710,1762,654,722,1958,2498,327,361],"depot":[1366,1762,616,606,2287,2498,308,303]}},{f:'nb_mod',lay:{"pylon":[0,0,263,473],"towncenter":[530,0,382,472],"castle":[0,475,394,436],"workshop":[792,475,397,419],"tesla":[0,913,268,409],"apt":[540,913,451,406],"storage":[0,1324,334,366],"tower":[672,1324,348,366],"forge":[0,1692,364,350],"power":[732,1692,425,334],"house":[0,2044,285,330],"stable":[574,2044,337,305],"corral":[0,2376,440,304],"airfield":[884,2376,410,304],"barracks":[0,2682,432,290],"aagun":[868,2682,317,286],"range":[0,2974,432,270],"helipad":[868,2974,317,256],"coop":[0,3246,423,245]},gap:2,hd:{"pylon":[0,0,473,851,1353,2772,263,473],"towncenter":[475,0,688,850,1618,2772,382,472],"castle":[1165,0,709,785,763,3289,394,436],"workshop":[1876,0,715,754,1159,3289,397,419],"tesla":[0,853,482,736,1558,3289,268,409],"apt":[484,853,812,731,1828,3289,451,406],"storage":[1298,853,601,659,0,3732,334,366],"tower":[1901,853,626,659,336,3732,348,366],"forge":[0,1591,655,630,686,3732,364,350],"power":[657,1591,765,601,1052,3732,425,334],"house":[1424,1591,513,594,1479,3732,285,330],"stable":[1939,1591,607,549,1766,3732,337,305],"corral":[0,2223,792,547,2105,3732,440,304],"airfield":[794,2223,738,547,0,4100,410,304],"barracks":[1534,2223,778,522,412,4100,432,290],"aagun":[0,2772,571,515,846,4100,317,286],"range":[573,2772,778,486,1165,4100,432,270],"helipad":[2002,2772,571,461,1599,4100,317,256],"coop":[0,3289,761,441,1918,4100,423,245]}},{f:'nb_mod2',lay:{"nL2":[0,0,223,457],"xL2":[450,0,255,387],"xL1":[964,0,380,345],"nL1":[0,459,227,336],"depot":[458,459,389,335],"factory":[0,797,368,334],"station":[740,797,432,302]},gap:2,hd:{"nL2":[0,0,446,914,866,1590,223,457],"xL2":[448,0,510,774,1091,1590,255,387],"xL1":[960,0,760,690,1348,1590,380,345],"nL1":[0,916,454,672,1730,1590,227,336],"depot":[456,916,778,670,0,2196,389,335],"factory":[1236,916,736,668,391,2196,368,334],"station":[0,1590,864,604,761,2196,432,302]}}];
   const TY={towncenter:['nb_tc',0,'tc',1.15,.04],house:['nb_house',0,'house',.98,.05],storage:['nb_storage',0,'storage',1.1,.04],
     barracks:['nb_barracks',1,'barracks',1.1,.04],tower:['nb_tower',1,'tower',.95,.04],range:['nb_range',1,'range',1.08,.04],stable:['nb_stable',1,'stable',1.08,.04],
     forge:['nb_forge',1,'forge',1.08,.04],workshop:['nb_workshop',1,'workshop',1.1,.04],station:['nb_station',1,'station',1.1,.03],depot:['nb_depot',1,'depot',1.08,.04],factory:['nb_factory',1,'factory',1.02,.04]};
@@ -5844,36 +5845,44 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
     x_station:['ny_station','station',6,1.12,.03],x_depot:['ny_depot','depot',6,1.1,.04],x_factory:['ny_factory','factory',6,1.05,.04]};
   const SMK={nb_tc:[[379,61],[153,200]],nb_house:[[124,8]],nb_factory:[[137,23],[177,9]],nb_forge:[[148,8]],nb_workshop:[[309,72]],nx_power:[[262,8],[311,30]],nx_house:[[165,40]],nx_forge:[[322,45]],nx_workshop:[[22,108]],ny_factory:[[85,45]],ny_nL1:[[152,18]],ny_nL2:[[165,24]],ny_xL1:[[266,38]]};
   const IM=ATL.map(()=>new Image()),cut=ATL.map(()=>false);const OLD={};
+  /* HD (Josh Oct 16, art chat 2's HD standard): pictures stored 2x (AI-upscaled from the same art, same look), masks at the old size; HDK = scale vs the
+     old picture, used to scale smoke / fire / flag points, and sprites rebuilt sharp with GFX.hdUp (door boxes carried over by type+age). */
+  const HDK={};GFX.HDK=HDK;
+  function cutPic(A,im,k,nm){const H=A.hd&&A.hd[k];const [x,y,w,h]=A.lay[k];
+    if(H){const [hx,hy,hw,hh,mx,my,mw,mh]=H;const c=document.createElement('canvas');c.width=hw;c.height=hh;c.getContext('2d').drawImage(im,hx,hy,hw,hh,0,0,hw,hh);GFX.imgs[nm]=c;
+      const m=document.createElement('canvas');m.width=hw;m.height=hh;const g=m.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(im,mx,my,mw,mh,0,0,hw,hh);GFX.imgs[nm+'_m']=m;HDK[nm]=hw/w;return}
+    for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}}
+  const smk=nm=>{const L=SMK[nm];if(!L)return null;const K=HDK[nm]||1;return L.map(p=>[p[0]*K,p[1]*K].concat(p.slice(2)))};
+  function hdFX(nm){const K=HDK[nm];if(!K||K===1||!GFX.FX)return;const F=GFX.FX[nm];if(!F||F._hk)return;
+    for(const q of ['f','m','l','s'])if(F[q])F[q]=F[q].map(p=>[p[0]*K,p[1]*K].concat(p.slice(2)));if(F.w)F.w=F.w.map(b=>[b[0]*K,b[1]*K,b[2]*K,b[3]*K].concat(b.slice(4)));F._hk=1}
+  function HS(nm,o,S,wf,dn,dk){hdFX(nm);let sp=GFX.spr(nm,o,S,wf,dn);if(HDK[nm]>1&&GFX.hdUp){try{sp=GFX.hdUp(sp,GFX.imgs[nm],GFX.imgs[nm+'_m'],o,dk||'')}catch(e){}}return sp}
   function ready(i){if(cut[i])return true;const im=IM[i];if(!(im.complete&&im.naturalWidth))return false;const A=ATL[i];
-    for(const t in TY){const [nm,ai,k]=TY[t];if(ai!==i)continue;const [x,y,w,h]=A.lay[k];
-      for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
-      if(!GFX_ART[nm])GFX_ART[nm]={age:5,culture:'both',smoke:SMK[nm]||null}}
-    if(i===2){const L6=Object.values(TY6).map(v=>[v[0],v[1]]).concat([['nx_apt','apt']]);for(const [nm,k] of L6){const [x,y,w,h]=A.lay[k];
-      for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
-      if(!GFX_ART[nm])GFX_ART[nm]={age:6,culture:'both',smoke:SMK[nm]||null}}}
-    if(i===3){for(const q in LV7){const nm=LV7[q][0],k=nm.slice(3),[x,y,w,h]=A.lay[k];
-      for(const [suf,dx] of [['',0],['_m',w+A.gap]]){const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,x+dx,y,w,h,0,0,w,h);GFX.imgs[nm+suf]=c}
-      if(!GFX_ART[nm])GFX_ART[nm]={age:LV7[q][2],culture:'both',smoke:SMK[nm]||null}}}
+    for(const t in TY){const [nm,ai,k]=TY[t];if(ai!==i)continue;cutPic(A,im,k,nm);
+      if(!GFX_ART[nm])GFX_ART[nm]={age:5,culture:'both',smoke:smk(nm)}}
+    if(i===2){const L6=Object.values(TY6).map(v=>[v[0],v[1]]).concat([['nx_apt','apt']]);for(const [nm,k] of L6){cutPic(A,im,k,nm);
+      if(!GFX_ART[nm])GFX_ART[nm]={age:6,culture:'both',smoke:smk(nm)}}}
+    if(i===3){for(const q in LV7){const nm=LV7[q][0],k=nm.slice(3);cutPic(A,im,k,nm);
+      if(!GFX_ART[nm])GFX_ART[nm]={age:LV7[q][2],culture:'both',smoke:smk(nm)}}}
     return cut[i]=true}
   GFX.indCore=function(o){if(GFX.mode!=='V23D'||!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(5)))return false;let n=0;
     for(const t in TY){const [nm,ai,,wf,dn]=TY[t];if(!ready(ai)||!DEF[t])continue;const S=DEF[t].size*TILE,
         keys=t==='house'?['house'+o+'n','house'+o+'nL1','house'+o+'nL2']:BASE5.has(t)?[t+o]:[t+o+'n'];
-      for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=GFX.spr(nm,o,S,wf,dn);sp._nb=1;SPR.bld[k]=sp;n++}}
+      for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=HS(nm,o,S,wf,dn,t+'5');sp._nb=1;SPR.bld[k]=sp;n++}}
     if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
   GFX.modCore=function(o){if(GFX.mode!=='V23D'||!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(6))||!ready(2))return false;let n=0;
     for(const t in TY6){const [nm,,wf,dn]=TY6[t];if(!DEF[t])continue;const S=DEF[t].size*TILE,
         keys=t==='house'?['house'+o+'x','house'+o+'xL1','house'+o+'xL2']:BARE6.has(t)?[t+o]:[t+o+'x'];
-      for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=GFX.spr(nm,o,S,wf,dn);sp._nb=1;SPR.bld[k]=sp;n++}}
+      for(const k of keys){const cur=SPR.bld[k];if(cur&&cur._nb)continue;if(cur)OLD[k]=cur;const sp=HS(nm,o,S,wf,dn,t+'6');sp._nb=1;SPR.bld[k]=sp;n++}}
     if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
   GFX.lvCore=function(o){if(GFX.mode!=='V23D'||!ready(3))return false;let n=0;
     for(const q in LV7){const [nm,t,tier,wf,dn]=LV7[q];if(!(SPR.tiers&&SPR.tiers[o]&&SPR.tiers[o].has(tier))||!DEF[t])continue;
       const k=q[0]==='x'&&q[1]==='_'?t+o+'x':'house'+o+q,cur=SPR.bld[k];if(cur&&cur._lv)continue;if(cur&&!cur._nb)OLD[k]=cur;
-      const sp=GFX.spr(nm,o,DEF[t].size*TILE,wf,dn);sp._nb=1;sp._lv=1;SPR.bld[k]=sp;n++}
+      const sp=HS(nm,o,DEF[t].size*TILE,wf,dn,'');sp._nb=1;sp._lv=1;SPR.bld[k]=sp;n++}
     if(n){try{LITS.clear();SILS.clear()}catch(e){}}return n>0};
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
   const BL=document.createElement('canvas');BL.width=BL.height=1;BL.w=1;BL.h=1;BL.ov=0;BL.dx=0;const AC={};
   GFX.aptSpr=function(g,o){if(!ready(2))return null;const gw=(g.x1-g.x0)*TILE,gh=(g.y1-g.y0)*TILE,key=o+'_'+gw+'_'+gh;if(AC[key])return AC[key];
-    const sp=GFX.spr('nx_apt',o,gw,1.04,0);sp.dx=(sp.w-gw)/2;sp.ov=sp.h-gh-gh*.03;sp._nb=1;return AC[key]=sp};
+    const sp=HS('nx_apt',o,gw,1.04,0,'');sp.dx=(sp.w-gw)/2;sp.ov=sp.h-gh-gh*.03;sp._nb=1;return AC[key]=sp};
   const _b=bldSpr0;bldSpr0=function(e){try{if(e&&GFX.mode==='V23D'&&e.owner<2){
       if(e.type==='house'&&e.grp&&e.grp.k==='apt'&&e.built){if(e.grp.anchor!==e.id)return BL;const s=GFX.aptSpr(e.grp,e.owner);if(s)return s}
       if(DRAW6.has(e.type)&&e.built&&ageOf(e.owner)>=6){const s=SPR.bld[e.type+e.owner+'x'];if(s&&s._nb)return s}}}catch(err){}return _b(e)};
@@ -5884,7 +5893,7 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
   const _d=dropTier;dropTier=function(o,t){if(t===5||t===6)for(const k in OLD)if(tierOfKey(k,o)===t)delete OLD[k];return _d(o,t)};
   const _a=GFX.apply;GFX.apply=function(){const r=_a.apply(this,arguments);try{if(GFX.mode==='V23D'){GFX.indCore(0);GFX.indCore(1);GFX.modCore(0);GFX.modCore(1);GFX.lvCore(0);GFX.lvCore(1)}else{for(const k in OLD){if(SPR.bld[k]&&SPR.bld[k]._nb)SPR.bld[k]=OLD[k]}for(const k in SPR.bld)if(SPR.bld[k]&&SPR.bld[k]._lv&&!OLD[k])delete SPR.bld[k]}}catch(e){}return r};
   ATL.forEach((A,i)=>{IM[i].onload=function(){try{const a=GFX.indCore(0)|GFX.modCore(0)|GFX.lvCore(0),b=GFX.indCore(1)|GFX.modCore(1)|GFX.lvCore(1);if((a||b)&&typeof refreshThumbs0==='function')refreshThumbs0()}catch(e){}};
-    IM[i].src=GFX.ART+A.f+'.webp?v='+GFX.ARTV});
+    IM[i].src=GFX.ART+A.f+'.webp?h=2&v='+GFX.ARTV});
 }catch(err){}})();
 /* ===== END art chat 3: indcore ===== */
 /* ===== V23D Industrial/Modern vehicles (art chat 3, Josh Oct 14 2026): Josh's picks from free concepts, Tripo 3D models (HD), baked to
@@ -8695,51 +8704,36 @@ function gateFix(u,path){try{if(!path||!path.length||u.naval||u.air)return path;
       const p=pathTo(tl(u.x),tl(u.y),tl(g.o[0]),tl(g.o[1]));return p.concat([{x:g.o[0],y:g.o[1]},{x:g.i[0],y:g.i[1]},{x:E.x,y:E.y}]);}
     let g=Gs[0],bd=1e9;for(const q of Gs){const d=Math.hypot(q.i[0]-u.x,q.i[1]-u.y)+Math.hypot(q.o[0]-E.x,q.o[1]-E.y);if(d<bd){bd=d;g=q;}}
     const p=pathTo(tl(g.o[0]),tl(g.o[1]),tl(E.x),tl(E.y));return [{x:g.i[0],y:g.i[1]},{x:g.o[0],y:g.o[1]}].concat(p);}}catch(err){}return path;}
-/* ===== Keep training (repeat), gameplay chat 2 (Josh, Oct 16 2026: late-game shift feature 1, "from the start", every age) =====
-   A "Repeat" toggle on any of your buildings that trains units. When its queue is empty it re-orders the last unit you
-   queued there (upgraded to the newest kind, e.g. clubman → axeman), as long as you can pay and have room. Works for
-   soldiers, villagers and animals. b.rep = on, b.repK = last unit. KEEPTRAIN.off=true turns it off. */
-const KEEPTRAIN={off:false};
-{const upK=(o,t)=>{const P=G.players[o];for(let n=0;n<5;n++){let ch=false;for(const k in CONV)if(CONV[k][0]===t&&P.tech[k]){t=CONV[k][1];ch=true;}if(!ch)break;}return t;};
-  const _enq=enqueue;
-  enqueue=function(b,k){const r=_enq(b,k);if(r&&b&&DEF[k]&&DEF[k].kind==='unit'&&b.owner===0&&b.repK!==k){b.repK=k;panelKeyLast='';}return r;};
-  const trains=b=>b&&b.kind==='bld'&&DEF[b.type]&&DEF[b.type].trains&&DEF[b.type].trains.length;
-  function repTick(){if(KEEPTRAIN.off||!G)return;
-    for(const b of G.ents){if(!b.rep||b.dead||!b.built||b.owner!==0||b.queue.length||!b.repK)continue;
-      if(popUsed(0)>=popCap(0))continue;
-      const k=upK(0,b.repK);if(!canQueue(b,k))continue;if(k==='donkey'&&typeof donkCount==='function'&&donkCount(0)>=donkCap(0))continue;
-      if(_enq(b,k))b.repK=k;}}
-  const _tt=troopTick;troopTick=function(){try{repTick();}catch(err){}return _tt.apply(this,arguments);};
-  const _rp=renderPanel;renderPanel=function(sel){_rp(sel);try{
-    const one=sel&&sel.length===1?sel[0]:null;if(!one||one.owner!==0||!one.built||!trains(one)||G.place)return;
-    const k=one.repK?upK(0,one.repK):null,nm=k?DEF[k].name.toLowerCase():'';
-    const h=btn('krep','Repeat: '+(one.rep?'On':'Off'),'<span class="cost">'+(one.rep?(k?'Keeps training '+nm:'Train one to start'):'Tap to keep training')+'</span>','',false,0,'wide'+(one.rep?' on':''),'');
-    const ac=$('acts');if(ac)ac.insertAdjacentHTML('afterbegin',h);}catch(err){}};
-  $('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act="krep"]');if(!b||!G)return;const sel=selEnts(),one=sel.length===1?sel[0]:null;if(!one||!trains(one))return;
-    one.rep=!one.rep;if(one.rep&&!one.repK&&one.queue.length){const q=one.queue.find(x=>DEF[x]&&DEF[x].kind==='unit');if(q)one.repK=q;}
-    toast(one.rep?(one.repK?'Repeat on: keeps training '+DEF[upK(0,one.repK)].name.toLowerCase():'Repeat on: train a unit and it will keep coming'):'Repeat off');panelKeyLast='';});
-}
-/* ===== END keep training ===== */
-/* ===== Reinforce a group, gameplay chat 2 (Josh, Oct 16 2026: late-game shift feature 2, "from the start") =====
-   A "New soldiers → group N" button in the panel of your military buildings (tap to cycle Off, 1–5). Each soldier it
-   trains joins that group slot and walks to the group (the middle of its living members; the building's rally point
-   if the group is empty). b.rein = 0..5. REINFORCE.off=true turns it off. */
+/* ===== Add new soldiers to a group, gameplay chat 2 (Josh, Oct 16 2026: "If you select a building that is currently making soldiers, you can select the group and it says something like 'add to group 1' and you double click ... subsequent ones go to group one until you change it or the queue ends. Just a trick for experts") =====
+   With one of your buildings selected that has soldiers in its queue, the group slots on the left show "add". One tap on a
+   slot says "Double-tap to add new soldiers to group N"; a double-tap links the building to that group: every soldier it
+   finishes joins the group and walks to it. It stays linked until you double-tap another slot (or the same one, to stop)
+   or the queue has no soldiers left. b.rein = 0..5. REINFORCE.off=true turns it off. */
 const REINFORCE={off:false};
-{const milB=b=>b&&b.kind==='bld'&&DEF[b.type]&&(DEF[b.type].trains||[]).some(t=>DEF[t]&&!NONMIL.has(t)&&!DEF[t].animal&&t!=='villager');
+{const isSold=k=>DEF[k]&&DEF[k].kind==='unit'&&!NONMIL.has(k)&&!DEF[k].animal;
+  const making=b=>b&&b.kind==='bld'&&b.owner===0&&b.built&&!b.dead&&(b.queue||[]).some(isSold);
+  const selB=()=>{if(!G||REINFORCE.off)return null;const s=selEnts();return s.length===1&&making(s[0])?s[0]:null;};
+  try{const st=document.createElement('style');st.textContent='#groups.gadd .grp::after{content:"add";position:absolute;left:0;right:0;bottom:-1px;font-size:8px;font-weight:800;color:#ffd34a;text-align:center;pointer-events:none}#groups.gadd .grp .gc{bottom:7px}#groups .grp.glink{outline:2px solid #ffd34a;outline-offset:-2px;box-shadow:0 0 8px rgba(255,211,74,.7)}';document.head.appendChild(st);}catch(err){}
+  function mark(){try{const el=$('groups');if(!el)return;const b=selB();el.classList.toggle('gadd',!!b);
+    for(const g of el.querySelectorAll('.grp'))g.classList.toggle('glink',!!(b&&b.rein&&+g.dataset.g===b.rein-1));}catch(err){}}
+  const _rg=renderGroups;renderGroups=function(){const r=_rg.apply(this,arguments);mark();return r;};
+  const _rp=renderPanel;renderPanel=function(sel){const r=_rp.apply(this,arguments);mark();return r;};
   const _sp=spawnFrom;spawnFrom=function(b,type){const u=_sp.apply(this,arguments);try{
-    if(!REINFORCE.off&&u&&b&&b.owner===0&&b.rein&&u.kind==='unit'&&!NONMIL.has(u.type)&&!DEF[u.type].animal){const i=b.rein-1;
+    if(!REINFORCE.off&&u&&b&&b.owner===0&&b.rein&&u.kind==='unit'&&isSold(u.type)){const i=b.rein-1;
       const ids=(G.groups[i]||[]).filter(id=>{const e=G.byId.get(id);return e&&!e.dead;});
       let x=0,y=0,n=0;for(const id of ids){const e=G.byId.get(id);if(e.kind==='unit'){x+=e.x;y+=e.y;n++;}}
+      for(let k=0;k<5;k++)if(k!==i&&G.groups[k])G.groups[k]=G.groups[k].filter(id=>id!==u.id);
       ids.push(u.id);G.groups[i]=ids;groupsKey='';
-      if(n){const a=Math.random()*6.28,r=TILE*(1+Math.random()*1.5);orderMove([u],x/n+Math.cos(a)*r,y/n+Math.sin(a)*r);}}}catch(err){}return u;};
-  const _rp=renderPanel;renderPanel=function(sel){_rp(sel);try{
-    const one=sel&&sel.length===1?sel[0]:null;if(REINFORCE.off||!one||one.owner!==0||!one.built||!milB(one)||G.place)return;
-    const n=one.rein||0,h=btn('krein',n?'New → group '+n:'New soldiers','<span class="cost">'+(n?'Join group '+n+'. Tap to change':'Stay here. Tap: join a group')+'</span>','',false,0,'wide'+(n?' on':''),'');
-    const ac=$('acts');if(!ac)return;const rb=ac.querySelector('button[data-act="krep"]');if(rb)rb.insertAdjacentHTML('afterend',h);else ac.insertAdjacentHTML('afterbegin',h);}catch(err){}};
-  $('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act="krein"]');if(!b||!G)return;const sel=selEnts(),one=sel.length===1?sel[0]:null;if(!one||!milB(one))return;
-    one.rein=((one.rein||0)+1)%6;toast(one.rein?'New soldiers from here join group '+one.rein+((G.groups[one.rein-1]||[]).length?'':' (empty now: they wait at the rally point)'):'New soldiers stay at the building');panelKeyLast='';});
+      if(n){const a=Math.random()*6.28,r=TILE*(1+Math.random()*1.5);orderMove([u],x/n+Math.cos(a)*r,y/n+Math.sin(a)*r);}}
+    if(b&&b.rein&&!(b.queue||[]).some(isSold)){b.rein=0;groupsKey='';}}catch(err){}return u;};
+  let last={i:-1,t:0};
+  $('groups').addEventListener('click',e=>{const g=e.target.closest('.grp');const b=g&&selB();if(!b)return;
+    e.stopPropagation();e.preventDefault();const i=+g.dataset.g,now=performance.now(),dbl=last.i===i&&now-last.t<450;last={i,t:now};
+    if(!dbl){toast(b.rein===i+1?'Double-tap to stop adding to group '+(i+1):'Double-tap to add new soldiers to group '+(i+1));return;}
+    last={i:-1,t:0};if(b.rein===i+1){b.rein=0;toast('New soldiers stay at the '+DEF[b.type].name.toLowerCase());}else{b.rein=i+1;toast('New soldiers go to group '+(i+1));}
+    groupsKey='';renderGroups();},true);
 }
-/* ===== END reinforce a group ===== */
+/* ===== END add new soldiers to a group ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
