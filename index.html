@@ -8311,20 +8311,34 @@ function growRanchOld(){const n=DEF.ranch.size,wn=DEF.dairy.size;
   GFX._ranchHit=function(e,wx,wy){if(!on()||!e.built||e.owner>1)return null;try{if(e.type==='ranch'){const sp=bldSpr(e);if(!sp||!sp.w)return null;return onPix(e,sp,RDIA.map(p=>GFX.ranch8Pt(e,p[0],p[1])),wx,wy);}
       if(isWing(e)){const sp=GFX.wingSpr(e);if(!sp||!sp.w)return null;return onPix(e,sp,WDIA.map(p=>GFX.wing8Pt(e,p[0],p[1])),wx,wy);}}catch(err){}return null;};
   /* selected ranch: an outline that hugs the ranch and its dairy wing instead of a big oval */
-  GFX._ranchOutline=function(c,e){if(!on()||e.type!=='ranch'||!e.built||e.owner>1)return false;const pts=[[35,465],[480,710],[990,450],[505,215]].map(p=>GFX.ranch8Pt(e,p[0],p[1]));
-    const W=e.wing&&G.byId.get(e.wing);if(W&&!W.dead&&W.built&&isWing(W))for(const p of [[40,470],[510,735],[980,480],[490,215]])pts.push(GFX.wing8Pt(W,p[0],p[1]));if(pts.some(p=>!p))return false;
-    const s=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]),cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];for(const p of s){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
-    for(let i=s.length-1;i>=0;i--){const p=s[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}const H=lo.slice(0,-1).concat(up.slice(0,-1));
-    const cx=H.reduce((a,p)=>a+p[0],0)/H.length,cy=H.reduce((a,p)=>a+p[1],0)/H.length;H.forEach((p,i)=>{const dx=p[0]-cx,dy=p[1]-cy,l=Math.hypot(dx,dy)||1,q=[p[0]+dx/l*4,p[1]+dy/l*4];i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();return true;};
+  GFX._ranchOutline=function(c,e){if(!on()||e.type!=='ranch'||e.owner>1)return false;const D=[];
+    const r=[[35,465],[480,710],[990,450],[505,215]].map(p=>GFX.ranch8Pt(e,p[0],p[1]));if(r.some(p=>!p))return false;D.push(r);
+    const W=e.wing&&G.byId.get(e.wing);if(W&&!W.dead&&isWing(W)){const w=[[40,470],[510,735],[980,480],[490,215]].map(p=>GFX.wing8Pt(W,p[0],p[1]));if(!w.some(p=>!p))D.push(w);}
+    for(const P of D){const cx=(P[0][0]+P[2][0])/2,cy=(P[1][1]+P[3][1])/2;P.forEach((p,i)=>{const dx=p[0]-cx,dy=p[1]-cy,l=Math.hypot(dx,dy)||1,q=[p[0]+dx/l*3,p[1]+dy/l*3];i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();}return true;};
+  /* trees under the ranch or the dairy wing (its open corners, or under the picture's overhang) are cleared when it is placed, and once
+     for ranches / wings already standing (Josh: "the dairy wing was able to build on top of trees and the trees stay") */
+  function clearUnder(e){if(!e||e.dead)return;const sp=e.type==='ranch'?bldSpr(e):GFX.wingSpr(e);if(!sp||!sp.w)return;const P=e.type==='ranch'?[[35,465],[480,710],[990,450],[505,215]].map(p=>GFX.ranch8Pt(e,p[0],p[1])):[[40,470],[510,735],[980,480],[490,215]].map(p=>GFX.wing8Pt(e,p[0],p[1]));if(P.some(p=>!p))return;
+    const x0=e.tx*TILE-(sp.dx||0),y0=e.ty*TILE-sp.ov,a=alphaOf(sp);
+    for(const t of G.ents){if(t.type!=='tree'||t.dead)continue;if(Math.abs(t.x-e.x)>(e.size+2)*TILE||Math.abs(t.y-e.y)>(e.size+2)*TILE)continue;
+      let hit=t.tx>=e.tx&&t.tx<e.tx+e.size&&t.ty>=e.ty&&t.ty<e.ty+e.size;
+      if(!hit&&a.w){const px=Math.floor((t.x-x0)/sp.w*a.w),py=Math.floor((t.y-y0)/sp.h*a.h);if(px>=0&&py>=0&&px<a.w&&py<a.h&&a.d[(py*a.w+px)*4+3]>40&&inPoly(P,t.x,t.y))hit=true;}
+      if(!hit)continue;try{emit('dust',t.x,t.y,4);}catch(err){}const ts=t.size||1;for(let yy=t.ty;yy<t.ty+ts;yy++)for(let xx=t.tx;xx<t.tx+ts;xx++)if(inB(xx,yy)&&G.occ[ti(xx,yy)]===t.id)G.occ[ti(xx,yy)]=0;kill(t);}}
+  function clearOnce(e){const k=e.tx+','+e.ty+','+e.size;if(e._clr===k)return;if(!on())return;clearUnder(e);e._clr=k;}
+  try{ranchSettle=(function(prev){return function(R,dt){const r=prev.apply(this,arguments);try{clearOnce(R);const W=R.wing&&G.byId.get(R.wing);if(W&&!W.dead&&isWing(W))clearOnce(W);}catch(err){}return r}})(ranchSettle)}catch(err){}
+  try{wingInit=(function(prev){return function(bl,rid){const r=prev.apply(this,arguments);try{clearUnder(bl);bl._clr=bl.tx+','+bl.ty+','+bl.size;}catch(err){}return r}})(wingInit)}catch(err){}
   /* draw order: the ranch is drawn like ground (before what stands on it), so anyone standing behind the barn or the cottage, or on the
      grass behind the ranch inside its square, was drawn on top of the roofs (a deer stood on the cottage roof). Those are now drawn before the
      ranch picture, so the buildings hide them; animals at the barn's front spots and everyone in the yard are drawn as before. */
   const MASS=[[[307,375],[492,447],[665,330],[600,170],[420,140],[300,230]],[[630,375],[720,445],[905,352],[880,225],[760,190],[640,255]]],BSP2=[[395,372],[470,345]];
   const inPoly=(P,x,y)=>{let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;};
+  const WMASS=[[[150,470],[300,420],[470,470],[470,560],[300,600],[150,560]],[[440,250],[900,330],[900,420],[760,430],[560,400],[440,330]]];
+  function wBehind(W,x,y){const sp=GFX.wingSpr(W);if(!sp||!sp.w)return false;const left=GFX.wingLeft(W),k=sp.w/1092;let px=(x-(W.tx*TILE-(sp.dx||0)))/k;const py=(y-(W.ty*TILE-sp.ov))/k;if(left)px=1092-px;
+    const top=px<490?470-(px-40)*(255/450):215+(px-490)*(265/490);if(py<top)return true;return WMASS.some(P=>inPoly(P,px,py));}
   function behind(R,sp,x,y){const k=sp.w/1092,px=(x-(R.tx*TILE-(sp.dx||0)))/k,py=(y-(R.ty*TILE-sp.ov))/k;const top=px<505?465-(px-35)*(250/470):215+(px-505)*(235/485);
     if(py<top)return true;if(MASS.some(P=>inPoly(P,px,py))){for(const s of BSP2)if(Math.hypot(px-s[0],py-s[1])*k<18)return false;return true;}return false;}
   try{townDecor=(function(prev){return function(c,now,E,V,list){const r=prev.apply(this,arguments);try{if(on()){const Rs=G.ents.filter(R=>R.type==='ranch'&&!R.dead&&R.built&&R.owner<2);if(Rs.length)for(const it of list){const e=it[1];if(!e||e.kind!=='unit'||it[2]===undefined)continue;
-      for(const R of Rs){const x=it[2],y=it[3];if(x<R.tx*TILE||x>=(R.tx+R.size)*TILE||y<R.ty*TILE||y>=(R.ty+R.size)*TILE)continue;const sp=bldSpr(R);if(sp&&sp.w&&behind(R,sp,x,y))it[0]=R.ty*TILE-1-(R.ty*TILE-y)*1e-3;break;}}}}catch(err){}return r}})(townDecor)}catch(err){}
+      for(const R of Rs){const x=it[2],y=it[3];if(x<R.tx*TILE||x>=(R.tx+R.size)*TILE||y<R.ty*TILE||y>=(R.ty+R.size)*TILE)continue;const sp=bldSpr(R);if(sp&&sp.w&&behind(R,sp,x,y))it[0]=R.ty*TILE-1-(R.ty*TILE-y)*1e-3;break;}
+      for(const R of Rs){const W=R.wing&&G.byId.get(R.wing);if(!W||W.dead||!W.built||!isWing(W))continue;const x=it[2],y=it[3];if(x<W.tx*TILE||x>=(W.tx+W.size)*TILE||y<W.ty*TILE||y>=(W.ty+W.size)*TILE)continue;if(wBehind(W,x,y))it[0]=W.ty*TILE+(y-W.ty*TILE)*1e-3;break;}}}}catch(err){}return r}})(townDecor)}catch(err){}
   try{if(typeof BANIM!=='undefined')BANIM.dairy=(function(prev){return function(c,b,now){const r=prev?prev.apply(this,arguments):undefined;try{roof(c,b);}catch(err){}return r}})(BANIM.dairy)}catch(err){}
 })();
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
