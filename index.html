@@ -7008,6 +7008,35 @@ try{(function(){
         for(const q of L)if(q.p&&!q.far)frame(c,q.gi,q.seg,q.k,q.d,q.p[0],q.p[1])}}catch(err){}
       return r};GFX.pubScene._bm=1}
   setTimeout(hook,0);GFX.bmaidAtlas=()=>AT})();
+
+/* ===== Contact shadow (art chat 1, Oct 16; Josh: "the Iron stable looks like it is floating", Iron house/barracks "sunken").
+   The cast shadow starts from a line 80% down the plot, so a painted building's real ground line got no darkening and read as
+   floating or cut into the grass. Every Stone-Iron building now gets a soft dark band right along the bottom edge of its picture
+   (measured per sprite from its alpha), drawn on the ground under the sprite. GFX.AO=false turns it off; GFX.AO_ALL=true for all ages. ===== */
+(function(){
+  const PROF=new WeakMap();
+  function aoOf(sp){let r=PROF.get(sp);if(r!==undefined)return r;r=null;
+    try{const W=sp.width,H=sp.height;if(!W||!H||!sp.w){PROF.set(sp,null);return null}
+      const g0=document.createElement('canvas');g0.width=W;g0.height=H;const x0=g0.getContext('2d');x0.drawImage(sp,0,0);const d=x0.getImageData(0,0,W,H).data;
+      const kx=W/sp.w,ky=H/sp.h,step=2,n=Math.ceil(sp.w/step),bot=[];
+      for(let i=0;i<n;i++){let best=-1;const xa=Math.floor(i*step*kx),xb=Math.min(W,Math.ceil((i+1)*step*kx));
+        for(let y=H-1;y>=0&&best<0;y--)for(let x=xa;x<xb;x+=1){if(d[(y*W+x)*4+3]>140){best=y;break}}
+        bot.push(best<0?null:(best+1)/ky)}
+      const K=2,pad=6,c=document.createElement('canvas');c.width=Math.ceil(sp.w*K);c.height=Math.ceil((sp.h+pad)*K);const g=c.getContext('2d');
+      for(let i=0;i<n;i++){const yb=bot[i];if(yb==null)continue;const cx=(i+.5)*step*K,cy=(yb+.4)*K,rx=step*2.6*K,ry=3.6*K;
+        const gr=g.createRadialGradient(0,0,0,0,0,1);gr.addColorStop(0,'rgba(24,16,6,.30)');gr.addColorStop(.5,'rgba(24,16,6,.16)');gr.addColorStop(1,'rgba(28,20,8,0)');
+        g.save();g.translate(cx,cy);g.scale(rx,ry);g.fillStyle=gr;g.beginPath();g.arc(0,0,1,0,7);g.fill();g.restore()}
+      r={c,w:sp.w,h:sp.h+pad}}catch(err){r=null}
+    PROF.set(sp,r);return r}
+  GFX.aoOf=aoOf;
+  try{const _sl9=shadowLayer;shadowLayer=function(c){_sl9(c);try{if(GFX.mode!=='V23D'||GFX.AO===false)return;
+    for(const e of G.ents){if(e.kind!=='bld'||e.dead||!e.built)continue;const t=e.type;if(t==='farm'||t==='wall'||t==='gate'||t==='dock'||(DEF[t]&&DEF[t].walkable)||(t==='coop'&&e.yard))continue;
+      if(e.owner!==0&&!(G.exp&&G.exp[0][ti(e.tx,e.ty)]))continue;
+      if(!GFX.AO_ALL){const P=G.players&&G.players[e.owner];if(P&&P.age>2)continue}
+      const S=(e.size||DEF[t].size)*TILE,x=e.tx*TILE,y=e.ty*TILE;if(x+S*2<cam.x-80||y+S*2<cam.y-80||x-S>cam.x+W/cam.z+80||y-S*2>cam.y+H/cam.z+80)continue;
+      const sp=bldSpr(e);if(!sp||!sp.w)continue;const a=aoOf(sp);if(!a)continue;
+      c.drawImage(a.c,x-(sp.dx||0),y-sp.ov,a.w,a.h)}}catch(err){}}}catch(err){}
+})();
 /* ===== END art chat 1: ipk ===== */
 function buildSprites(){
   SPR.ruin=ruinSprite();
