@@ -9021,6 +9021,78 @@ const PUBTIP={off:false,gap:240,need:3};
   $('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act="round"]');if(!b||!G||b.classList.contains('dis'))return;const T=G.pubTip||(G.pubTip={n:0,last:-1e9});T.n++;},true);
 }
 /* ===== END barmaid tip ===== */
+/* ===== AUDIO: foundation - buses, mute/volume, first-tap unlock, loudness guard (Josh, Oct 16 2026) =====
+   Owned by the audio chat. Changes nothing outside this block; it wraps sfx() and audioInit() and reroutes
+   anything connected to AC.destination into the Effects bus, so every existing sound (and any added later
+   by other chats) obeys the mute/volume settings and the limiter.
+   Chain: [fx bus x zoom x crowd] + [ui bus] + [amb bus] + [music bus] -> master -> limiter -> speakers.
+   API for later audio work: AUD.bus('fx'|'ui'|'amb'|'music') returns a GainNode (or null before unlock);
+   AUD.ctx() returns the AudioContext; AUD.set({mute,master,fx,music}); AUD.S = saved settings.
+   Off switch: AUD.OFF=true before first tap leaves the old direct-to-speaker sound path alone. */
+const AUD=(function(){
+  const KEY='coa.audio.v1',S={mute:false,master:.8,fx:.8,music:.6,amb:.6,ui:.8};
+  try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')for(const k in S)if(typeof s[k]===typeof S[k])S[k]=s[k];}catch(err){}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(err){}};
+  const A={S,OFF:false,ctx:()=>ctx,bus:k=>B[k]||null};
+  let ctx=null,master=null,lim=null,zoomG=null,crowdG=null;const B={};
+  const oc=AudioNode.prototype.connect;
+  function build(){
+    if(A.OFF||!AC||ctx===AC)return;ctx=AC;
+    const g=v=>{const n=ctx.createGain();n.gain.value=v;return n;};
+    lim=ctx.createDynamicsCompressor();
+    try{lim.threshold.value=-16;lim.knee.value=8;lim.ratio.value=12;lim.attack.value=.003;lim.release.value=.25;}catch(err){}
+    master=g(1);oc.call(master,lim);oc.call(lim,ctx.destination);
+    B.fx=g(1);zoomG=g(1);crowdG=g(1);oc.call(B.fx,zoomG);oc.call(zoomG,crowdG);oc.call(crowdG,master);
+    B.ui=g(1);oc.call(B.ui,master);B.amb=g(1);oc.call(B.amb,master);B.music=g(1);oc.call(B.music,master);
+    apply(true);
+  }
+  /* everything aimed at the speakers goes through the Effects bus instead (except our own limiter) */
+  AudioNode.prototype.connect=function(d){if(ctx&&B.fx&&d===ctx.destination&&this!==lim){arguments[0]=B.fx;}return oc.apply(this,arguments);};
+  function ramp(p,v){if(!ctx)return;try{const t=ctx.currentTime;p.cancelScheduledValues(t);p.setValueAtTime(p.value,t);p.linearRampToValueAtTime(v,t+.08);}catch(err){p.value=v;}}
+  function apply(now){if(!ctx||!master)return;const set=now?(p,v)=>{p.value=v;}:ramp;
+    /* sliders feel more even on a squared curve */
+    set(master.gain,S.mute?0:S.master*S.master);set(B.fx.gain,S.fx*S.fx);set(B.ui.gain,S.ui*S.ui);set(B.amb.gain,S.amb*S.amb);set(B.music.gain,S.music*S.music);}
+  A.set=function(o){Object.assign(S,o||{});save();apply();syncUI();};
+  /* unlock on first touch (phones only allow sound after a tap); iOS: play even with the silent switch */
+  function unlock(){try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(err){}
+    try{audioInit();}catch(err){}build();if(ctx&&ctx.state==='suspended'&&!document.hidden)ctx.resume().catch(()=>{});}
+  ['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,unlock,{capture:true,passive:true}));
+  const _ai=audioInit;audioInit=function(){const r=_ai.apply(this,arguments);build();return r;};
+  /* quiet when the game is in the background */
+  document.addEventListener('visibilitychange',()=>{if(!ctx)return;try{document.hidden?ctx.suspend():ctx.resume();}catch(err){}});
+  /* world sounds: softer when zoomed out, and the busier the fight the softer each hit (keeps big battles calm) */
+  let hits=[];const _sfx=sfx;
+  sfx=function(k,x,y){try{if(ctx&&(x===undefined||(x>cam.x-60&&y>cam.y-60&&x<cam.x+W/cam.z+60&&y<cam.y+H/cam.z+60)))hits.push(ctx.currentTime);}catch(err){}return _sfx.apply(this,arguments);};
+  A.zoomK=z=>Math.max(.35,Math.min(1,.35+.65*(z-.45)/.55));
+  A.crowdK=n=>n<=6?1:Math.max(.45,Math.sqrt(6/n));
+  setInterval(()=>{if(!ctx||!zoomG)return;const t=ctx.currentTime;hits=hits.filter(h=>t-h<1);
+    try{ramp(zoomG.gain,A.zoomK(cam.z||1));ramp(crowdG.gain,A.crowdK(hits.length));}catch(err){}},250);
+  /* pause menu: Sound on/off + Master / Effects / Music sliders */
+  let ui=null;
+  function syncUI(){if(!ui)return;ui.querySelector('#audMute').textContent=S.mute?'Sound: Off':'Sound: On';ui.querySelector('#audMute').classList.toggle('alt',S.mute);
+    ['master','fx','music'].forEach(k=>{const r=ui.querySelector('[data-aud="'+k+'"]');if(r)r.value=Math.round(S[k]*100);});}
+  function mountUI(){const card=document.querySelector('#pause .card');if(!card||document.getElementById('audRow'))return;
+    const cs=document.createElement('style');cs.textContent=
+      '#audRow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:-4px 0 12px}'+
+      '#audRow .big{padding:7px 14px;font-size:13px;min-width:108px}'+
+      '#audRow label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}'+
+      '#audRow input[type=range]{width:82px;accent-color:var(--gold);height:28px;margin:0}';
+    document.head.appendChild(cs);
+    ui=document.createElement('div');ui.id='audRow';
+    ui.innerHTML='<button class="big" id="audMute">Sound: On</button>'+
+      [['master','Volume'],['fx','Effects'],['music','Music']].map(([k,l])=>'<label>'+l+'<input type="range" min="0" max="100" step="5" data-aud="'+k+'" aria-label="'+l+'"></label>').join('');
+    const row=card.querySelector('.row');row.after(ui);
+    ui.querySelector('#audMute').addEventListener('click',()=>{unlock();A.set({mute:!S.mute});if(!S.mute)A.test();});
+    ui.querySelectorAll('[data-aud]').forEach(r=>{r.addEventListener('input',()=>{const k=r.dataset.aud;S[k]=r.value/100;if(S.mute&&S[k]>0)S.mute=false;save();apply();syncUI();});
+      r.addEventListener('change',()=>{if(r.dataset.aud!=='music')A.test(r.dataset.aud);});});
+    syncUI();}
+  /* a soft two-note blip so you can hear the level you picked */
+  A.test=function(which){unlock();if(!ctx||S.mute)return;try{const bus=which==='fx'?B.fx:B.ui,t=ctx.currentTime+.02;
+    [[660,0],[880,.08]].forEach(([f,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.08,t+d+.015);g.gain.exponentialRampToValueAtTime(.0001,t+d+.22);oc.call(o,g);oc.call(g,bus);o.start(t+d);o.stop(t+d+.25);});}catch(err){}};
+  try{mountUI();}catch(err){}
+  window.__aud=A;return A;
+})();
+/* ===== END AUDIO ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -9842,56 +9914,3 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
