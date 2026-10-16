@@ -9093,6 +9093,15 @@ const AUD=(function(){
   window.__aud=A;return A;
 })();
 /* ===== END AUDIO ===== */
+/* Josh (Oct 16): "people can still walk through the corners of the castle, and also completely through the ranch". Paths already avoid
+   both, but the crowd push between units (separate / sideStep, which ask cornerOK) could shove a fighting or waiting unit across a ranch
+   fence or into a building's outline. cornerOK now also refuses a push into a building-outline tile (G.abk) or into a ranch the unit
+   doesn't belong to (its hands, its animals and units already inside are exempt). */
+function nogoTile(u,tx,ty){if(!u||!inB(tx,ty))return false;const i=ti(tx,ty),ux=tl(u.x),uy=tl(u.y);if(tx===ux&&ty===uy)return false;
+  if(G.abk&&G.abk[i]&&!G.abk[ti(ux,uy)])return true;
+  try{const r=ranchAt(tx,ty);if(r&&r!==ranchAt(ux,uy)&&!(DEF[u.type]&&DEF[u.type].animal)&&u.home!==r&&u.shep!==r&&u.dairyId!==r)return true}catch(err){}
+  return false}
+try{cornerOK=(function(prev){return function(u,nx,ny){return prev(u,nx,ny)&&!nogoTile(u,tl(nx),tl(ny))}})(cornerOK)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -9914,3 +9923,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
