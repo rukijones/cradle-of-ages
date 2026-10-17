@@ -10458,7 +10458,7 @@ try{speedOf=(function(prev){return function(u){const v=prev.apply(this,arguments
 const PERF={lvl:0,ema:1/60,slow:0,last:0,settle:0,off:false,log:[]};
 function perfStep(){PERF.lvl++;PERF.slow=0;PERF.settle=3;PERF.log.push([Math.round(G?G.t:0),PERF.lvl,Math.round(1/PERF.ema)]);
   try{if(PERF.lvl<=3){const cap=PERF.lvl===1?1.5:PERF.lvl===2?1.25:1;if(dpr>cap){DPRCAP=cap;resize()}else return perfStep()}
-    else if(PERF.lvl===4){if(GFX.SHORE)GFX.SHORE.detail=false}}catch(err){}}
+    else if(PERF.lvl===4){/* Josh Oct 17: keep the HD ground - the texture is not what slows his Mac */}}catch(err){}}
 try{draw=(function(prev){return function(){const now=performance.now();try{if(!PERF.off&&G&&!G.paused&&!G.over&&PERF.lvl<4&&PERF.last){const dt=Math.min(.25,(now-PERF.last)/1000);
       PERF.ema+=(dt-PERF.ema)*.08;if(PERF.settle>0)PERF.settle-=dt;else{if(PERF.ema>1/40)PERF.slow+=dt;else PERF.slow=Math.max(0,PERF.slow-dt*.5);if(PERF.slow>3)perfStep()}}}catch(err){}
     PERF.last=now;return prev.apply(this,arguments)}})(draw)}catch(err){}
@@ -10942,13 +10942,13 @@ function bldPortTick(now){if(!G)return false;let sp=null;
   if(PORT.bsp!==sp){PORT.bsp=sp;PORT.bT=now;}const g=PORT.cv.getContext('2d');g.clearRect(0,0,208,208);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
   const pop=Math.min(1,(now-PORT.bT)/220),k=196/Math.max(sp.width,sp.height)*(.9+.1*pop),w=sp.width*k,h=sp.height*k;
   g.globalAlpha=.35+.65*pop;g.drawImage(sp,(208-w)/2,(208-h)/2+4,w,h);g.globalAlpha=1;return true;}
-function portraitTick(now){try{vtoolTick();}catch(e){}if(bldPortTick(now))return;PORT.bsp=null;const multi=!!(G&&G.sel&&G.sel.length>1);let one=G&&G.sel&&G.sel.length===1?G.byId.get(G.sel[0]):null;if(multi)for(const id of G.sel){const e=G.byId.get(id);if(e&&e.kind==='unit'&&!e.dead){one=e.owner===0&&paintKey(e)?e:null;break;}}const ps=one&&one.kind==='unit'&&one.owner===0&&!one.dead?portSheet(one):null;
+function portraitTick(now){if(now-(PORT._t||0)<66)return;PORT._t=now;/* speed (gameplay chat 1, Oct 17): portrait at ~15 fps */try{vtoolTick();}catch(e){}if(bldPortTick(now))return;PORT.bsp=null;const multi=!!(G&&G.sel&&G.sel.length>1);let one=G&&G.sel&&G.sel.length===1?G.byId.get(G.sel[0]):null;if(multi)for(const id of G.sel){const e=G.byId.get(id);if(e&&e.kind==='unit'&&!e.dead){one=e.owner===0&&paintKey(e)?e:null;break;}}const ps=one&&one.kind==='unit'&&one.owner===0&&!one.dead?portSheet(one):null;
   const th=document.querySelector('#info img');if(!ps||!th||!ps[0].complete||!ps[0].naturalWidth){if(PORT.el)PORT.el.style.display='none';return;}const[im,rn]=ps;
   if(!PORT.el){const el=document.createElement('div');el.id='portrait';el.style.cssText='position:fixed;z-index:30;pointer-events:none;border-radius:10px;overflow:hidden;border:2px solid #c9a45c;box-shadow:0 2px 10px rgba(0,0,0,.45);background:radial-gradient(circle at 50% 38%,#7a6544,#2a2116)';
     const cv=document.createElement('canvas');cv.width=208;cv.height=208;cv.style.cssText='width:100%;height:100%;display:block';const cap=document.createElement('div');cap.style.cssText='position:absolute;left:0;right:0;bottom:0;padding:1px 2px 2px;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#f4ead2;font:bold 11px system-ui;text-align:center;line-height:1.1';
     el.append(cv,cap);document.body.appendChild(el);PORT.el=el;PORT.cv=cv;PORT.cap=cap;}
   const r=th.getBoundingClientRect(),pad=1;Object.assign(PORT.el.style,{display:'block',left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});
-  const g=PORT.cv.getContext('2d'),A=one.anim||{};g.clearRect(0,0,208,208);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  const g=PORT.cv.getContext('2d'),A=one.anim||{};g.clearRect(0,0,208,208);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
   if(A.impact)PORT.kick=now;const k=PORT.kick?Math.max(0,1-(now-PORT.kick)/260):0,busy=A.state&&A.state!=='idle'&&A.state!=='offduty';
   const breath=Math.sin(now/700),sc=(im._paint?214:176)/Math.max(im.naturalWidth,im.naturalHeight)*(1+.025*breath),w=im.naturalWidth*sc,h=im.naturalHeight*sc;
   g.save();g.translate(104,110+breath*2-(busy?Math.abs(Math.sin(now/180))*3:0)+k*6);g.rotate(Math.sin(now/1300)*.04+(A.hit?Math.sin(now/40)*.08:0)-k*.08);g.drawImage(im,-w/2,-h/2,w,h);g.restore();
