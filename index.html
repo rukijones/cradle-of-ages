@@ -10535,6 +10535,12 @@ setTimeout(()=>{profWrap('tick',()=>tick,f=>tick=f);profWrap('water',()=>drawWat
         const parts=Object.entries(PROF.t).filter(([k])=>k!=='tick').sort((x,y)=>y[1]-x[1]).slice(0,4).map(([k,v])=>k+' '+(v/n).toFixed(1));
         box.innerHTML=Math.round(fr)+' fps · '+cv.width+'×'+cv.height+' · step '+PERF.lvl+'<br>per frame: logic '+logic.toFixed(1)+' · draw '+dr.toFixed(1)+' · browser/GPU '+other.toFixed(1)+' ms<br>'+parts.join(' · ')}
         n=0;dsum=0;t0=b;PROF.t={}}}return r}}catch(err){}},50);
+
+/* ===== Speed fix (gameplay chat 1, Oct 17, measured on Josh's MacBook M5): the game was over the graphics card's picture
+   memory, so Chrome re-sent the character sheets to the GPU every frame (1 s frames in the test pane; 24 fps in Chrome).
+   Character sheets are now kept at half size (they are drawn at ~1/5 size anyway, so nothing visible changes) and the
+   sheet memory budget is smaller, so pictures not on screen are let go sooner. ===== */
+try{GFX.texHalf=true;GFX.TEXB=Math.min(GFX.TEXB,160e6)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
