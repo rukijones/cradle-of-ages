@@ -8123,15 +8123,18 @@ function drawParts(c){
     else c.fillRect(p.x-p.size/2,p.y-p.z-p.size/2,p.size,p.size);
     c.globalAlpha=1;}
 }
-function drawWater(c,now,inView){
-  const t=now/1000;
+function drawWater(c,now,inView){/* speed (gameplay chat 1, Oct 17, measured on Josh's Mac): one path per brightness step instead of one per water tile */
+  const t=now/1000,NB=6,R=[],Q=[];for(let b=0;b<NB;b++){R.push(null);Q.push(null)}let D=null;
   for(const w of G.water){const[x,y,d,h]=w;if(!inView(x,y,30))continue;
-    const ph=t*.9+h*6.28,a=.16+.14*Math.sin(ph);
-    c.strokeStyle='rgba(225,240,248,'+a.toFixed(3)+')';c.lineWidth=1;const ox=Math.sin(ph*.5)*4;
-    c.beginPath();c.moveTo(x-7+ox,y+h*8-4);c.quadraticCurveTo(x+ox,y+h*8-7,x+7+ox,y+h*8-4);c.stroke();
-    if(d>=1&&Math.sin(t*2.3+h*40)>.93){c.fillStyle='rgba(255,255,255,.8)';circ(c,x+(h-.5)*16,y-(h-.5)*10,.9);c.fill();}
-    if(d===0){const fa=.12+.1*Math.sin(t*1.6+h*9);c.strokeStyle='rgba(240,245,235,'+fa.toFixed(3)+')';c.lineWidth=1.3;circ(c,x,y,18.5+Math.sin(t*1.6+h*9)*.8);c.stroke();}}
+    const ph=t*.9+h*6.28,a=.16+.14*Math.sin(ph),b=Math.max(0,Math.min(NB-1,Math.floor((a-.02)/.28*NB)));const ox=Math.sin(ph*.5)*4;
+    const p=R[b]||(R[b]=new Path2D());p.moveTo(x-7+ox,y+h*8-4);p.quadraticCurveTo(x+ox,y+h*8-7,x+7+ox,y+h*8-4);
+    if(d>=1&&Math.sin(t*2.3+h*40)>.93){const dx=x+(h-.5)*16,dy=y-(h-.5)*10;(D||(D=new Path2D())).moveTo(dx+.9,dy);D.arc(dx,dy,.9,0,6.2832)}
+    if(d===0){const s1=Math.sin(t*1.6+h*9),fa=.12+.1*s1,qb=Math.max(0,Math.min(NB-1,Math.floor((fa-.02)/.2*NB))),r=18.5+s1*.8;const q=Q[qb]||(Q[qb]=new Path2D());q.moveTo(x+r,y);q.arc(x,y,r,0,6.2832)}}
+  c.lineWidth=1;for(let b=0;b<NB;b++)if(R[b]){c.strokeStyle='rgba(225,240,248,'+(.02+(b+.5)*.28/NB).toFixed(3)+')';c.stroke(R[b])}
+  if(D){c.fillStyle='rgba(255,255,255,.8)';c.fill(D)}
+  c.lineWidth=1.3;for(let b=0;b<NB;b++)if(Q[b]){c.strokeStyle='rgba(240,245,235,'+(.02+(b+.5)*.2/NB).toFixed(3)+')';c.stroke(Q[b])}
 }
+
 // cloud shadows: keep them off the player's town at the start (and for the first ~75 s of drift)
 function spawnClouds(){VIS.clouds=[];const tc=G&&G.ents.find(e=>e.type==='towncenter'&&e.owner===0&&!e.dead),R=13*TILE;
   const hits=(x,y,k)=>{if(!tc)return false;for(let t=0;t<=75;t+=15){const x0=x+7*t,y0=y+2.4*t,x1=x0+30+420*k,y1=y0+20+260*k;if(x1>tc.x-R&&x0<tc.x+R&&y1>tc.y-R&&y0<tc.y+R)return true;}return false;};
@@ -10518,7 +10521,20 @@ try{placeWhy=(function(prev){return function(type,tx,ty,o){const r=prev.apply(th
 
 /* ===== FPS readout (cheat code "fps"): frames per second, drawing time, buffer size, speed step ===== */
 setTimeout(()=>{try{CHEATS.fps=()=>{PERF.show=!PERF.show;let d=document.getElementById('fpsBox');if(!d){d=document.createElement('div');d.id='fpsBox';d.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;background:rgba(0,0,0,.6);color:#fff;font:12px/1.3 monospace;padding:4px 7px;border-radius:6px;pointer-events:none';document.body.appendChild(d)}d.hidden=!PERF.show;return PERF.show?'FPS display on':'FPS display off'}}catch(err){}},0);
-try{draw=(function(prev){let n=0,t0=0,dm=0;return function(){const a=performance.now();const r=prev.apply(this,arguments);if(PERF.show){const b=performance.now();dm+=b-a;n++;if(!t0)t0=b;if(b-t0>=500){const d=document.getElementById('fpsBox');if(d)d.textContent=Math.round(n*1000/(b-t0))+' fps · draw '+(dm/n).toFixed(1)+' ms · '+cv.width+'×'+cv.height+' · step '+PERF.lvl;n=0;dm=0;t0=b}}return r}})(draw)}catch(err){}
+try{draw=(function(prev){let n=0,t0=0,dm=0;return function(){const a=performance.now();const r=prev.apply(this,arguments);if(PERF.show){const b=performance.now();dm+=b-a;n++;if(!t0)t0=b;if(b-t0>=500){const d=document.getElementById('fpsBox');if(d&&false)d.textContent=Math.round(n*1000/(b-t0))+' fps · draw '+(dm/n).toFixed(1)+' ms · '+cv.width+'×'+cv.height+' · step '+PERF.lvl;n=0;dm=0;t0=b}}return r}})(draw)}catch(err){}
+
+/* ===== FPS readout, part 2: where the time goes (shown under the fps line when the "fps" cheat is on).
+   logic = game simulation per frame, draw = all drawing code, gap = time the browser spends outside our code
+   (graphics card work / waiting). Then the 4 biggest drawing parts. ===== */
+const PROF={on:false,t:{},n:0,logic:0};
+function profWrap(nm,get,set){try{const f=get();if(typeof f!=='function')return;set(function(){if(!PERF.show)return f.apply(this,arguments);const a=performance.now();try{return f.apply(this,arguments)}finally{PROF.t[nm]=(PROF.t[nm]||0)+performance.now()-a}})}catch(err){}}
+setTimeout(()=>{profWrap('tick',()=>tick,f=>tick=f);profWrap('water',()=>drawWater,f=>drawWater=f);profWrap('fog',()=>drawCloudFog,f=>drawCloudFog=f);profWrap('people',()=>drawUnit,f=>drawUnit=f);profWrap('buildings',()=>drawBuilding,f=>drawBuilding=f);
+  profWrap('trees/res',()=>drawRes,f=>drawRes=f);profWrap('shadows',()=>shadowLayer,f=>shadowLayer=f);profWrap('town',()=>townDecor,f=>townDecor=f);profWrap('ocean',()=>drawOcean,f=>drawOcean=f);profWrap('effects',()=>drawFx,f=>drawFx=f);profWrap('ui',()=>uiFrame,f=>uiFrame=f);profWrap('minimap',()=>drawMini,f=>drawMini=f);
+  try{const d0=draw;let n=0,t0=0,dsum=0,fl=0,lastEnd=0,gap=0;draw=function(){const a=performance.now();if(lastEnd)gap+=0;const r=d0.apply(this,arguments);if(PERF.show){const b=performance.now();dsum+=b-a;n++;if(!t0){t0=b;PROF.t={}}
+      if(b-t0>=1000){const box=document.getElementById('fpsBox');if(box){const fr=n*1000/(b-t0),frame=(b-t0)/n,logic=(PROF.t.tick||0)/n,dr=dsum/n,other=Math.max(0,frame-logic-dr);
+        const parts=Object.entries(PROF.t).filter(([k])=>k!=='tick').sort((x,y)=>y[1]-x[1]).slice(0,4).map(([k,v])=>k+' '+(v/n).toFixed(1));
+        box.innerHTML=Math.round(fr)+' fps · '+cv.width+'×'+cv.height+' · step '+PERF.lvl+'<br>per frame: logic '+logic.toFixed(1)+' · draw '+dr.toFixed(1)+' · browser/GPU '+other.toFixed(1)+' ms<br>'+parts.join(' · ')}
+        n=0;dsum=0;t0=b;PROF.t={}}}return r}}catch(err){}},50);
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11460,12 +11476,17 @@ function detail(c,inView){if(!S.detail||!GFX.groundOn||!GFX.groundOn())return;co
     S._dk=key}
   if(S._dk!==key)return;
   S._fa=Math.min(1,(S._fa==null?1:S._fa)+.12);c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation=S.blend||'source-over';c.globalAlpha=S.det*S._fa;c.drawImage(D,0,0);c.restore()}
-function surf(c,now,inView){const m=M;if(!m)return;const t=now/1000,P=m.cp,L=TILE*.3;c.save();c.lineCap='round';
+function surf(c,now,inView){const m=M;if(!m)return;const t=now/1000,P=m.cp,L=TILE*.3;/* speed (gameplay chat 1, Oct 17): batched into a few paths */
+  const NB=5,F=[],S=[];
   for(let i=0;i<P.length;i+=6){const x=P[i],y=P[i+1];if(!inView(x,y,40))continue;const nx=P[i+2],ny=P[i+3],h=P[i+4],ph=P[i+5],tx=-ny,ty=nx;
-    const a0=.16+.1*Math.sin(t*1.1+h*19);c.fillStyle='rgba(255,255,255,'+a0.toFixed(3)+')';c.beginPath();c.ellipse(x+nx*(2+h*2),y+ny*(2+h*2),L*1.25,2.2+h*2.2,Math.atan2(ty,tx),0,7);c.fill();
+    const a0=.16+.1*Math.sin(t*1.1+h*19),fb=Math.max(0,Math.min(NB-1,Math.floor((a0-.06)/.2*NB)));const ex=x+nx*(2+h*2),ey=y+ny*(2+h*2),rx=L*1.25,ry=2.2+h*2.2,rot=Math.atan2(ty,tx);
+    const f=F[fb]||(F[fb]=new Path2D());f.moveTo(ex+Math.cos(rot)*rx,ey+Math.sin(rot)*rx);f.ellipse(ex,ey,rx,ry,rot,0,6.2832);
     const w=(t*.3-ph+10)%1,off=2+16*(1-w),a=Math.sin(Math.min(1,w*1.12)*Math.PI)*(.38+.25*h);if(a<.03)continue;
-    const px=x+nx*off,py=y+ny*off,l=L*(.8+.6*w)*(.7+h*.6);c.strokeStyle='rgba(240,250,250,'+a.toFixed(3)+')';c.lineWidth=1+w*1.2;
-    c.beginPath();c.moveTo(px-tx*l+nx*2,py-ty*l+ny*2);c.quadraticCurveTo(px-nx*2,py-ny*2,px+tx*l+nx*2,py+ty*l+ny*2);c.stroke()}
+    const px=x+nx*off,py=y+ny*off,l=L*(.8+.6*w)*(.7+h*.6),ab=Math.max(0,Math.min(NB-1,Math.floor(a/.63*NB))),wb=w<.33?0:w<.66?1:2,k=ab*3+wb;
+    const q=S[k]||(S[k]=new Path2D());q.moveTo(px-tx*l+nx*2,py-ty*l+ny*2);q.quadraticCurveTo(px-nx*2,py-ny*2,px+tx*l+nx*2,py+ty*l+ny*2)}
+  c.save();c.lineCap='round';
+  for(let b=0;b<NB;b++)if(F[b]){c.fillStyle='rgba(255,255,255,'+(.06+(b+.5)*.2/NB).toFixed(3)+')';c.fill(F[b])}
+  for(let k=0;k<S.length;k++)if(S[k]){const ab=(k/3)|0,wb=k%3;c.strokeStyle='rgba(240,250,250,'+((ab+.5)*.63/NB).toFixed(3)+')';c.lineWidth=1+(wb+.5)/3*1.2;c.stroke(S[k])}
   c.restore()}
 const _dw=drawWater;
 drawWater=function(c,now,inView){if(!S.on||!G||!G.landBox)return _dw.apply(this,arguments);const m=need();if(!m)return _dw.apply(this,arguments);
