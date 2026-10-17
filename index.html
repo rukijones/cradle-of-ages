@@ -5714,10 +5714,32 @@ try{(function(){
 /* ----- art chat 2: Medieval/Renaissance castle drawn bigger (Oct 16 2026, Josh: "keep the existing one, but make it bigger").
    Same picture, grown x CASTLE_K from the middle of the plot's bottom edge (so it still stands on its tiles). GFX.CASTLE_K to tune. ----- */
 try{(function(){GFX.CASTLE_K=1.25;const C=new WeakMap();
+  /* castle shadow (Oct 17, Josh: "the castle's shadow looks off"): the shared shadow is the whole sprite sheared from 0.8 of the plot, so the
+     bigger castle threw a smudge ~7 tiles to the lower right. Its silhouette is squashed toward that base line (GFX.CASTLE_SH, 0.55) so the
+     shadow is about half as long and stays next to the castle. Seeded into the shadow cache (SILS) for the castle sprite only. */
+  GFX.CASTLE_SH=.55;
+  function shortSil(sp,S){if(typeof SILS==='undefined')return;const k=sp.width/sp.w,base=(sp.ov+S*.8)*k,f=GFX.CASTLE_SH||1;if(f>=1)return;
+    const c=document.createElement('canvas');c.width=sp.width;c.height=sp.height;const g=c.getContext('2d');g.filter='blur('+(1.6*k)+'px)';
+    g.drawImage(sp,0,0,sp.width,base,0,base*(1-f),sp.width,base*f);g.filter='none';g.globalCompositeOperation='source-in';g.fillStyle='#0d1408';g.fillRect(0,0,c.width,c.height);SILS.set(sp,c)}
   function grow(s,k,S){let m=C.get(s);if(!m){m={};C.set(s,m)}const key=k+'_'+S;if(m[key])return m[key];const c=document.createElement('canvas');c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);
-    for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;c.ov=-S+(S+ov)*k;c._castleK=k;return m[key]=c}
+    for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;c.ov=-S+(S+ov)*k;c._castleK=k;try{shortSil(c,S)}catch(err){}return m[key]=c}
   bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(!s||!s.w||!e||e.type!=='castle'||!(e.owner===0||e.owner===1)||GFX.mode!=='V23D')return s;const a=G.players[e.owner].age;if(a!==3&&a!==4)return s;
       const k=GFX.CASTLE_K||1;if(k===1)return s;return grow(s,k,(e.size||DEF.castle.size)*TILE)}catch(err){return s}}})(bldSpr0);
+})()}catch(err){}
+/* ----- art chat 2: Keep flame + flags on wall-joined towers (Oct 17 2026, Josh: "the moving flame on the keep isn't always in the right spot").
+   Art chat 1's KEEP3D composite (walls carried under the tower) copies my tier sprite's fire points (fxF, in sprite units) and cloth boxes
+   (fxW, fractions) onto a bigger canvas without shifting them, so on wall-joined Keeps the flame sat off the basket. This shifts them by the
+   composite's offset (and maps the cloth mask), for my Medieval/Renaissance tier towers. Runs after art chat 1's wrapper (setTimeout 150). ----- */
+try{(function(){const FIX=new WeakMap();let uid=0;
+  function fix(c,top){if(FIX.has(c))return;FIX.set(c,1);if(c===top||!top||!top.w)return;const ox=(c.dx||0)-(top.dx||0),oy=(c.ov||0)-(top.ov||0);if(!ox&&!oy)return;
+    for(const p of ['fxF','fxL','fxM','fxS'])if(top[p]&&c[p]===top[p])c[p]=top[p].map(q=>{const r=q.slice();r[0]+=ox;r[1]+=oy;return r});
+    if(top.fxW&&c.fxW===top.fxW&&top.fxN){const k=c.width/c.w,mk=GFX.imgs[top.fxN+'_m'];if(mk&&(mk.width||mk.naturalWidth)){
+      const M=document.createElement('canvas');M.width=c.width;M.height=c.height;M.getContext('2d').drawImage(mk,ox*k,oy*k,top.width,top.height);
+      const nm='kpw'+(++uid);GFX.imgs[nm+'_m']=M;c.fxN=nm;
+      c.fxW=top.fxW.map(r=>{const q=r.slice();q[0]=(ox*k+r[0]*top.width)/c.width;q[1]=(oy*k+r[1]*top.height)/c.height;q[2]=(ox*k+r[2]*top.width)/c.width;q[3]=(oy*k+r[3]*top.height)/c.height;return q})}
+      else{c.fxW=null}}}
+  setTimeout(()=>{try{bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(s&&e&&e.type==='tower'&&GFX.mode==='V23D'&&(e.owner===0||e.owner===1)&&GFX.towerTierSpr){
+      const a=G.players[e.owner].age;if(a===3||a===4){const top=GFX.towerTierSpr(e.owner,e.size||2);if(top&&s!==top&&s._kid&&s._kid===top._kid)fix(s,top)}}}catch(err){}return s}})(bldSpr0)}catch(err){}},150);
 })()}catch(err){}
 /* ===== END art chat 2: renunits ===== */
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
