@@ -9473,12 +9473,8 @@ const RAIDGAP={off:false,min:240,raider:300,cap:[3,5,7],raiderCut:.75};
     return r;};
 }
 /* ===== END fewer early raids ===== */
-/* ===== gameplay chat 1: Iron Age town center drawn 15% bigger (Josh, Oct 17: "The Iron age town center needs something to make it seem more substantial ... Make it 15% bigger"). Same 3x3 plot; the picture is scaled about its bottom centre so it still stands on the same spot. GFX.TC_IRON_K (1.15). The door box carries over. Art chat 1: if you repaint the Iron town center bigger, set GFX.TC_IRON_K=1. ===== */
-GFX.TC_IRON_K=1.15;
-try{bldSpr0=(function(prev){const C=new WeakMap();return function(e){const sp=prev(e);try{if(!sp||!e||e.type!=='towncenter'||GFX.mode!=='V23D')return sp;const P=G.players[e.owner];if(!P||P.age!==2)return sp;const K=GFX.TC_IRON_K||1;if(K===1||!sp.width||!sp.w)return sp;
-  let c=C.get(sp);if(c)return c;c=document.createElement('canvas');c.width=Math.round(sp.width*K);c.height=Math.round(sp.height*K);const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(sp,0,0,c.width,c.height);
-  c.w=sp.w*K;c.h=sp.h*K;c.dx=(sp.dx||0)+(sp.w*K-sp.w)/2;c.ov=(sp.ov||0)+(sp.h*K-sp.h);for(const k of ['smoke','smoke2','fire','flag','_nf'])if(sp[k]!==undefined)c[k]=sp[k];
-  let d=sp.door;if(!d&&typeof DOORTAB!=='undefined'){const r=DOORTAB['towncenter2'];if(r&&r[6]===sp.width&&r[7]===sp.height)d=r.slice(0,6)}if(d)c.door=d;C.set(sp,c);return c}catch(err){return sp}}})(bldSpr0)}catch(err){}
+/* ===== gameplay chat 1: Iron Age town center drawn 15% bigger (Josh, Oct 17: "Make it 15% bigger"), using art chat 1's per-age town center scale GFX.TCK so its live flames and smoke scale with it (my earlier copy dropped them: Josh "the iron age townhall has no moving flames"). Same 3x3 plot. ===== */
+try{GFX.TCK=GFX.TCK||{};GFX.TCK[2]=1.15}catch(err){}
 /* ===== gameplay chat 1: villagers do the obvious job when you tap your building (Josh, Oct 17: "sometimes when i select villagers to do something, they don't do it"). With only villagers selected, tapping your farm, a gold/stone mine, a damaged building, a work building (bakery, mill, dairy...), a pen/ranch or a house being upgraded now sends them straight there. Before, the tap selected the building and you had to press "Send N selected villagers". Other buildings (town center, houses, barracks...) still just get selected. ===== */
 function villDirect(mine,hit){try{if(!mine.length||!mine.every(u=>u.type==='villager'))return false;if(!hit.built)return true;if(canRepair(hit,0))return true;
   if(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')return true;if(WORK[hit.type])return true;if(isPen(hit))return true;if((hit.type==='house'||hit.type==='coop')&&hit.upT>0)return true;}catch(err){}return false}
