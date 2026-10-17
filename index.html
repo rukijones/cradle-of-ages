@@ -428,9 +428,9 @@ const inB=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH;
 const ti=(x,y)=>y*MW+x;
 const tl=p=>Math.floor(p/TILE);
 let PASSO=-1;
-const walk=(x,y)=>inB(x,y)&&!G.terrain[ti(x,y)]&&(!G.occ[ti(x,y)]||(PASSO>=0&&!!G.gate&&G.gate[ti(x,y)]===PASSO+1));
+const walk=(x,y)=>{if(!inB(x,y))return false;const i=ti(x,y),t=G.terrain[i];return (t===0||t===2)&&(!G.occ[i]||(PASSO>=0&&!!G.gate&&G.gate[i]===PASSO+1));};
 const walkU=(u,x,y)=>{PASSO=u.owner<2?u.owner:-1;const r=walk(x,y);PASSO=-1;return r;};
-const wwalk=(x,y)=>inB(x,y)&&G.terrain[ti(x,y)]===1;
+const wwalk=(x,y)=>{if(!inB(x,y))return false;const t=G.terrain[ti(x,y)];return t===1||t===2;};
 let WK=walk,ASTAR_LIM=24000;
 const alive=e=>!!e&&!e.dead;
 const clampZ=z=>Math.max(.45,Math.min(2.2,z));
@@ -583,7 +583,7 @@ function renderGround(){
   for(let i=0;i<70*A;i++){const x=R()*WW,y=R()*WH;if(!okG(x,y))continue;const n=1+(R()*3|0),cap=R()<.5?'#b83a2a':'#9a7046';
     add(x,y,14,g=>{for(let k=0;k<n;k++){const mx=x+k*3.5,my=y+(k%2)*2;g.fillStyle='#efe6d2';g.fillRect(mx-.7,my-3,1.4,3);g.fillStyle=cap;g.beginPath();g.ellipse(mx,my-3,2.4,1.5,0,Math.PI,0);g.fill();g.fillStyle='#fff';circ(g,mx-.8,my-3.8,.4);g.fill();}});}
   const water=[];
-  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(G.terrain[ti(x,y)]){
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(G.terrain[ti(x,y)]===1||G.terrain[ti(x,y)]===2){
     let d=2;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const nx=x+dx,ny=y+dy;if(inB(nx,ny)&&!G.terrain[ti(nx,ny)]){d=Math.min(d,Math.max(Math.abs(dx),Math.abs(dy))-1);}}
     water.push([(x+.5)*TILE,(y+.5)*TILE,d]);
   }
@@ -611,7 +611,7 @@ function renderGround(){
   G.water=water.map(([x,y,d])=>[x,y,d,R()]);
   const mb=document.createElement('canvas');mb.width=MW;mb.height=MH;const m=mb.getContext('2d');
   for(const ch of chunks)m.drawImage(ch.c,ch.x/TILE,ch.y/TILE,ch.c.width/TILE,ch.c.height/TILE);
-  m.fillStyle='#35698b';for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(G.terrain[ti(x,y)])m.fillRect(x,y,1,1);
+  m.fillStyle='#35698b';for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const tt=G.terrain[ti(x,y)];if(tt===1||tt===2)m.fillRect(x,y,1,1)}m.fillStyle='#24401f';for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(G.terrain[ti(x,y)]===3)m.fillRect(x,y,1,1);
   G.miniBase=mb;
 }
 
@@ -10353,6 +10353,98 @@ function seaEnt(e){const d=e&&DEF[e.type];return !!(d&&(d.naval||d.air))}
 function seaSplit(a,b){if(!G||!G.islands||!G.islands.length||!a||!b||seaEnt(a)||seaEnt(b))return false;const M=islMap();return M[ti(tl(a.x),tl(a.y))]!==M[ti(tl(b.x),tl(b.y))]}
 try{damage=(function(prev){return function(t,amt,src){if(src&&t&&src.kind&&seaSplit(src,t))return;return prev.apply(this,arguments)}})(damage)}catch(err){}
 try{updUnit=(function(prev){return function(u,dt){try{const o=u.order;if(o&&o.type==='attack'){const t=G.byId.get(o.id);if(t&&seaSplit(u,t)){u.order=null;u.path=null;if(u.owner===0&&!(G._seaT>G.t)){G._seaT=G.t+4;toast('🌊 Too far across the sea: take a boat')}}}}catch(err){}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+
+/* ===== RIVER & LAKE map (gameplay chat 1, Josh Oct 17: "I like the river & lake map to start").
+   Same land generator as before (128x128 inside the 160 map, bases 28 tiles in from the edge), then:
+   - the outer 16 tiles are deep forest (terrain 3: no walking, no boats), painted as a canopy picture;
+   - the generator's random lakes are removed and replaced by mirrored water: an inner sea in the middle with 5 islands
+     (centre = Sacred Isle; north + south = Gold Isles; east + west = Ruin Isles), and in EVERY corner a lake with a river
+     to the inner sea and a stream to the forest edge. Each river and stream has a ford (terrain 2) that land units wade
+     across slowly and boats sail through. Every corner is an exact mirror, so any two corners are a fair start, and the
+     two empty corners look just like the enemy's.
+   - G.mapType = 'river' (new games). Old saves keep the ring sea. ===== */
+const RIVM={sea:21.5,lake:5.2,river:1.35,stream:.95,ford:.1,fordSlow:.55,isl:.64};
+function pickMapType(){return 'river'}
+try{genMap=(function(prev){return function(){if(G&&!G.mapType)G.mapType=pickMapType();return prev.apply(this,arguments)}})(genMap)}catch(err){}
+try{oceanFinish=(function(prev){return function(){if(G&&G.mapType==='river')return riverFinish();return prev.apply(this,arguments)}})(oceanFinish)}catch(err){}
+function rvSamples(P,n){const out=[];for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push([u*u*u*P[0][0]+3*u*u*t*P[1][0]+3*u*t*t*P[2][0]+t*t*t*P[3][0],u*u*u*P[0][1]+3*u*u*t*P[1][1]+3*u*t*t*P[2][1]+t*t*t*P[3][1],t])}return out}
+function rvNear(S,x,y){let bd=1e9,bt=0;for(let i=0;i<S.length-1;i++){const a=S[i],b=S[i+1],dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;let k=((x-a[0])*dx+(y-a[1])*dy)/L;k=k<0?0:k>1?1:k;const d=Math.hypot(x-a[0]-k*dx,y-a[1]-k*dy);if(d<bd){bd=d;bt=a[2]+(b[2]-a[2])*k}}return [bd,bt]}
+function riverFinish(){const O=OCEAN,T=G.terrain,N=MW,C=(N-1)/2,Rn=Math.random;G.landBox=[O,O,N-O,N-O];G._oceanOld=0;
+  const L0=O,L1=N-O,inL=(x,y)=>x>=L0&&y>=L0&&x<L1&&y<L1,fold=v=>v<N/2?v:N-1-v;
+  /* old random lakes and their fish go */
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(T[ti(x,y)])T[ti(x,y)]=0;for(const e of G.ents)if(e.type==='fish')e.dead=true;
+  /* this game's shapes, in the top-left quarter (folded coordinates) */
+  const bc=O+BASE,swap=Rn()<.5;let la=bc+14+Rn()*4,lb=bc+22+Rn()*4;if(swap){const q=la;la=lb;lb=q}
+  const Rs=RIVM.sea+Rn()*1.5,ph=Rn()*7,ph2=Rn()*7,lr=RIVM.lake+Rn()*.8;
+  const dv=[la-C,lb-C],dl=Math.hypot(dv[0],dv[1]);const E=[C+dv[0]/dl*(Rs-2),C+dv[1]/dl*(Rs-2)],px=-dv[1]/dl,py=dv[0]/dl,j1=(Rn()-.5)*9,j2=(Rn()-.5)*9;
+  const RV=rvSamples([[la,lb],[la+(E[0]-la)*.33+px*j1,lb+(E[1]-lb)*.33+py*j1],[la+(E[0]-la)*.66+px*j2,lb+(E[1]-lb)*.66+py*j2],E],48);
+  const toX=la<lb,edge=O-2,sj=(Rn()-.5)*6,SE=toX?[edge,lb+sj]:[la+sj,edge];
+  const ST=rvSamples([[la,lb],[la+(SE[0]-la)*.33,lb+(SE[1]-lb)*.33+(Rn()-.5)*5],[la+(SE[0]-la)*.7,lb+(SE[1]-lb)*.7+(Rn()-.5)*5],SE],40);
+  const fT=.42+Rn()*.16,fS=.45+Rn()*.15,base9=(x,y)=>G.bases.some(([bx,by])=>Math.hypot(x-bx,y-by)<9.5);
+  G.river={swap,la,lb,Rs};
+  for(let y=L0;y<L1;y++)for(let x=L0;x<L1;x++){const fx=fold(x),fy=fold(y);if(base9(x,y))continue;const i=ti(x,y);
+    const u=fx-C,v=fy-C,ds=Math.hypot(u,v),an=Math.atan2(Math.abs(v),Math.abs(u));
+    if(ds<Rs+1.3*Math.sin(an*4+ph)+.7*Math.sin(an*9+ph2)){T[i]=1;continue}
+    if(Math.hypot(fx-la,fy-lb)<lr+.7*Math.sin(Math.atan2(fy-lb,fx-la)*3+ph)){T[i]=1;continue}
+    const [d1,t1]=rvNear(RV,fx,fy);if(d1<RIVM.river+(t1<.15?.6:0)){T[i]=Math.abs(t1-fT)<RIVM.ford*.55?2:1;continue}
+    const [d2,t2]=rvNear(ST,fx,fy);if(d2<RIVM.stream){T[i]=Math.abs(t2-fS)<RIVM.ford*.7?2:1;continue}}
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(!inL(x,y))T[ti(x,y)]=(x===0||y===0||x===MW-1||y===MH-1)?0:3;/* outermost row stays 'land' (unreachable) so the sea-shore art doesn't read the forest as ocean */
+  /* islands in the inner sea */
+  G.islands=[];const off=Rs*RIVM.isl,isl=[[C,C,3.6,3.6,'sacred'],[C,C-off,3.3,2.8,'gold'],[C,C+off,3.3,2.8,'gold'],[C-off,C,2.8,3.3,'ruin'],[C+off,C,2.8,3.3,'ruin']];
+  isl.forEach(([cx,cy,rx,ry,k],i)=>{const tiles=[];let x0=1e9,y0=1e9,x1=-1,y1=-1;
+    for(let y=Math.floor(cy-ry-1);y<=Math.ceil(cy+ry+1);y++)for(let x=Math.floor(cx-rx-1);x<=Math.ceil(cx+rx+1);x++){if(((x-cx)/rx)**2+((y-cy)/ry)**2>1)continue;T[ti(x,y)]=0;tiles.push(ti(x,y));x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+    const s=islSet({id:i,k,tiles,x0,y0,x1,y1,cx:Math.round(cx),cy:Math.round(cy),owner:-1,cap:[0,0]});G.islands.push(s)});
+  /* everything now standing in water or forest moves or goes */
+  const okLand=(x,y)=>inB(x,y)&&T[ti(x,y)]===0&&!G.occ[ti(x,y)]&&!islAt(x,y);
+  const nearLand=(x,y)=>{for(let r=1;r<14;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(okLand(x+dx,y+dy))return [x+dx,y+dy]}return null};
+  for(const e of G.ents){if(e.dead)continue;const tx=e.kind==='unit'?tl(e.x):e.tx,ty=e.kind==='unit'?tl(e.y):e.ty,sz=e.size||1;let wet=false;for(let y=ty;y<ty+sz;y++)for(let x=tx;x<tx+sz;x++)if(!inB(x,y)||T[ti(x,y)]||islAt(x,y))wet=true;if(!wet)continue;
+    if(e.kind==='res'){e.dead=true;for(let y=ty;y<ty+sz;y++)for(let x=tx;x<tx+sz;x++)if(inB(x,y)&&G.occ[ti(x,y)]===e.id)G.occ[ti(x,y)]=0;continue}
+    if(e.type==='sacred'&&!G.islands[0].sacred&&Math.hypot(tx-C,ty-C)<Rs+4){G.islands[0].sacred=e.id;continue}
+    const p=nearLand(tx,ty);if(!p){e.dead=true;continue}
+    if(e.kind==='unit'){e.x=e.px=(p[0]+.5)*TILE;e.y=e.py=(p[1]+.5)*TILE;if(typeof e.hx==='number'){e.hx=p[0];e.hy=p[1]}}else{e.tx=p[0];e.ty=p[1];e.x=(p[0]+.5)*TILE;e.y=(p[1]+.5)*TILE}}
+  G.ents=G.ents.filter(e=>!e.dead);
+  /* island docks + contents */
+  G.islands.forEach((s,i)=>{const cx=s.cx,cy=s.cy;let ax=Math.sign(cx-C),ay=Math.sign(cy-C);if(!ax&&!ay)ay=-1;let best=null,bv=-1e9;
+    for(const t of s.tiles){const x=t%MW,y=(t/MW)|0;if(!wwalk(x+ax,y+ay))continue;const v=(x-cx)*ax+(y-cy)*ay-Math.abs((x-cx)*ay)-Math.abs((y-cy)*ax);if(v>bv){bv=v;best=[x,y]}}
+    if(!best)best=[cx,cy];const [dx0,dy0]=best;
+    const dk=addEnt({kind:'poi',type:'idock',owner:-1,isl:i,tx:dx0,ty:dy0,size:1,x:(dx0+.5)*TILE,y:(dy0+.5)*TILE,wx:dx0+ax,wy:dy0+ay,v:Math.random()});s.dock=dk.id;
+    const free=(x,y)=>s.set[ti(x,y)]&&!G.occ[ti(x,y)]&&!(x===dx0&&y===dy0)&&Math.hypot(x-dx0,y-dy0)>1.5;
+    const spots=s.tiles.map(t=>[t%MW,(t/MW)|0]).filter(([x,y])=>free(x,y)).sort((a,b)=>Math.hypot(a[0]-cx,a[1]-cy)-Math.hypot(b[0]-cx,b[1]-cy));
+    if(s.k==='sacred'){let sv=s.sacred&&G.byId.get(s.sacred);if(!sv){const ss=G.ents.filter(e=>e.type==='sacred'&&!e.dead).sort((a,b)=>Math.hypot(a.tx-C,a.ty-C)-Math.hypot(b.tx-C,b.ty-C));sv=ss[0]}
+      const sp=spots[0];if(sv&&sp){sv.tx=sp[0];sv.ty=sp[1];sv.x=(sp[0]+.5)*TILE;sv.y=(sp[1]+.5)*TILE;sv.cap=[0,0];sv.owner=-1;s.sacred=sv.id}}
+    if(s.k==='gold'){let n=0;for(const [x,y] of spots){if(n>=4)break;if(G.occ[ti(x,y)])continue;mkRes('gold',x,y);n++}let m=0;for(const [x,y] of spots.slice().reverse()){if(m>=2)break;if(G.occ[ti(x,y)])continue;mkRes('stone',x,y);m++}}
+    if(s.k==='ruin'){const sp=spots[0];if(sp)addEnt({kind:'poi',type:'ruin',owner:-1,tx:sp[0],ty:sp[1],size:1,x:(sp[0]+.5)*TILE,y:(sp[1]+.5)*TILE,v:Math.random()})}
+    let tr=0;for(const [x,y] of spots.slice().reverse()){if(tr>=1)break;if(G.occ[ti(x,y)]||G.ents.some(e=>e.kind==='poi'&&Math.abs(e.tx-x)<2&&Math.abs(e.ty-y)<2))continue;mkRes('tree',x,y);tr++}});
+  /* a deeper wood along the forest edge */
+  for(let k=0;k<44;k++){const sd=(Rn()*4)|0,t=L0+Rn()*(L1-L0),dd=L0+1+Rn()*5,x=sd===0?dd:sd===1?L1-1-dd:t,y=sd===2?dd:sd===3?L1-1-dd:t,r=1.6+Rn()*2.4;
+    for(let yy=Math.floor(y-r);yy<=y+r;yy++)for(let xx=Math.floor(x-r);xx<=x+r;xx++){if(Math.hypot(xx-x,yy-y)>r||Rn()>.7||!okLand(xx,yy)||base9(xx,yy)||Math.hypot(xx-x,yy-y)<0)continue;if(G.ents.some(e=>e.kind==='poi'&&Math.abs(e.tx-xx)<2&&Math.abs(e.ty-yy)<2))continue;mkRes('tree',xx,yy)}}
+  /* fish: the same spots in every corner (lake 2, river mouth 1, sea 4) */
+  const fishAt=(fx,fy)=>{for(const [x,y] of [[fx,fy],[N-1-fx,fy],[fx,N-1-fy],[N-1-fx,N-1-fy]]){if(!inB(x,y)||T[ti(x,y)]!==1||G.ents.some(e=>e.type==='fish'&&e.tx===x&&e.ty===y))continue;addEnt({kind:'res',type:'fish',owner:-1,tx:x,ty:y,size:1,x:(x+.5)*TILE,y:(y+.5)*TILE,amt:RES.fish.amt,v:Math.random(),noOcc:1,sea:1})}};
+  const wetQ=[];for(let y=L0;y<N/2;y++)for(let x=L0;x<N/2;x++)if(T[ti(x,y)]===1)wetQ.push([x,y]);
+  const pick=(f,n)=>{const c=wetQ.filter(([x,y])=>f(x,y));for(let i=0;i<n&&c.length;i++){const k=(Rn()*c.length)|0;const[x,y]=c.splice(k,1)[0];fishAt(x,y)}};
+  pick((x,y)=>Math.hypot(x-la,y-lb)<lr-1,2);pick((x,y)=>{const d=Math.hypot(x-C,y-C);return d>Rs-4&&d<Rs-1&&!islAt(x,y)},4);
+  G.oceanPic=null;G.forestPic=null}
+/* the deep forest picture (1/2 scale), drawn where the ocean picture would be */
+const FRS=16;
+function forestPaint(){const c=document.createElement('canvas');c.width=MW*FRS;c.height=MH*FRS;const g=c.getContext('2d'),T=G.terrain,R=mulberry((G.seed||1)+311);
+  g.fillStyle='#1d3519';g.fillRect(0,0,c.width,c.height);const cols=['#24421f','#2b4d24','#335a2a','#1f3a1b','#3a6430'];
+  for(let p=0;p<3;p++)for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(T[ti(x,y)]!==3)continue;for(let k=0;k<2;k++){const cx=(x+R())*FRS,cy=(y+R())*FRS,r=FRS*(.55+R()*.5);
+    g.fillStyle='rgba(8,18,8,.35)';g.beginPath();g.arc(cx+3,cy+4,r,0,7);g.fill();g.fillStyle=cols[(R()*cols.length)|0];g.beginPath();g.arc(cx,cy,r,0,7);g.fill();
+    if(p===2){g.fillStyle='rgba(150,190,110,.18)';g.beginPath();g.arc(cx-r*.3,cy-r*.35,r*.45,0,7);g.fill()}}}
+  G.forestPic=c}
+function rvDrawForest(c,vx0,vy0,vx1,vy1){if(!G.forestPic||G.forestPic._s!==G.seed){forestPaint();G.forestPic._s=G.seed}const P=G.forestPic,L=G.landBox;
+  const x0=Math.max(0,vx0),y0=Math.max(0,vy0),x1=Math.min(WW,vx1),y1=Math.min(WH,vy1);if(x1<=x0||y1<=y0)return;
+  if(x0>=L[0]*TILE&&y0>=L[1]*TILE&&x1<=L[2]*TILE&&y1<=L[3]*TILE)return;const k=FRS/TILE;c.drawImage(P,x0*k,y0*k,(x1-x0)*k,(y1-y0)*k,x0,y0,x1-x0,y1-y0)}
+/* installed late (first map), so it sits outside every other drawOcean wrapper: on the river map only the forest is drawn there */
+function rvHookOcean(){if(drawOcean._rv)return;const prev=drawOcean;drawOcean=function(c,vx0,vy0,vx1,vy1){if(G&&G.mapType==='river')return rvDrawForest(c,vx0,vy0,vx1,vy1);return prev.apply(this,arguments)};drawOcean._rv=1}
+/* fords: sandy shallows with stepping stones painted into the ground */
+try{renderGround=(function(prev){return function(){if(G)G.forestPic=null;try{rvHookOcean()}catch(err){}const r=prev.apply(this,arguments);try{if(G&&G.ground&&G.mapType==='river'){const T=G.terrain,F=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(T[ti(x,y)]===2)F.push([x,y]);
+  if(F.length)for(const ch of G.ground.chunks){if(ch.isl!=null)continue;const g=ch.c.getContext('2d');g.save();g.setTransform(1,0,0,1,-ch.x,-ch.y);const R=mulberry((G.seed||1)+77);
+    for(const [x,y] of F){const cx=(x+.5)*TILE,cy=(y+.5)*TILE;if(cx<ch.x-40||cy<ch.y-40||cx>ch.x+ch.c.width+40||cy>ch.y+ch.c.height+40)continue;g.fillStyle='rgba(205,185,130,.55)';g.beginPath();g.arc(cx,cy,20,0,7);g.fill()}
+    for(const [x,y] of F){const cx=(x+.5)*TILE,cy=(y+.5)*TILE;if(cx<ch.x-40||cy<ch.y-40||cx>ch.x+ch.c.width+40||cy>ch.y+ch.c.height+40)continue;for(let k=0;k<4;k++){const sx=cx+(R()-.5)*24,sy=cy+(R()-.5)*24,rr=3+R()*3;g.fillStyle='rgba(40,50,55,.35)';g.beginPath();g.ellipse(sx+1,sy+2,rr,rr*.7,0,0,7);g.fill();g.fillStyle=['#9a9a92','#86857c','#aaa79c'][(R()*3)|0];g.beginPath();g.ellipse(sx,sy,rr,rr*.7,0,0,7);g.fill()}}
+    g.restore()}}}catch(err){}return r}})(renderGround)}catch(err){}
+/* wading through a ford is slow */
+try{speedOf=(function(prev){return function(u){const v=prev.apply(this,arguments);try{if(u&&!u.naval&&G.terrain[ti(tl(u.x),tl(u.y))]===2)return v*RIVM.fordSlow}catch(err){}return v}})(speedOf)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11307,3 +11399,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
