@@ -9833,6 +9833,126 @@ function ranchChips(one){const PL=penLead(one)||one,own=e=>e.owner===0&&!e.dead;
   if(sh<max)h+=btn('rhadd','🧑‍🌾+','<span class="cost">'+(iv?iv+' idle':'none idle')+'</span>','',!iv,0,'chb');
   return h}
 try{ranchActs=(function(prev){return function(one,P){const h=prev.apply(this,arguments);try{if(one&&one.owner===0&&one.built)return ranchChips(one)+h.replace(/<div class="hint"><b>Raising \d+ of \d+ young<\/b>(<br>[^<]*)?<\/div>/,'')}catch(err){}return h}})(ranchActs)}catch(err){}
+/* ===== AUDIO: action sounds - combat, ranged, siege, explosions, gathering, building, falling trees (Josh, Oct 16 2026) =====
+   Owned by the audio chat. All synthesized in code (no files). Takes over these sfx() keys with richer, context-aware sounds:
+   clang/thud (melee + projectile hits: picks club / axe / sword clash or slash / spear / wolf bite / ram / building hit / arrow hit /
+   shell hit from the attacker and target), shot/bang/cannon/launch (bow, crossbow, sling, musket, rifle, burst, bombard, artillery,
+   tank gun, catapult, trebuchet, rocket), boom (impact crash), fall, charge, zap, and the 'done' chime when a tree falls (now a creak + crash).
+   Work sounds: wraps animTick and plays on each work-animation impact (chop, mine, farm, build hammer, butcher, dig, forage, fish).
+   Wraps damage/shoot/shootAt/animTick from a setTimeout so it sits outside other wrappers. Only on-screen, visible spots make sound,
+   with per-sound gaps, per-group caps and crowd thinning. ACTSFX.OFF=true falls back to the old sounds; ACTSFX.VOL per group. */
+function ACT_LIB(c){
+  let NB=null;
+  const nb=()=>{if(NB)return NB;const n=c.sampleRate;NB=c.createBuffer(1,n,c.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return NB;};
+  const env=(g,t,a,p,d)=>{g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(p,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+d);};
+  const osc=(o,type,f,t,a,p,d,f2,gl)=>{const s=c.createOscillator(),g=c.createGain();s.type=type;s.frequency.setValueAtTime(f,t);if(f2)s.frequency.exponentialRampToValueAtTime(f2,t+(gl||d));env(g,t,a,p,d);s.connect(g);g.connect(o);s.start(t);s.stop(t+a+d+.05);};
+  const nz=(o,t,d,ft,fr,q,p,fr2,a)=>{const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=nb();f.type=ft;f.frequency.setValueAtTime(fr,t);if(fr2)f.frequency.exponentialRampToValueAtTime(fr2,t+d);f.Q.value=q||1;env(g,t,a||.002,p,d);s.connect(f);f.connect(g);g.connect(o);s.start(t,Math.random()*.5);s.stop(t+(a||.002)+d+.05);};
+  const L={
+    /* ---- melee ---- */
+    club(o,t,j){nz(o,t,.09,'lowpass',650*j,1,.55);osc(o,'sine',150*j,t,.002,.35,.1,70);},
+    axe(o,t,j){nz(o,t,.06,'bandpass',950*j,2,.5);osc(o,'sine',190*j,t,.002,.3,.08,95);osc(o,'triangle',2300*j,t,.001,.04,.04);},
+    clash(o,t,j,f){f=f||1;nz(o,t,.035,'highpass',2600,1,.22);osc(o,'square',1500*f*j,t,.001,.028,.12);osc(o,'triangle',2350*f*j,t,.001,.045,.26);osc(o,'sine',3700*f*j,t,.001,.022,.2);osc(o,'sine',260*j,t,.002,.2,.06,120);},
+    slash(o,t,j){nz(o,t,.08,'bandpass',1900*j,1.2,.32,900);osc(o,'sine',125*j,t+.02,.002,.22,.07,70);},
+    spear(o,t,j){nz(o,t,.1,'highpass',1700,1,.14,3200,.03);nz(o,t+.05,.05,'bandpass',720*j,3,.42);osc(o,'sine',170*j,t+.05,.002,.2,.06,90);},
+    bite(o,t,j){nz(o,t,.12,'bandpass',420*j,3,.9,950);osc(o,'sawtooth',105*j,t,.01,.14,.14,80);},
+    ram(o,t,j){osc(o,'sine',72*j,t,.002,.6,.4,38);nz(o,t,.35,'lowpass',320,1,.55);nz(o,t+.02,.12,'bandpass',600,2,.2);},
+    bldhit(o,t,j){nz(o,t,.08,'bandpass',520*j,2,.42);osc(o,'sine',105*j,t,.002,.28,.1,60);},
+    metaltick(o,t,j){osc(o,'triangle',2800*j,t,.001,.05,.05);osc(o,'sine',4100*j,t,.001,.02,.04);},
+    arrowhit(o,t,j){nz(o,t,.03,'bandpass',1250*j,2,.3);osc(o,'sine',320*j,t,.001,.1,.035,180);},
+    shellhit(o,t,j){nz(o,t,.5,'lowpass',1300*j,1,.65);osc(o,'sine',60*j,t,.002,.55,.45,32);nz(o,t,.05,'highpass',3000,1,.3);},
+    fall(o,t,j){nz(o,t,.13,'lowpass',420*j,1,.32);osc(o,'sine',92*j,t,.002,.2,.1,55);},
+    charge(o,t,j){for(let i=0;i<4;i++){nz(o,t+i*.075,.05,'lowpass',380*j,1,.28+i*.05);osc(o,'sine',85*j,t+i*.075,.002,.12,.05,60);}nz(o,t+.3,.08,'bandpass',600,2,.35);},
+    /* ---- ranged ---- */
+    bow(o,t,j){osc(o,'triangle',230*j,t,.001,.14,.16,175);nz(o,t,.04,'bandpass',2200,3,.12);nz(o,t+.03,.2,'bandpass',1600,2,.1,600,.04);},
+    xbow(o,t,j){nz(o,t,.015,'highpass',3000,1,.32);osc(o,'sine',210*j,t,.001,.3,.06,120);nz(o,t+.02,.18,'bandpass',1500,2,.1,700,.03);},
+    sling(o,t,j){nz(o,t,.05,'bandpass',1100*j,3,.12,1600,.02);nz(o,t+.07,.05,'bandpass',1300*j,3,.15,1900,.02);nz(o,t+.15,.02,'highpass',2800,1,.28);},
+    musket(o,t,j){nz(o,t,.32,'lowpass',2400*j,1,.55,500);nz(o,t,.05,'highpass',4000,1,.28);osc(o,'sine',95*j,t,.002,.3,.15,50);},
+    rifle(o,t,j){nz(o,t,.1,'highpass',1600*j,1,.48);nz(o,t,.22,'lowpass',850,1,.28);},
+    burst(o,t,j){for(let i=0;i<4;i++){nz(o,t+i*.07,.05,'highpass',1700*j,1,.3);nz(o,t+i*.07,.08,'lowpass',800,1,.16);}},
+    bombard(o,t,j){osc(o,'sine',58*j,t,.002,.7,.6,34);nz(o,t,.75,'lowpass',420,1,.65);nz(o,t,.06,'highpass',2500,1,.3);},
+    artillery(o,t,j){osc(o,'sine',48*j,t,.002,.75,.9,28);nz(o,t,1.1,'lowpass',380,1,.65);nz(o,t,.08,'highpass',2200,1,.35);},
+    tankgun(o,t,j){nz(o,t,.4,'lowpass',1300*j,1,.7);osc(o,'sine',72*j,t,.002,.6,.35,40);nz(o,t,.04,'highpass',3500,1,.35);},
+    catapult(o,t,j){const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=600;f.Q.value=3;f.connect(o);osc(f,'sawtooth',95*j,t,.03,.12,.22,62);osc(o,'sine',125*j,t+.22,.002,.5,.12,70);nz(o,t+.22,.1,'lowpass',520,1,.45);nz(o,t+.28,.4,'bandpass',420,1.5,.14,950,.06);},
+    trebuchet(o,t,j){const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=480;f.Q.value=3;f.connect(o);osc(f,'sawtooth',75*j,t,.05,.14,.4,48);osc(o,'sine',95*j,t+.4,.002,.55,.16,55);nz(o,t+.4,.14,'lowpass',420,1,.5);nz(o,t+.48,.55,'bandpass',360,1.5,.16,800,.08);},
+    rocket(o,t,j){nz(o,t,.6,'highpass',2100*j,1,.32,1200,.02);osc(o,'sine',90*j,t,.002,.35,.15,45);},
+    zap(o,t,j){nz(o,t,.22,'highpass',2800,1,.2);osc(o,'sawtooth',1400*j,t,.001,.06,.12,500);osc(o,'square',700*j,t+.03,.001,.04,.14,300);},
+    /* ---- impacts / explosions ---- */
+    crash(o,t,j){nz(o,t,.5,'lowpass',950*j,1,.65);osc(o,'sine',62*j,t,.002,.55,.4,34);for(let i=0;i<5;i++)nz(o,t+.05+Math.random()*.3,.04,'bandpass',1800+Math.random()*1500,3,.18);},
+    treefall(o,t,j){const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=520;f.Q.value=4;f.connect(o);osc(f,'sawtooth',150*j,t,.05,.1,.5,85);nz(o,t+.6,.6,'lowpass',1500,1,.5);osc(o,'sine',70,t+.6,.002,.35,.3,40);nz(o,t+.62,.5,'highpass',3200,1,.15);},
+    /* ---- work (quiet) ---- */
+    chop(o,t,j){nz(o,t,.05,'bandpass',820*j,3,.5);osc(o,'sine',165*j,t,.002,.35,.07,110);},
+    mine(o,t,j){osc(o,'triangle',2450*j,t,.001,.09,.06);osc(o,'triangle',3300*j,t,.001,.05,.04);nz(o,t,.04,'highpass',2600,1,.3);nz(o,t+.03,.12,'bandpass',1500,2,.12);},
+    farm(o,t,j){nz(o,t,.12,'bandpass',700*j,1,.28,500,.04);},
+    build(o,t,j){nz(o,t,.03,'bandpass',1050*j,4,.5);osc(o,'sine',310*j,t,.001,.25,.05,240);},
+    buildmetal(o,t,j){nz(o,t,.03,'bandpass',1400*j,4,.4);osc(o,'triangle',1850*j,t,.001,.08,.12);osc(o,'sine',310*j,t,.001,.2,.05,240);},
+    butcher(o,t,j){nz(o,t,.05,'bandpass',600*j,2,.4);osc(o,'sine',130*j,t,.002,.2,.05,80);},
+    dig(o,t,j){nz(o,t,.15,'bandpass',420*j,2,.32,250,.02);},
+    forage(o,t,j){nz(o,t,.15,'highpass',2500*j,1,.09,4000,.03);},
+    fish(o,t,j){osc(o,'sine',620*j,t,.002,.15,.08,200);nz(o,t+.02,.08,'bandpass',1200,2,.06);}
+  };
+  return L;
+}
+
+const ACTSFX=(function(){
+  const A={OFF:false,VOL:{melee:.75,ranged:.6,big:.9,work:.28,tree:.55},last:{},hist:{}};
+  let L=null,LC=null;
+  const lib=()=>{const c=AUD.ctx();if(!c)return null;if(LC!==c){L=ACT_LIB(c);LC=c;}return L;};
+  const CAP={melee:6,ranged:6,big:4,work:3,tree:2};
+  function hear(x,y){try{if(!G)return false;if(x===undefined)return true;const tx=tl(x),ty=tl(y);if(!inB(tx,ty)||!G.vis[0][ti(tx,ty)])return false;
+    return !(x<cam.x-60||y<cam.y-60||x>cam.x+W/cam.z+60||y>cam.y+H/cam.z+60);}catch(e){return false;}}
+  A.play=function(name,x,y,grp,arg){const c=AUD.ctx(),bus=AUD.bus('fx'),l=lib();if(!c||!bus||!l||!l[name]||c.state!=='running')return false;if(!hear(x,y))return true;
+    const now=c.currentTime;if(now-(A.last[name]||-9)<.05)return true;
+    const h=(A.hist[grp]||(A.hist[grp]=[])).filter(v=>now-v<1);A.hist[grp]=h;if(h.filter(v=>now-v<.5).length>=CAP[grp])return true;
+    h.push(now);A.last[name]=now;const thin=h.length>CAP[grp]?Math.sqrt(CAP[grp]/h.length):1;
+    try{const g=c.createGain();g.gain.value=(A.VOL[grp]||.6)*thin;g.connect(bus);l[name](g,now+.005,1+(Math.random()-.5)*.08,arg);setTimeout(()=>{try{g.disconnect();}catch(e){}},2500);}catch(e){}
+    A.count=(A.count||0)+1;A.lastName=name;return true;};
+  const CLUB=new Set(['clubman','villager','settler','explorer']),AXE=new Set(['axeman']),SPEAR=new Set(['spearman','pikeman','halberdier']),
+        BLADE=new Set(['swordsman','legionary','longsword','knight','cavalry','rider','cuirassier','scout']),
+        CANNON=new Set(['bombard','fieldgun','artillery','tank','atgun']);
+  const metalT=t=>{try{return armOf(t)>=2||SIEGE.has(t.type)||VEHICLES.has(t.type);}catch(e){return false;}};
+  let DMG=null,SHOT=null;
+  function hitSound(d){const s=d.src,t=d.t;if(!s||!t)return null;const ty=s.type;
+    if(CANNON.has(ty))return['shellhit','big'];
+    if(d.ranged||s.kind==='bld'||(DEF[ty]&&DEF[ty].range>0&&!SIEGE.has(ty)))return[metalT(t)?'metaltick':'arrowhit','ranged'];
+    if(ty==='catapult'||ty==='trebuchet')return['crash','big'];
+    if(ty==='ram')return['ram','big'];
+    if(t.kind==='bld')return['bldhit','melee'];
+    if(ty==='wolf')return['bite','melee'];
+    if(BLADE.has(ty))return[metalT(t)?'clash':'slash','melee',.8+.07*((DEF[ty]&&DEF[ty].age)||0)];
+    if(SPEAR.has(ty))return['spear','melee'];
+    if(AXE.has(ty))return['axe','melee'];
+    return['club','melee'];}
+  function shotSound(k){const s=SHOT||{},ty=s.type;
+    if(k==='shot'){if(s.kind==='bld')return'bow';if(ty==='slinger')return'sling';if(ty==='crossbow')return'xbow';if(ty==='heli')return'burst';return'bow';}
+    if(k==='bang'){if(ty==='arquebus')return'musket';if(ty==='rifleman')return'rifle';return'burst';}
+    if(k==='cannon'){if(ty==='bombard')return'bombard';if(ty==='tank')return'tankgun';return'artillery';}
+    if(k==='launch'){if(ty==='catapult')return'catapult';if(ty==='trebuchet')return'trebuchet';return'rocket';}
+    return null;}
+  /* sfx override */
+  const _sfx=sfx;
+  sfx=function(k,x,y){if(A.OFF||!AUD.ctx())return _sfx.apply(this,arguments);
+    try{
+      if((k==='clang'||k==='thud')&&DMG){const hs=hitSound(DMG);if(hs&&A.play(hs[0],x,y,hs[1],hs[2]))return;}
+      if(k==='shot'||k==='bang'||k==='cannon'||k==='launch'){const n=shotSound(k);if(n&&A.play(n,x,y,(k==='cannon'||k==='launch')?'big':'ranged'))return;}
+      if(k==='boom'&&A.play('crash',x,y,'big'))return;
+      if(k==='fall'&&A.play('fall',x,y,'melee'))return;
+      if(k==='charge'&&A.play('charge',x,y,'melee'))return;
+      if(k==='zap'&&A.play('zap',x,y,'big'))return;
+      if(k==='done'&&G&&G.fx&&G.fx.length){const f=G.fx[G.fx.length-1];if(f&&f.type==='treefall'&&f.t>1.05&&Math.abs(f.x-x)<1&&Math.abs(f.y-y)<1){A.play('treefall',x,y,'tree');return;}}
+    }catch(e){}
+    return _sfx.apply(this,arguments);};
+  const WORK={chop:'chop',mine:'mine',farm:'farm',build:'build',butcher:'butcher',dig:'dig',forage:'forage',gather:'forage',fish:'fish'};
+  setTimeout(()=>{try{
+    const _d=damage;damage=function(t,amt,src,ranged){const prev=DMG;DMG={t,src,ranged};try{return _d.apply(this,arguments);}finally{DMG=prev;}};
+    const _s=shoot;shoot=function(src){const prev=SHOT;SHOT=src;try{return _s.apply(this,arguments);}finally{SHOT=prev;}};
+    const _sa=shootAt;shootAt=function(src){const prev=SHOT;SHOT=src;try{return _sa.apply(this,arguments);}finally{SHOT=prev;}};
+    const _a=animTick;animTick=function(u){const r=_a.apply(this,arguments);try{const a=u.anim;if(!A.OFF&&a&&a.impact&&WORK[a.state]){let n=WORK[a.state];
+      if(n==='build'&&G.players[u.owner]&&G.players[u.owner].age>=5)n='buildmetal';A.play(n,u.x,u.y,'work');}}catch(e){}return r;};
+  }catch(err){}},0);
+  A._hit=hitSound;A._lib=ACT_LIB;A._shot=k=>{return shotSound(k);};A._setShot=s=>{SHOT=s;};
+  window.__actsfx=A;return A;
+})();
+/* ===== END AUDIO ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10660,4 +10780,3 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
-
