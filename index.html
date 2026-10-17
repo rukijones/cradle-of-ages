@@ -170,8 +170,8 @@ button.sb{border:0;background:none;padding:0;width:100%;color:inherit;font:inher
       <div class="row" id="contRow" hidden><button class="big" id="contBtn" style="border-color:var(--gold)">Continue saved game<br><span id="contInfo" style="font-size:11px;opacity:.8"></span></button></div>
       <div class="row" id="cultRow" hidden style="display:none"><button class="big cult on" data-cult="west">Western<br><span style="font-size:11px;opacity:.8">stone, timber, slate</span></button><button class="big cult" data-cult="east">Eastern<br><span style="font-size:11px;opacity:.8">pagodas, lacquer, lanterns</span></button></div>
       <div class="row">
-        <button class="big" data-diff="easy">Play easy</button>
-        <button class="big" data-diff="normal">Play normal</button>
+        <button class="big" data-diff="gentle">Play easy</button>
+        <button class="big" data-diff="easy">Play normal</button><button class="big" data-diff="normal">Play hard</button>
       </div>
       <div class="row" style="margin-top:-6px"><button class="big alt" id="spiritOpt" style="font-size:13px;padding:7px 14px">Spirit Age victory: Off</button></div>
       <ul class="how">
@@ -1694,7 +1694,7 @@ function updUnit(u,dt){
     if(canRepair(b,u.owner)){repairTick(u,b,dt);return;}
     if(!alive(b)||b.built){
       u.order=null;u.path=null;
-      if(u.bq&&u.bq.length){let nx=null;while(u.bq.length&&!nx){const c=G.byId.get(u.bq.shift());if(alive(c)&&!c.built&&c.owner===u.owner)nx=c;}if(nx){orderBuild(u,nx);return;}}
+      if(u.bq&&u.bq.length){let nx=null;while(u.bq.length&&!nx){const c=G.byId.get(u.bq.shift());if(alive(c)&&(!c.built||canRepair(c,u.owner))&&c.owner===u.owner)nx=c;}if(nx){orderBuild(u,nx);return;}}
       if(alive(b)&&b.built&&u.type==='settler'&&b.type==='towncenter'){u.type='villager';u.hp=Math.min(u.hp,DEF.villager.hp);u.maxHp=DEF.villager.hp;}
       if(alive(b)&&(b.type==='farm'||b.type==='goldmine'||b.type==='stonemine')&&b.owner===u.owner&&b.built){orderGather(u,b);return;}
       if(alive(b)&&(b.type==='wall'||b.type==='gate')){let nx=null,nd=8*TILE;for(const e of G.ents)if((e.type==='wall'||e.type==='gate')&&e.owner===u.owner&&!e.built&&!e.dead){const dd=Math.hypot(e.x-u.x,e.y-u.y);if(dd<nd){nd=dd;nx=e;}}if(nx){orderBuild(u,nx);return;}wallDoneFor(u,b);return;}
@@ -2292,10 +2292,10 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
       if(target){const want=Math.min(army.length-1,Math.max(2,Math.round(army.length*PS.sites*.4)));const free=army.filter(u=>u.type!=='ram'&&!ai.guards.includes(u.id)&&!u.order&&u.id!==ai.scout);
         while(ai.guards.length<want&&free.length){const u=free.pop();ai.guards.push(u.id);orderMove([u],target.x+(Math.random()-.5)*40,target.y+(Math.random()-.5)*40);}}}
   }
-  if(!peace&&!ai.attacking&&G.t>=ai.nextAttack&&G.t>=(ai.diff==='easy'?720:540)&&army.length>=(ai.probe?ai.probeN:ai.wave)){ai.attacking=true;ai.warned=false;ai.squad=ai.probe?army.slice().sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,ai.probeN).map(a=>a.id):null;ai.raid=0;ai.atkEnd=0;if(age<5&&G.t<3600){const cap=AI_RAID_CAP[age];if(!ai.squad||ai.squad.length>cap)ai.squad=army.slice().sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,cap).map(a=>a.id);ai.raid=age<3?1:2;ai.raidN=ai.squad.length;ai.atkEnd=G.t+AI_RAID_TIME[age];}}
+  if(!peace&&!ai.attacking&&G.t>=ai.nextAttack&&G.t>=(ai.diff==='easy'?720:540)&&army.length>=(ai.probe?ai.probeN:ai.wave)){ai.attacking=true;ai.warned=false;ai.squad=ai.probe?army.slice().sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,ai.probeN).map(a=>a.id):null;ai.raid=0;ai.atkEnd=0;if(age<5&&G.t<3600){const cap=AI_RAID_CAP[age];if(!ai.squad||ai.squad.length>cap)ai.squad=army.slice().sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,cap).map(a=>a.id);ai.raid=age<3?1:2;ai.raidN=ai.squad.length;ai.atkEnd=G.t+AI_RAID_TIME[age];}if(G.gentle){try{const cap=gentleCap(age);const src=ai.squad?army.filter(x=>ai.squad.includes(x.id)):army;if(src.length>cap){ai.squad=src.slice(0,cap).map(x=>x.id);if(ai.raid)ai.raidN=Math.min(ai.raidN||cap,cap);}}catch(err){}}}
   if(ai.attacking){const atk=ai.squad?army.filter(a=>ai.squad.includes(a.id)):army;if(ai.raid){const ev=G.ents.filter(e=>e.owner===en&&e.type==='villager'&&!e.dead).length;if(ai.raidV==null)ai.raidV=ev;if(ai.raidV-ev>=(ai.raid===1?3+age:8))ai.atkEnd=Math.min(ai.atkEnd||1e9,G.t);}
     if(en===0&&!ai.warned&&atk.length){let near=1e9,ax=0,ay=0;for(const a of atk)for(const b of G.ents)if(b.owner===0&&b.kind==='bld'&&!b.dead){const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<near){near=d;ax=a.x;ay=a.y;}}if(near<(G.ents.some(e=>(e.type==='radar'||e.type==='airfield')&&e.owner===0&&e.built&&!e.dead)?110:70)*TILE){ai.warned=true;warnAttack(ax,ay,atk.length);}}
-    if(atk.length<(ai.raid?Math.max(1,Math.ceil(ai.raidN*(ai.raid===1?.5:.4))):ai.squad?Math.max(1,Math.ceil(ai.probeN*.3)):Math.max(2,ai.wave*.25))||(ai.atkEnd&&G.t>ai.atkEnd)){ai.attacking=false;ai.nextAttack=G.t+PS.gap*(ai.diff==='easy'?1.6:1);if(ai.squad&&ai.probe&&!ai.raid){ai.probe=false;}else ai.wave+=PS.grow;ai.probe=false;ai.squad=null;ai.raid=0;ai.atkEnd=0;ai.raidV=null;for(const a of atk)orderMove([a],base.x,base.y);}
+    if(atk.length<(ai.raid?Math.max(1,Math.ceil(ai.raidN*(ai.raid===1?.5:.4))):ai.squad?Math.max(1,Math.ceil(ai.probeN*.3)):Math.max(2,ai.wave*.25))||(ai.atkEnd&&G.t>ai.atkEnd)){ai.attacking=false;ai.nextAttack=G.t+Math.max(G.gentle?420:0,PS.gap*(ai.diff==='easy'?1.6:1));if(ai.squad&&ai.probe&&!ai.raid){ai.probe=false;}else ai.wave+=PS.grow;ai.probe=false;ai.squad=null;ai.raid=0;ai.atkEnd=0;ai.raidV=null;for(const a of atk)orderMove([a],base.x,base.y);}
     else for(const a of atk)if(!a.order){let best=null,bd=1e9;
       for(const e of G.ents){if(e.owner!==en||e.dead||(e.kind!=='unit'&&e.kind!=='bld')||(!innSeen(e,o)&&G.t<3600))continue;if(a.type==='ram'&&e.kind!=='bld')continue;
         let d=Math.hypot(e.x-a.x,e.y-a.y);if(e.kind==='unit')d*=PS.name==='Raider'&&e.type==='villager'?.45:.8;if(e.type==='wall')d*=1.6;if(ai.raid===1&&(e.type==='towncenter'||e.type==='tower'||e.type==='castle'||e.type==='wall'||e.type==='gate'))d*=4;if(ai.raid===1&&e.type==='villager'&&!(e.order&&e.order.type==='attack'))d*=2.5;if(e.kind==='bld'&&['bakery','pub','market','university','weaver','mill','dairy','factory','power'].includes(e.type))d*=.7;if(d<bd){bd=d;best=e;}}
@@ -9356,6 +9356,29 @@ const MUSIC=(function(){
  window.__music=M;return M;
 })();
 /* ===== END AUDIO ===== */
+/* ===== gameplay chat 1: new EASY mode, "the computer keeps pace with you" (Josh, Oct 17: "figure out a reasonable timeline for a human (who is not perfect) ... make the enemy play accordingly so there is a chance for the human to win"; "Make this the easy option, and change current easy to normal, and current normal to hard").
+   Title screen: Play easy = this mode (data-diff 'gentle': the old easy rules plus G.gentle), Play normal = the old easy, Play hard = the old normal.
+   With G.gentle the computer: makes no attack in the first 12 minutes (old easy rule); waits at least 7 minutes between attacks; never sends more soldiers than you have (at least 2; +3 from the Medieval Age);
+   reaches the Bronze Age no sooner than 12 min, Iron 30, Medieval 50, Renaissance 70, Industrial 90, Modern 110 and is never more than one age ahead of you;
+   keeps its villagers within 4 of yours (at least 10) and its army within 2 of yours (1.5x + 3 from the Medieval Age); gets 25% less from trade and workshops (old easy aiMult).
+   For you: 5 villagers at the start instead of 3, the gold piles near your town are doubled (600 each), and gold/stone mines may go up to 10 tiles past your border without an outpost.
+   GENTLE = the numbers. ===== */
+const GENTLE={ageAt:[0,720,1800,3000,4200,5400,6600],vilPlus:4,vilMin:10,armyPlus:2};
+function gentleArmy(o){let n=0;for(const e of G.ents)if(e.owner===o&&!e.dead&&e.kind==='unit'&&!NONMIL.has(e.type)&&!(DEF[e.type]&&DEF[e.type].animal))n++;return n}
+function gentleCap(aiAge){const pa=gentleArmy(0);return Math.max(2,aiAge>=3?Math.ceil(pa*1.5)+3:pa+GENTLE.armyPlus)}
+function nearTerr(o,tx,ty,size,extra){const cx=tx+size/2,cy=ty+size/2;for(const e of G.ents){if(e.owner!==o||e.kind!=='bld'||e.dead||!e.built||e.type==='farm'||e.type==='wall'||e.type==='gate')continue;if(Math.hypot(cx-(e.tx+e.size/2),cy-(e.ty+e.size/2))<=terrR(e)+e.size/2+extra)return true;}return false}
+try{newGame=(function(prev){return function(diff){const gentle=diff==='gentle';const args=[...arguments];if(gentle)args[0]='easy';const r=prev.apply(this,args);try{if(gentle&&G){G.gentle=true;
+  const tc=G.ents.find(e=>e.owner===0&&e.type==='towncenter'&&!e.dead);if(tc){for(let i=3;i<5;i++){const ex=exitTile(tc,MW/2,MH/2,i);mkUnit('villager',0,(ex.x+.5)*TILE,(ex.y+.5)*TILE)}
+    for(const e of G.ents)if(e.type==='gold'&&e.kind==='res'&&!e.dead&&Math.hypot(e.x-tc.x,e.y-tc.y)<16*TILE){e.amt=(e.amt||300)*2;if(e.max)e.max*=2}}}}catch(err){}return r}})(newGame)}catch(err){}
+try{aiAgeOK=(function(prev){return function(ai,n){const ok=prev(ai,n);if(!G||!G.gentle)return ok;const pa=(G.players[0]&&G.players[0].age)||0;return ok&&G.t+(G.aiOff||0)>=(GENTLE.ageAt[n]||0)&&n<=pa+1}})(aiAgeOK)}catch(err){}
+try{enqueue=(function(prev){return function(b,k){try{if(G&&G.gentle&&b&&b.owner===1&&DEF[k]&&DEF[k].kind==='unit'){
+  if(k==='villager'){const v0=G.ents.filter(e=>e.owner===0&&!e.dead&&e.type==='villager').length,v1=G.ents.filter(e=>e.owner===1&&!e.dead&&e.type==='villager').length;if(v1>=Math.max(GENTLE.vilMin,v0+GENTLE.vilPlus))return false}
+  else if(!NONMIL.has(k)&&!DEF[k].animal){if(gentleArmy(1)>=gentleCap((G.players[1]&&G.players[1].age)||0))return false}}}catch(err){}return prev.apply(this,arguments)}})(enqueue)}catch(err){}
+/* ===== gameplay chat 1: repair queue (Josh, Oct 17: "You should be able to select multiple buildings for villagers to repair, in a row just like building"). With villagers selected who are already building or repairing, tapping another damaged (or unfinished) building of yours adds it to their list (u.bq) instead of pulling them off; they do them in order. Villagers who are free start on it at once. ===== */
+function rqBusy(u){const o=u.order;if(!o||o.type!=='build')return false;const b=G.byId.get(o.id);return !!(b&&!b.dead&&(!b.built||canRepair(b,u.owner)))}
+try{repairTick=(function(prev){return function(u,b,dt){const r=prev.apply(this,arguments);try{if(u&&!u.order&&u.bq&&u.bq.length){let nx=null;while(u.bq.length&&!nx){const c=G.byId.get(u.bq.shift());if(alive(c)&&c.owner===u.owner&&(!c.built||canRepair(c,u.owner)))nx=c}if(nx)orderBuild(u,nx)}}catch(err){}return r}})(repairTick)}catch(err){}
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const hit=pick(wx,wy);if(hit&&hit.kind==='bld'&&hit.owner===0&&(canRepair(hit,0)||!hit.built)){const vs=selEnts().filter(u=>u.owner===0&&u.type==='villager'&&!u.dead);const busy=vs.filter(u=>rqBusy(u)&&u.order.id!==hit.id);
+  if(busy.length){for(const u of busy){u.bq=u.bq||[];if(!u.bq.includes(hit.id))u.bq.push(hit.id)}for(const u of vs)if(!rqBusy(u))orderBuild(u,hit);const n=Math.max(...busy.map(u=>u.bq.length))+1;mark(hit.x,hit.y,'#ffd25a');toast((canRepair(hit,0)?'Repair':'Build')+' added to the list ('+n+' jobs). They do them in order');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -9488,7 +9511,7 @@ function placeWhy(type,tx,ty,o,needExp,m){const s=DEF[type].size;
   if(type==='coop'&&coopCount(o)>=6)return 'You can have up to 6 chicken coops (a Poultry yard counts as 1)';
   if(type==='outpost')return inTerritory(1-o,tx,ty,s)?'Inside enemy territory':'';
   if((type==='mine'||type==='goldmine'||type==='stonemine'||type==='depot'||type==='shaft')&&!inTerritory(o,tx,ty,s)&&inTerritory(1-o,tx,ty,s))return 'Inside enemy territory';
-  if((type==='mine'||type==='goldmine'||type==='stonemine')&&!inTerritory(o,tx,ty,s))return bAvail(o,'outpost')?'Too far from your territory. Build an outpost near this deposit first':'Too far from your territory. Train a scout to unlock outposts, then build one near this deposit';
+  if((type==='mine'||type==='goldmine'||type==='stonemine')&&!inTerritory(o,tx,ty,s)&&!(G.gentle&&o===0&&nearTerr(o,tx,ty,s,10)))return bAvail(o,'outpost')?'Too far from your territory. Build an outpost near this deposit first':'Too far from your territory. Train a scout to unlock outposts, then build one near this deposit';
   if(type==='shaft'){const cx=(tx+1)*TILE,cy=(ty+1)*TILE;if(!G.ents.some(e=>e.type==='vein'&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<2.6*TILE))return 'Must be on a vein you have found';}
   if(!inTerritory(o,tx,ty,s)&&type!=='mine'&&type!=='goldmine'&&type!=='stonemine'&&type!=='depot'&&type!=='shaft'&&type!=='inn')return 'Too far from your buildings. Build inside the lit area';
   if(type==='mine'){const cx=(tx+1)*TILE,cy=(ty+1)*TILE,near=w=>G.ents.some(e=>e.type===w&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<3.6*TILE);if(!near('stone')&&!(near('gold')&&G.players[o].tech.picks))return near('gold')?'Gold needs Copper picks first':'Must be next to a gold or stone deposit';}
@@ -10100,13 +10123,13 @@ function applyCheat(){if(!G)return;const k=$('cheatIn').value.trim().toLowerCase
   if(k.startsWith('start')){const nm=k.replace(/^start\s*/,'').replace(/\s*age$/,'');const idx=AGES.findIndex(a=>a.toLowerCase().startsWith(nm)&&nm);
     if(idx<0){$('cheatList').textContent='Try start stone or start bronze.';return;}
     if(idx>MAX_AGE){$('cheatList').textContent='The '+AGES[idx]+' is not built yet.';return;}
-    newGame(G.diff,idx);$('cheatList').textContent='';toast('New game starting in the '+AGES[idx]);return;}
+    newGame(G.gentle?'gentle':G.diff,idx);$('cheatList').textContent='';toast('New game starting in the '+AGES[idx]);return;}
   const f=CHEATS[k];const msg=f?f():'Unknown code';toast(msg);panelKeyLast='';
   const on=['peace','quick','reveal'].filter(x=>G.cheat[x]);$('cheatList').textContent=f?msg+(on.length?'. Active: '+on.join(', ')+'.':''):'Unknown code.';}
 $('cheatGo').addEventListener('click',applyCheat);
 $('cheatIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyCheat();}});
-$('restart').addEventListener('click',()=>newGame(G.diff,G.startAge));
-$('again').addEventListener('click',()=>newGame(G.diff,G.startAge));
+$('restart').addEventListener('click',()=>newGame(G.gentle?'gentle':G.diff,G.startAge));
+$('again').addEventListener('click',()=>newGame(G.gentle?'gentle':G.diff,G.startAge));
 const toTitle=()=>{saveGame();setTimeout(refreshContinue,0);G=null;renderGroups();CELE.on=false;$('ageUp').classList.remove('show');$('pause').hidden=true;$('end').hidden=true;$('start').hidden=false;};
 $('quit').addEventListener('click',toTitle);$('endQuit').addEventListener('click',toTitle);
 let rotateDismissed=false;
@@ -10177,3 +10200,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
