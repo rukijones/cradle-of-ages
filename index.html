@@ -10014,7 +10014,7 @@ const ACTSFX=(function(){
    frame for the catapult's facing (CATREL.bk: sheet px [x,y] per picture row, from art/c/cat3e_p1.webp frame 20; drawn with
    GFX.CAT3E's scale). The launch sound plays at the release too. If the catapult dies before the release, the stone isn't thrown.
    Art chat owns the swing itself: if the throw frames change, update CATREL.delay / CATREL.bk. CATREL.off=true = old behaviour. */
-const CATREL={off:false,delay:.24,bk:[[147,46],[140,49],[137,53],[141,56],[148,58]]};/* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s *//* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s *//* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s */
+const CATREL={off:false,delay:.24,bk:[[147,46],[140,49],[137,53],[141,56],[148,58]]};/* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s *//* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s *//* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s *//* art chat 1 Oct 17: 8-frame throw, release at frame 4 of 0.48 s */
 {const _sh=shoot,_sa=shootAt,_up=updProjs,Q=[];let BY=false;
   const RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]];
   function basket(src){try{const S=GFX.CAT3E;if(!S||GFX.mode!=='V23D')return [src.x,src.y-14];
@@ -11372,13 +11372,15 @@ const ok=k=>{const i=IM[k];if(!i)return false;if(i.getContext)return true;if(!(i
     const d=g.getImageData(0,0,c.width,c.height),p=d.data;for(let j=0;j<p.length;j+=4){const v=p[j]-128;p[j]=p[j+1]=p[j+2]=v>0?255:0;p[j+3]=Math.min(255,v>0?v*1.1:-v*1.7)}g.putImageData(d,0,0);c.naturalWidth=c.width;IM[k]=c}
   return true};
 let M=null;
-function build(){const N=MW*MH,T=G.terrain,oc=new Uint8Array(N),q=[];
-  const sd=i=>{if(T[i]&&!oc[i]){oc[i]=1;q.push(i)}};
+function build(){const N=MW*MH,T0=G.terrain,T={length:N},oc=new Uint8Array(N),q=[],RIV=G.mapType==='river';
+  /* water = terrain 1 only (2 = ford, 3 = forest/cliff count as land here) */
+  const Wt=new Uint8Array(N);for(let i=0;i<N;i++)Wt[i]=T0[i]===1?1:0;
+  const sd=i=>{if(Wt[i]&&!oc[i]){oc[i]=1;q.push(i)}};for(let i=0;i<N;i++)if(Wt[i])oc[i]=1;/* every lake counts too */
   for(let x=0;x<MW;x++){sd(ti(x,0));sd(ti(x,MH-1))}for(let y=0;y<MH;y++){sd(ti(0,y));sd(ti(MW-1,y))}
   for(let h=0;h<q.length;h++){const i=q[h],x=i%MW,y=(i/MW)|0;if(x>0)sd(i-1);if(x<MW-1)sd(i+1);if(y>0)sd(i-MW);if(y<MH-1)sd(i+MW)}
   const bfs=(seed,pass)=>{const d=new Uint8Array(N).fill(255),Q=[];for(let i=0;i<N;i++)if(seed(i)){d[i]=0;Q.push(i)}
     for(let h=0;h<Q.length;h++){const i=Q[h],x=i%MW,y=(i/MW)|0;if(d[i]>=12)continue;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=MW||ny>=MH)continue;const j=ti(nx,ny);if(pass(j)&&d[j]>d[i]+1){d[j]=d[i]+1;Q.push(j)}}}return d};
-  const dS=bfs(i=>!T[i],i=>!!oc[i]),dL=bfs(i=>!!oc[i],i=>!T[i]);
+  const dS=bfs(i=>!Wt[i],i=>!!oc[i]),dL=bfs(i=>!!oc[i],i=>!Wt[i]);
   let r=(G.seed||1)*7919>>>0;const R=()=>((r=(r*1103515245+12345)>>>0)/4294967296);
   const F=new Float32Array(N);for(let i=0;i<N;i++)F[i]=oc[i]?0:1;
   for(let pass=0;pass<2;pass++){const B=new Float32Array(N);for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){let s=0,n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=MW||ny>=MH)continue;s+=F[ti(nx,ny)];n++}B[ti(x,y)]=s/n}F.set(B)}
@@ -11389,11 +11391,11 @@ function build(){const N=MW*MH,T=G.terrain,oc=new Uint8Array(N),q=[];
     e(a,b,x,y,x+1,y);e(b,c,x+1,y,x+1,y+1);e(d,c,x,y+1,x+1,y+1);e(a,d,x,y,x,y+1);if(P.length<2)continue;
     const[p0,p1]=P;const mx=(p0[0]+p1[0])/2,my=(p0[1]+p1[1])/2,gx=(b-a+c-d)/2,gy=(d-a+c-b)/2,gl=Math.hypot(gx,gy)||1,nx=-gx/gl,ny=-gy/gl,sl=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]);
     const n=sl>.8?2:1;for(let k=0;k<n;k++){const f=(k+.5)/n,px=(p0[0]+(p1[0]-p0[0])*f+.5)*TILE,py=(p0[1]+(p1[1]-p0[1])*f+.5)*TILE;
-      cp.push(px,py,nx,ny,R(),(((px*.7+py*.3)/TILE)*.05+R()*.12)%1)}}
+      const wAt=(d)=>{const tx=Math.floor(px/TILE+nx*d),ty=Math.floor(py/TILE+ny*d);return tx>=0&&ty>=0&&tx<MW&&ty<MH&&Wt[ti(tx,ty)]};if(!(wAt(1.5)&&wAt(2.5)&&wAt(3.5)))continue;cp.push(px,py,nx,ny,R(),(((px*.7+py*.3)/TILE)*.05+R()*.12)%1)}}
   const wt=document.createElement('canvas');wt.width=MW;wt.height=MH;const w=wt.getContext('2d'),id=w.createImageData(MW,MH),D=id.data;
   const near=[];for(const[bx,by]of(G.bases||[]))near.push([bx+.5,by+.5]);
   const tr=new Uint8Array(N);for(const e of G.ents)if(e.kind==='res'&&e.type==='tree'&&!e.dead&&!e.stump)tr[ti(e.tx,e.ty)]=1;
-  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=ti(x,y);let a=0;if(!T[i]){a=dL[i]<1?0:1;
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=ti(x,y);let a=0;if(!Wt[i]&&T0[i]!==3){a=dL[i]<1?0:1;
       for(const[bx,by]of near){const d=Math.hypot(x+.5-bx,y+.5-by);if(d<5.2)a*=Math.max(0,Math.min(1,(d-3.6)/1.6))}
       if(tr[i])a*=.55;}
     D[i*4]=D[i*4+1]=D[i*4+2]=255;D[i*4+3]=Math.round(a*255)}
@@ -11405,18 +11407,21 @@ function need(){if(!G||!G.landBox||!G.terrain)return null;if(!M||M.seed!==G.seed
 function pat(g,im,s){const p=g.createPattern(im,'repeat');if(p.setTransform)p.setTransform(new DOMMatrix().scale(s));return p}
 /* ---- the sea picture (1/4 scale, under the land) ---- */
 const PAL=[[110,196,186],[96,190,182],[66,163,177],[50,140,166],[42,122,155],[36,106,143],[31,93,133],[28,83,123],[25,75,113],[23,68,104]];
-const _op=oceanPaint;
-oceanPaint=function(){if(!S.on)return _op.apply(this,arguments);const m=need();if(!m){if(G)G.oceanPic=null;return}
+function waterSmall(m){if(m.wsm)return m.wsm;
   const s=document.createElement('canvas');s.width=MW;s.height=MH;const x=s.getContext('2d'),id=x.createImageData(MW,MH),D=id.data;
   const N=MW*MH;let F=new Float32Array(N);for(let i=0;i<N;i++)F[i]=m.oc[i]?0:1;
   for(let pass=0;pass<7;pass++){const B=new Float32Array(N);for(let y=0;y<MH;y++)for(let xx=0;xx<MW;xx++){let s=0,n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=xx+dx,ny=y+dy;if(nx<0||ny<0||nx>=MW||ny>=MH)continue;s+=F[ti(nx,ny)];n++}B[ti(xx,y)]=s/n}F=B}
   const ramp=[[22,64,100],[28,84,124],[38,112,148],[52,142,166],[76,172,180],[104,198,188]];
   for(let i=0;i<N;i++){let u=m.oc[i]?Math.min(1,F[i]/.42):1;u=u*u*(3-2*u);const f=u*(ramp.length-1),j=Math.min(ramp.length-2,Math.floor(f)),q=f-j,A=ramp[j],B=ramp[j+1];
     D[i*4]=A[0]+(B[0]-A[0])*q;D[i*4+1]=A[1]+(B[1]-A[1])*q;D[i*4+2]=A[2]+(B[2]-A[2])*q;D[i*4+3]=255}x.putImageData(id,0,0);
+  return m.wsm=s}
+const _op=oceanPaint;
+oceanPaint=function(){if(!S.on)return _op.apply(this,arguments);const m=need();if(!m){if(G)G.oceanPic=null;return}
+  const s=waterSmall(m);
   const c=document.createElement('canvas');c.width=MW*OCS;c.height=MH*OCS;const g=c.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(s,0,0,c.width,c.height);
   let r=(G.seed||1)*31+5>>>0;const R=()=>((r=(r*1103515245+12345)>>>0)/4294967296);const k=OCS;
   for(let y=0;y<MH;y++)for(let xx=0;xx<MW;xx++){const i=ti(xx,y);if(m.dS[i]!==1)continue;let dx=0,dy=0;
-    for(const[ax,ay]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=xx+ax,ny=y+ay;if(nx>=0&&ny>=0&&nx<MW&&ny<MH&&!G.terrain[ti(nx,ny)]){dx+=ax;dy+=ay}}
+    for(const[ax,ay]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=xx+ax,ny=y+ay;if(nx>=0&&ny>=0&&nx<MW&&ny<MH&&G.terrain[ti(nx,ny)]!==1){dx+=ax;dy+=ay}}
     const dl=Math.hypot(dx,dy)||1;dx/=dl;dy/=dl;
     for(let n=0;n<4;n++){const f=(R()-.5)*.9,px=(xx+.5+dx*.5-dy*f)*k,py=(y+.5+dy*.5+dx*f)*k,rr=k*(.12+R()*.16);g.fillStyle='rgba(176,164,118,'+(.45+R()*.3).toFixed(2)+')';g.beginPath();g.ellipse(px,py,rr*1.5,rr,Math.atan2(dx,-dy),0,7);g.fill()}
     g.fillStyle='rgba(150,226,214,.3)';g.beginPath();g.ellipse((xx+.5+dx*.15)*k,(y+.5+dy*.15)*k,k*.5,k*.28,Math.atan2(dx,-dy),0,7);g.fill()}
@@ -11434,15 +11439,15 @@ drawOcean=function(c,vx0,vy0,vx1,vy1){_do.apply(this,arguments);if(!S.on||!G||!G
 function paintChunks(){const m=need();if(!m||!G.ground||!G.ground.chunks)return;let tmp=null;
   const HR=(x,y,k)=>{let h=(x*73856093^y*19349663^k*83492791^(G.seed||1))>>>0;h=Math.imul(h^(h>>>15),2246822519)>>>0;h=Math.imul(h^(h>>>13),3266489917)>>>0;return((h^(h>>>16))>>>0)/4294967296};
   let r=(G.seed||1)*13+3>>>0;const R=()=>((r=(r*1103515245+12345)>>>0)/4294967296);
-  for(const ch of G.ground.chunks){let W0=ch.c.width,H0=ch.c.height;const tx0=Math.floor(ch.x/TILE)-2,ty0=Math.floor(ch.y/TILE)-2,tx1=Math.ceil((ch.x+W0)/TILE)+2,ty1=Math.ceil((ch.y+H0)/TILE)+2;
-    if(ch.isl!=null&&G.islands&&GFX.groundOn&&GFX.groundOn()){const q=G.islands.find(v=>v.id===ch.isl);if(q){if(!ch.grown){const P=2*TILE,nc=document.createElement('canvas');nc.width=ch.c.width+2*P;nc.height=ch.c.height+2*P;ch.c.width=0;ch.c=nc;ch.x-=P;ch.y-=P;ch.grown=1;W0=nc.width;H0=nc.height}const g=ch.c.getContext('2d');g.save();g.setTransform(1,0,0,1,-ch.x,-ch.y);g.clearRect(ch.x,ch.y,W0,H0);
-        for(const t of q.tiles){const x=t%MW,y=(t/MW)|0,cx=(x+.5)*TILE,cy=(y+.5)*TILE,rr=TILE*(.95+HR(x,y,8)*.2),gr=g.createRadialGradient(cx,cy,0,cx,cy,rr);gr.addColorStop(0,'#fff');gr.addColorStop(.7,'#fff');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(cx-rr,cy-rr,2*rr,2*rr)}
-        g.globalCompositeOperation='source-in';g.fillStyle=GFX.pat(g,'grass');g.fillRect(ch.x,ch.y,W0,H0);g.globalCompositeOperation='source-atop';g.globalAlpha=.17;g.fillStyle='#2c3a14';g.fillRect(ch.x,ch.y,W0,H0);g.restore()}}
+  for(const ch of G.ground.chunks){let W0=ch.c.width,H0=ch.c.height;let near=null;const tx0=Math.floor(ch.x/TILE)-2,ty0=Math.floor(ch.y/TILE)-2,tx1=Math.ceil((ch.x+W0)/TILE)+2,ty1=Math.ceil((ch.y+H0)/TILE)+2;
+    if(ch.isl!=null&&G.islands&&GFX.groundOn&&GFX.groundOn()){const q=G.islands.find(v=>v.id===ch.isl);if(q){{const st=new Set(q.tiles);near=(x,y)=>{let dI=99,dM=99;for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=MW||yy>=MH)continue;const j=ti(xx,yy),d=dx*dx+dy*dy;if(st.has(j)){if(d<dI)dI=d}else if(G.terrain[j]!==1&&d<dM)dM=d}return dI<=12&&dI<dM}}if(!ch.grown){const P=2*TILE,nc=document.createElement('canvas');nc.width=ch.c.width+2*P;nc.height=ch.c.height+2*P;ch.c.width=0;ch.c=nc;ch.x-=P;ch.y-=P;ch.grown=1;W0=nc.width;H0=nc.height}const g=ch.c.getContext('2d');g.save();g.setTransform(1,0,0,1,-ch.x,-ch.y);g.clearRect(ch.x,ch.y,W0,H0);
+        const RV=G.mapType==='river';for(const t of q.tiles){const x=t%MW,y=(t/MW)|0;if(RV&&m.dL[t]<2)continue;const cx=(x+.5)*TILE,cy=(y+.5)*TILE,rr=TILE*(RV?.8+HR(x,y,8)*.25:.95+HR(x,y,8)*.2),gr=g.createRadialGradient(cx,cy,0,cx,cy,rr);gr.addColorStop(0,'#fff');gr.addColorStop(.7,'#fff');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(cx-rr,cy-rr,2*rr,2*rr)}
+        g.globalCompositeOperation='source-in';g.fillStyle=GFX.pat(g,'grass');g.fillRect(ch.x,ch.y,W0,H0);g.globalCompositeOperation='source-atop';g.globalAlpha=.17;g.fillStyle='#2c3a14';g.fillRect(ch.x,ch.y,W0,H0);g.globalAlpha=1;g.restore();if(RV)continue}}
     let any=false;for(let y=Math.max(0,ty0);y<Math.min(MH,ty1)&&!any;y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++)if(m.dL[ti(x,y)]<=2){any=true;break}
     if(!any)continue;
     if(!tmp){tmp=document.createElement('canvas')}tmp.width=W0;tmp.height=H0;const t=tmp.getContext('2d');t.setTransform(1,0,0,1,-ch.x,-ch.y);
     const blob=(x,y,rx,ry,a)=>{t.save();t.translate(x,y);t.scale(1,ry/rx);const gr=t.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,'rgba(255,255,255,'+a+')');gr.addColorStop(.6,'rgba(255,255,255,'+(a*.85)+')');gr.addColorStop(1,'rgba(255,255,255,0)');t.fillStyle=gr;t.fillRect(-rx,-rx,2*rx,2*rx);t.restore()};
-    for(let y=Math.max(0,ty0);y<Math.min(MH,ty1);y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++){const i=ti(x,y),d=m.dL[i];if(G.terrain[i]||d>2||d<1)continue;
+    for(let y=Math.max(0,ty0);y<Math.min(MH,ty1);y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++){const i=ti(x,y),d=m.dL[i],tt=G.terrain[i];if(tt===1||tt===3||d>2||d<1)continue;if(near&&!near(x,y))continue;
       const cx=(x+.5)*TILE,cy=(y+.5)*TILE;if(d===1){t.fillStyle='#fff';t.fillRect(x*TILE,y*TILE,TILE,TILE);blob(cx+(HR(x,y,1)-.5)*10,cy+(HR(x,y,2)-.5)*10,TILE*1.05,TILE*.95,1)}
       else blob(cx+(HR(x,y,3)-.5)*14,cy+(HR(x,y,4)-.5)*14,TILE*(.55+HR(x,y,5)*.4),TILE*(.45+HR(x,y,6)*.3),1)}
     const g=ch.c.getContext('2d');g.save();g.setTransform(1,0,0,1,-ch.x,-ch.y);
@@ -11450,6 +11455,24 @@ function paintChunks(){const m=need();if(!m||!G.ground||!G.ground.chunks)return;
     if(ok('sand')){t.globalCompositeOperation='source-in';t.fillStyle=pat(t,IM.sand,.25);t.fillRect(ch.x,ch.y,W0,H0);t.globalCompositeOperation='source-over';
       g.drawImage(tmp,ch.x,ch.y)}
     // bays: let the sea show through
+    if(G.mapType==='river'){g.restore();t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='source-over';t.clearRect(0,0,W0,H0);t.setTransform(1,0,0,1,-ch.x,-ch.y);let anyW=false;
+      for(let y=Math.max(0,ty0);y<Math.min(MH,ty1);y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++){if(!m.oc[ti(x,y)]||(near&&!near(x,y)))continue;anyW=true;const cx=(x+.5)*TILE,cy=(y+.5)*TILE;t.fillStyle='#fff';t.fillRect(x*TILE,y*TILE,TILE,TILE);
+        const rr=TILE*(.78+HR(x,y,7)*.15),gr=t.createRadialGradient(cx,cy,0,cx,cy,rr);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.72,'rgba(255,255,255,.9)');gr.addColorStop(1,'rgba(255,255,255,0)');t.fillStyle=gr;t.fillRect(cx-rr,cy-rr,2*rr,2*rr)}
+      if(anyW){t.globalCompositeOperation='source-in';t.imageSmoothingEnabled=true;t.drawImage(waterSmall(m),0,0,WW,WH);
+        if(ok('sw')&&!near){const keep=document.createElement('canvas');keep.width=W0;keep.height=H0;keep.getContext('2d').drawImage(tmp,0,0);t.globalCompositeOperation='source-atop';t.globalAlpha=.4;const p=t.createPattern(IM.sw,'repeat');if(p.setTransform)p.setTransform(new DOMMatrix().scale(TILE/OCS*1.6));t.fillStyle=p;t.globalCompositeOperation='overlay';t.fillRect(ch.x,ch.y,W0,H0);t.globalAlpha=1;t.save();t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='destination-in';t.drawImage(keep,0,0);t.restore();keep.width=0}
+        t.globalCompositeOperation='source-over';const g2=ch.c.getContext('2d');g2.save();g2.setTransform(1,0,0,1,-ch.x,-ch.y);g2.drawImage(tmp,ch.x,ch.y);g2.restore()}
+      /* fords: a shallow crossing with stepping stones */
+      {const g3=ch.c.getContext('2d');g3.save();g3.setTransform(1,0,0,1,-ch.x,-ch.y);
+        for(let y=Math.max(0,ty0);y<Math.min(MH,ty1);y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++){if(G.terrain[ti(x,y)]!==2||near)continue;const cx=(x+.5)*TILE,cy=(y+.5)*TILE,rr=TILE*.9,gr=g3.createRadialGradient(cx,cy,0,cx,cy,rr);
+          gr.addColorStop(0,'rgba(128,204,196,.85)');gr.addColorStop(.7,'rgba(128,204,196,.7)');gr.addColorStop(1,'rgba(128,204,196,0)');g3.fillStyle=gr;g3.fillRect(cx-rr,cy-rr,2*rr,2*rr)}
+        for(let y=Math.max(0,ty0);y<Math.min(MH,ty1);y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++){if(G.terrain[ti(x,y)]!==2||near)continue;
+          for(let k=0;k<3;k++){const sx=(x+.2+HR(x,y,30+k)*.6)*TILE,sy=(y+.2+HR(x,y,40+k)*.6)*TILE,r=4+HR(x,y,50+k)*3;
+            g3.strokeStyle='rgba(240,250,248,.55)';g3.lineWidth=1.2;g3.beginPath();g3.ellipse(sx,sy+1,r+2.5,(r+2.5)*.6,0,0,7);g3.stroke();
+            g3.fillStyle='rgba(30,50,55,.35)';g3.beginPath();g3.ellipse(sx+1,sy+2,r,r*.65,0,0,7);g3.fill();
+            g3.fillStyle=['#9b978c','#8a877d','#aaa69a'][k%3];g3.beginPath();g3.ellipse(sx,sy,r,r*.65,0,0,7);g3.fill();
+            g3.fillStyle='rgba(255,255,245,.35)';g3.beginPath();g3.ellipse(sx-r*.3,sy-r*.25,r*.45,r*.25,0,0,7);g3.fill()}}
+        g3.restore()}
+      continue}
     g.globalCompositeOperation='destination-out';
     for(let y=Math.max(0,ty0);y<Math.min(MH,ty1);y++)for(let x=Math.max(0,tx0);x<Math.min(MW,tx1);x++){const i=ti(x,y);if(!m.oc[i])continue;
       const cx=(x+.5)*TILE,cy=(y+.5)*TILE;g.fillStyle='#000';g.fillRect(x*TILE,y*TILE,TILE,TILE);
@@ -11491,7 +11514,7 @@ function surf(c,now,inView){const m=M;if(!m)return;const t=now/1000,P=m.cp,L=TIL
 const _dw=drawWater;
 drawWater=function(c,now,inView){if(!S.on||!G||!G.landBox)return _dw.apply(this,arguments);const m=need();if(!m)return _dw.apply(this,arguments);
   try{detail(c,inView)}catch(err){}
-  if(m.wsrc!==G.water){m.wsrc=G.water;m.lw=G.water.filter(w=>!m.oc[ti(Math.min(MW-1,tl(w[0])),Math.min(MH-1,tl(w[1])))])}
+  if(m.wsrc!==G.water){m.wsrc=G.water;m.lw=G.water.filter(w=>{const i=ti(Math.min(MW-1,tl(w[0])),Math.min(MH-1,tl(w[1])));return !m.oc[i]&&G.terrain[i]===1})}
   const W0=G.water;G.water=m.lw;try{_dw.apply(this,arguments)}finally{G.water=W0}
   try{surf(c,now,inView)}catch(err){}};
 GFX.shoreRefresh=function(){M=null;S._dk=null;if(G){G.oceanPic=null;try{renderGround()}catch(e){}}};
@@ -11537,6 +11560,96 @@ const _dr=GFX.drawRes;
 GFX.drawRes=function(c,e){if(e&&e.type==='carcass'&&GFX.resOn&&GFX.resOn()&&GFX.drawDead(c,e))return true;return _dr.apply(this,arguments)};
 })()}catch(err){}
 /* ===== END art chat 1: dead animals ===== */
+/* ===== Art chat 1: corner cliffs + deep forest (gameplay r111/r112 asks: proper cliff/plateau art for terrain 3 on the corners map,
+   softer forest edge on the River & Lake map) =====
+   Cliffs: the plateau is repainted into the ground canvases after gameplay's cliffPaint: a raised top (dry upland grass with rock outcrops
+   and shrubs), a rock face along every south-facing edge, a lit rim, a darker east side and a soft shadow on the grass below.
+   Forest (river map): forestPaint is replaced by a dense canopy made from the game's own tree pictures, darker deeper in; the trees
+   along the edge are drawn at full size every frame (only those on screen) so the forest meets the land with real, ragged treetops.
+   GFX.CLIFF.on=false / GFX.FOREST.on=false = gameplay's placeholders. */
+try{(function(){
+const CL=GFX.CLIFF={on:true,H:30,S:9},FO=GFX.FOREST={on:true};
+const hr=(x,y,k)=>{let h=(x*73856093^y*19349663^k*83492791^((G&&G.seed)||1))>>>0;h=Math.imul(h^(h>>>15),2246822519)>>>0;h=Math.imul(h^(h>>>13),3266489917)>>>0;return((h^(h>>>16))>>>0)/4294967296};
+let colTex=null;
+function columns(){if(colTex)return colTex;const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');let x=0,i=0;
+  while(x<256){const w=10+((hr(i,1,5)*16)|0),l=70+((hr(i,2,5)*40)|0);const gr=g.createLinearGradient(x,0,x+w,0);gr.addColorStop(0,'rgb('+(l+40)+','+(l+30)+','+(l+16)+')');gr.addColorStop(.35,'rgb('+(l+18)+','+(l+10)+','+l+')');gr.addColorStop(1,'rgb('+(l-22)+','+(l-28)+','+(l-36)+')');
+    g.fillStyle=gr;g.fillRect(x,0,w,64);g.fillStyle='rgba(25,20,15,.55)';g.fillRect(x+w-1.5,0,1.5,64);
+    for(let k=0;k<3;k++){const y=hr(i,10+k,5)*64;g.fillStyle='rgba(30,24,18,.35)';g.fillRect(x+1,y,w-2,1.2);g.fillStyle='rgba(255,245,225,.18)';g.fillRect(x+1,y+1.2,w-2,1)}
+    x+=w;i++}
+  return colTex=c}
+let _DT=null;function DT(){const S=(typeof SPR!=='undefined'&&SPR.trees)||[];if(_DT&&_DT.n===S.length)return _DT.v;if(!S.length)return[];
+  const v=S.map(sp=>{const c=document.createElement('canvas');c.width=60;c.height=78;const g=c.getContext('2d');g.drawImage(sp,0,0,60,78);g.globalCompositeOperation='source-atop';g.fillStyle='rgba(12,26,14,.42)';g.fillRect(0,0,60,78);return c});_DT={n:S.length,v};return v}
+function cliffChunks(){if(!G||!G.ground||G.mapType!=='corners'||!GFX.groundOn||!GFX.groundOn())return;const T=G.terrain,H=CL.H,cl=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&T[ti(x,y)]===3;
+  let A=null,B=null,C=null;const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
+  for(const ch of G.ground.chunks){if(ch.isl!=null)continue;const W0=ch.c.width,H0=ch.c.height,tx0=Math.max(0,Math.floor(ch.x/TILE)-2),ty0=Math.max(0,Math.floor(ch.y/TILE)-2),tx1=Math.min(MW,Math.ceil((ch.x+W0)/TILE)+2),ty1=Math.min(MH,Math.ceil((ch.y+H0)/TILE)+2);
+    const tiles=[];for(let y=ty0;y<ty1;y++)for(let x=tx0;x<tx1;x++)if(cl(x,y))tiles.push([x,y]);if(!tiles.length)continue;
+    A=A&&A.width===W0&&A.height===H0?A:mk(W0,H0);B=B&&B.width===W0&&B.height===H0?B:mk(W0,H0);C=C&&C.width===W0&&C.height===H0?C:mk(W0,H0);
+    const a=A.getContext('2d'),b=B.getContext('2d'),c=C.getContext('2d');for(const q of[a,b,c]){q.setTransform(1,0,0,1,0,0);q.globalCompositeOperation='source-over';q.globalAlpha=1;q.clearRect(0,0,W0,H0);q.setTransform(1,0,0,1,-ch.x,-ch.y)}
+    /* A = the plateau's footprint with a ragged outline */
+    a.fillStyle='#fff';for(const[x,y]of tiles){const inner=cl(x-1,y)&&cl(x+1,y)&&cl(x,y-1)&&cl(x,y+1);if(inner){a.fillRect(x*TILE-1,y*TILE-1,TILE+2,TILE+2);continue}
+      const iL=cl(x-1,y)?-1:2+hr(x,y,1)*4,iR=cl(x+1,y)?-1:2+hr(x,y,2)*4,iT=cl(x,y-1)?-1:2+hr(x,y,3)*4,iB=cl(x,y+1)?-1:1+hr(x,y,4)*3;a.fillRect(x*TILE+iL,y*TILE+iT,TILE-iL-iR,TILE-iT-iB);
+      /* bevel outside corners so stair-steps read as slopes (stays inside the tile) */
+      a.save();a.globalCompositeOperation='destination-out';const X=x*TILE,Y=y*TILE,K=TILE*.55;
+      for(const[sx,sy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){if(cl(x+sx,y)||cl(x,y+sy))continue;const ox=sx<0?X:X+TILE,oy=sy<0?Y:Y+TILE;a.beginPath();a.moveTo(ox,oy);a.lineTo(ox-sx*K,oy);a.lineTo(ox,oy-sy*K);a.closePath();a.fill()}a.restore()}
+    /* B = top = A where the point H px lower is still plateau */
+    b.drawImage(A,ch.x,ch.y);b.globalCompositeOperation='destination-in';b.drawImage(A,ch.x,ch.y-H);b.drawImage(A,ch.x-CL.S,ch.y);b.drawImage(A,ch.x+CL.S,ch.y);b.globalCompositeOperation='source-over';
+    /* drop thin slivers of top left between steps (they showed as stray light dashes): open the mask by 4 px */
+    {const O=document.createElement('canvas');O.width=W0;O.height=H0;const o=O.getContext('2d');o.drawImage(B,0,0);o.globalCompositeOperation='destination-in';for(const[dx,dy]of[[4,0],[-4,0],[0,4],[0,-4]])o.drawImage(B,dx,dy);
+      const P=document.createElement('canvas');P.width=W0;P.height=H0;const q=P.getContext('2d');for(const[dx,dy]of[[0,0],[4,0],[-4,0],[0,4],[0,-4],[3,3],[-3,3],[3,-3],[-3,-3]])q.drawImage(O,dx,dy);q.globalCompositeOperation='destination-in';q.drawImage(B,0,0);
+      b.save();b.setTransform(1,0,0,1,0,0);b.globalCompositeOperation='copy';b.drawImage(P,0,0);b.restore();O.width=0;P.width=0}
+    const g=ch.c.getContext('2d');g.save();g.setTransform(1,0,0,1,-ch.x,-ch.y);
+    /* shadow on the grass below and to the right */
+    g.globalAlpha=.2;for(const o of[6,12,18,24])g.drawImage(A,ch.x+o*.6,ch.y+o);g.globalAlpha=1;
+    /* the rock face: fill A with the column picture, darker towards the foot */
+    c.drawImage(A,ch.x,ch.y);c.globalCompositeOperation='source-in';const p=c.createPattern(columns(),'repeat');c.fillStyle=p;c.fillRect(ch.x,ch.y,W0,H0);
+    c.globalCompositeOperation='source-atop';for(let y=ty0;y<ty1;y++){const gy=y*TILE,gr=c.createLinearGradient(0,gy,0,gy+TILE);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(20,14,8,.35)');c.fillStyle=gr;c.fillRect(ch.x,gy,W0,TILE)}
+    c.globalCompositeOperation='source-over';g.drawImage(C,ch.x,ch.y);
+    /* the top: upland grass, tinted dry, with an east-side shade and a lit south rim */
+    c.globalCompositeOperation='copy';c.drawImage(B,ch.x,ch.y);c.globalCompositeOperation='source-in';c.fillStyle=GFX.pat(c,'grass');c.fillRect(ch.x,ch.y,W0,H0);
+    c.globalCompositeOperation='source-atop';c.fillStyle='rgba(176,146,84,.42)';c.fillRect(ch.x,ch.y,W0,H0);
+    if(GFX.tex&&GFX.tex.dirt){for(const[x,y]of tiles){if(hr(x,y,20)>.35)continue;const cx=(x+hr(x,y,21))*TILE,cy=(y+hr(x,y,22))*TILE,r=TILE*(.5+hr(x,y,23)*.6),gr=c.createRadialGradient(cx,cy,0,cx,cy,r);gr.addColorStop(0,'rgba(120,100,70,.55)');gr.addColorStop(1,'rgba(120,100,70,0)');c.fillStyle=gr;c.fillRect(cx-r,cy-r,2*r,2*r)}}
+    g.drawImage(C,ch.x,ch.y);
+    /* east side darker, west side lighter (thin bands inside the top) */
+    c.globalCompositeOperation='copy';c.drawImage(B,ch.x,ch.y);c.globalCompositeOperation='destination-out';c.drawImage(B,ch.x-7,ch.y);c.globalCompositeOperation='source-in';c.fillStyle='rgba(30,26,18,.35)';c.fillRect(ch.x,ch.y,W0,H0);g.drawImage(C,ch.x,ch.y);
+    c.globalCompositeOperation='copy';c.drawImage(B,ch.x,ch.y);c.globalCompositeOperation='destination-in';c.drawImage(B,ch.x,ch.y+3);c.drawImage(B,ch.x-3,ch.y);c.drawImage(B,ch.x+3,ch.y);c.globalCompositeOperation='copy';const R2=document.createElement('canvas');R2.width=W0;R2.height=H0;const r2=R2.getContext('2d');r2.drawImage(B,0,0);r2.globalCompositeOperation='destination-out';r2.drawImage(C,0,0);c.drawImage(R2,ch.x,ch.y);R2.width=0;c.globalCompositeOperation='source-in';c.fillStyle='rgba(236,222,180,.8)';c.fillRect(ch.x,ch.y,W0,H0);g.drawImage(C,ch.x,ch.y);
+    c.globalCompositeOperation='copy';c.drawImage(B,ch.x,ch.y);c.globalCompositeOperation='destination-out';c.drawImage(B,ch.x,ch.y+3);c.globalCompositeOperation='source-in';c.fillStyle='rgba(60,50,35,.5)';c.fillRect(ch.x,ch.y,W0,H0);g.drawImage(C,ch.x,ch.y);
+    /* outcrops and shrubs on the top (only well inside it) */
+    const deep=(x,y)=>cl(x,y)&&cl(x,y+1)&&cl(x-1,y)&&cl(x+1,y);
+    for(const[x,y]of tiles){if(!deep(x,y))continue;const h0=hr(x,y,30);
+      if(h0<.12){const px=(x+.2+hr(x,y,31)*.6)*TILE,py=(y+.2+hr(x,y,32)*.5)*TILE,r=11+hr(x,y,33)*11,n=6;const P=[];for(let j=0;j<n;j++){const an=j/n*6.283+hr(x,y,40+j)*.6,rr=r*(.7+hr(x,y,50+j)*.4);P.push([px+Math.cos(an)*rr,py+Math.sin(an)*rr*.7])}
+        g.fillStyle='rgba(30,24,16,.35)';g.beginPath();for(const[u,v]of P)g.lineTo(u+3,v+4);g.closePath();g.fill();
+        g.fillStyle='#8f8676';g.beginPath();for(const[u,v]of P)g.lineTo(u,v);g.closePath();g.fill();
+        g.fillStyle='#b3aa98';g.beginPath();g.moveTo(P[3][0],P[3][1]);g.lineTo(P[4][0],P[4][1]);g.lineTo(P[5][0],P[5][1]);g.lineTo(px,py-r*.2);g.closePath();g.fill();
+        g.fillStyle='#6e665a';g.beginPath();g.moveTo(P[0][0],P[0][1]);g.lineTo(P[1][0],P[1][1]);g.lineTo(P[2][0],P[2][1]);g.lineTo(px,py);g.closePath();g.fill()}
+      else if(h0<.27){const px=(x+.3+hr(x,y,34)*.4)*TILE,py=(y+.3+hr(x,y,35)*.4)*TILE;for(let j=0;j<4;j++){const u=px+(hr(x,y,60+j)-.5)*12,v=py+(hr(x,y,64+j)-.5)*7,r=4+hr(x,y,68+j)*3;g.fillStyle='rgba(20,30,10,.35)';g.beginPath();g.ellipse(u+2,v+3,r,r*.6,0,0,7);g.fill();g.fillStyle=j%2?'#4d6a2a':'#5f7d33';g.beginPath();g.arc(u,v,r,0,7);g.fill();g.fillStyle='rgba(200,220,140,.25)';g.beginPath();g.arc(u-r*.3,v-r*.35,r*.45,0,7);g.fill()}}}
+    /* groves on the high ground: the game's own trees, darker than the harvestable woods, kept back from the rim */
+    if(CL.trees!==false&&DT().length){const far=(x,y)=>{for(let dy=-2;dy<=3;dy++)for(let dx=-2;dx<=2;dx++)if(!cl(x+dx,y+dy))return false;return true},TR=DT(),L=[];
+      for(const[x,y]of tiles){if(!far(x,y))continue;const n=Math.sin(x*.37+(G.seed||1)%7)+Math.sin(y*.41+(G.seed||1)%5)+Math.sin((x+y)*.23)+(hr(x,y,80)-.5)*.8;if(n<.35)continue;
+        const k=n>1.1?2:1;for(let j=0;j<k;j++)L.push([(x+.15+hr(x,y,81+j)*.7)*TILE,(y+.2+hr(x,y,83+j)*.7)*TILE,(hr(x,y,85+j)*TR.length)|0,hr(x,y,87+j)<.5])}
+      L.sort((p,q)=>p[1]-q[1]);for(const[px,py,t,fl]of L){g.save();g.translate(px,py);if(fl)g.scale(-1,1);g.drawImage(TR[t],-30,-62,60,78);g.restore()}}
+    g.restore()}
+  for(const k of[A,B,C])if(k){k.width=0;k.height=0}}
+/* ---- deep forest (river map): canopy picture from the game's own trees ---- */
+let EDGE=null;
+function forestPaint2(){const k=FRS/TILE,c=document.createElement('canvas');c.width=MW*FRS;c.height=MH*FRS;const g=c.getContext('2d'),T=G.terrain,TR=SPR.trees||[];
+  const LB=G.landBox||[0,0,MW,MH],isF=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&T[ti(x,y)]===3;
+  g.fillStyle='#1c2b16';g.fillRect(0,0,c.width,c.height);
+  const dist=new Uint8Array(MW*MH).fill(9),Q=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(!isF(x,y)){dist[ti(x,y)]=0;Q.push(ti(x,y))}
+  for(let h=0;h<Q.length;h++){const i=Q[h],x=i%MW,y=(i/MW)|0;if(dist[i]>=8)continue;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=MW||ny>=MH)continue;const j=ti(nx,ny);if(dist[j]>dist[i]+1){dist[j]=dist[i]+1;Q.push(j)}}}
+  const list=[];EDGE=[];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(!isF(x,y))continue;const d=dist[ti(x,y)];for(let j=0;j<2;j++){const px=(x+hr(x,y,j*3))*TILE,py=(y+hr(x,y,j*3+1))*TILE,t=(hr(x,y,j*3+2)*TR.length)|0;
+      if(d<=2)EDGE.push([px,py,t,hr(x,y,90+j)<.5]);else list.push([px,py,t,d])}}
+  list.sort((p,q)=>p[1]-q[1]);
+  if(TR.length){for(const[px,py,t,d]of list){const s=TR[t];g.save();g.translate(px*k,py*k);g.scale(k,k);g.drawImage(s,-30,-62,60,78);g.restore();}
+    g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,22,8,.38)';g.fillRect(0,0,c.width,c.height);g.globalCompositeOperation='source-over'}
+  EDGE.sort((p,q)=>p[1]-q[1]);G.forestPic=c}
+function edgeTrees(c,inView){if(!EDGE||!EDGE.length)return;const TR=SPR.trees||[];if(!TR.length)return;
+  for(const[px,py,t,fl]of EDGE){if(!inView(px,py,70))continue;const s=TR[t];c.save();c.translate(px,py);if(fl)c.scale(-1,1);c.drawImage(s,-30,-62,60,78);c.restore()}}
+try{if(typeof forestPaint==='function'){const _fp=forestPaint;forestPaint=function(){if(FO.on&&G&&G.mapType==='river'&&SPR&&SPR.trees&&SPR.trees.length)return forestPaint2();EDGE=null;return _fp.apply(this,arguments)}}}catch(err){}
+const _rg=renderGround;renderGround=function(){const r=_rg.apply(this,arguments);try{if(CL.on)cliffChunks()}catch(err){}return r};
+const _dw=drawWater;drawWater=function(c,now,inView){const r=_dw.apply(this,arguments);try{if(FO.on&&G&&G.mapType==='river')edgeTrees(c,inView)}catch(err){}return r};
+})()}catch(err){}
+/* ===== END art chat 1: cliffs + forest ===== */
 window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
