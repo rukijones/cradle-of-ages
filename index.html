@@ -10445,6 +10445,20 @@ try{renderGround=(function(prev){return function(){if(G)G.forestPic=null;try{rvH
     g.restore()}}}catch(err){}return r}})(renderGround)}catch(err){}
 /* wading through a ford is slow */
 try{speedOf=(function(prev){return function(u){const v=prev.apply(this,arguments);try{if(u&&!u.naval&&G.terrain[ti(tl(u.x),tl(u.y))]===2)return v*RIVM.fordSlow}catch(err){}return v}})(speedOf)}catch(err){}
+
+/* ===== Speed governor (gameplay chat 1, Josh Oct 17: "the game is moving slowly - we need to fix that").
+   Watches the real frame time while the game runs. If frames stay slower than ~40 fps for 3 s it turns off the most
+   expensive extra, one step at a time (each step waits 3 s to see if it helped):
+     1. the full-screen "sharper ground" detail pass (GFX.SHORE.detail) - about a quarter of all drawing time
+     2. drawing resolution 1.5x   3. 1.25x   4. 1x (phones / older laptops)
+   It never turns things back on during a game. PERF.lvl shows the step; PERF.off=true disables the governor. ===== */
+const PERF={lvl:0,ema:1/60,slow:0,last:0,settle:0,off:false,log:[]};
+function perfStep(){PERF.lvl++;PERF.slow=0;PERF.settle=3;PERF.log.push([Math.round(G?G.t:0),PERF.lvl,Math.round(1/PERF.ema)]);
+  try{if(PERF.lvl===1){if(GFX.SHORE)GFX.SHORE.detail=false;else PERF.lvl++}
+    if(PERF.lvl>=2){const cap=PERF.lvl===2?1.5:PERF.lvl===3?1.25:1;if(DPRCAP>cap&&(window.devicePixelRatio||1)>cap){DPRCAP=cap;resize()}else if(PERF.lvl<4){return perfStep()}}}catch(err){}}
+try{draw=(function(prev){return function(){const now=performance.now();try{if(!PERF.off&&G&&!G.paused&&!G.over&&PERF.lvl<4&&PERF.last){const dt=Math.min(.25,(now-PERF.last)/1000);
+      PERF.ema+=(dt-PERF.ema)*.08;if(PERF.settle>0)PERF.settle-=dt;else{if(PERF.ema>1/40)PERF.slow+=dt;else PERF.slow=Math.max(0,PERF.slow-dt*.5);if(PERF.slow>3)perfStep()}}}catch(err){}
+    PERF.last=now;return prev.apply(this,arguments)}})(draw)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
