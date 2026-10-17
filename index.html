@@ -9457,6 +9457,9 @@ try{bldSpr0=(function(prev){const C=new WeakMap();return function(e){const sp=pr
   let c=C.get(sp);if(c)return c;c=document.createElement('canvas');c.width=Math.round(sp.width*K);c.height=Math.round(sp.height*K);const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(sp,0,0,c.width,c.height);
   c.w=sp.w*K;c.h=sp.h*K;c.dx=(sp.dx||0)+(sp.w*K-sp.w)/2;c.ov=(sp.ov||0)+(sp.h*K-sp.h);for(const k of ['smoke','smoke2','fire','flag','_nf'])if(sp[k]!==undefined)c[k]=sp[k];
   let d=sp.door;if(!d&&typeof DOORTAB!=='undefined'){const r=DOORTAB['towncenter2'];if(r&&r[6]===sp.width&&r[7]===sp.height)d=r.slice(0,6)}if(d)c.door=d;C.set(sp,c);return c}catch(err){return sp}}})(bldSpr0)}catch(err){}
+/* ===== gameplay chat 1: villagers do the obvious job when you tap your building (Josh, Oct 17: "sometimes when i select villagers to do something, they don't do it"). With only villagers selected, tapping your farm, a gold/stone mine, a damaged building, a work building (bakery, mill, dairy...), a pen/ranch or a house being upgraded now sends them straight there. Before, the tap selected the building and you had to press "Send N selected villagers". Other buildings (town center, houses, barracks...) still just get selected. ===== */
+function villDirect(mine,hit){try{if(!mine.length||!mine.every(u=>u.type==='villager'))return false;if(!hit.built)return true;if(canRepair(hit,0))return true;
+  if(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')return true;if(WORK[hit.type])return true;if(isPen(hit))return true;if((hit.type==='house'||hit.type==='coop')&&hit.upT>0)return true;}catch(err){}return false}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -9523,7 +9526,7 @@ function onTap(wx,wy){
       if(hit.type==='gold'&&v.length&&!G.players[0].tech.picks){toast(G.players[0].age<1?'Gold needs Copper picks, available in the Bronze Age':'Research Copper picks at the storage pit to mine gold');return;}
       v.forEach((u,i)=>orderGather(u,near[i%near.length]||hit));if(o.length)orderMove(o,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');if(v.length&&!o.length)jobSet();return;
     }
-    if(hit&&hit.owner===0&&hit.kind==='bld'){if((mine.some(u=>u.type==='sheep'||u.type==='cow')||(hit.type==='forester'&&hit.built&&mine.some(u=>u.type==='villager')))&&cmdToBuilding(mine,hit))return;G.prevSel=mine.filter(u=>u.type==='villager').map(u=>u.id);G.prevSelFor=hit.id;setSel([hit]);panelKeyLast='';return;}
+    if(hit&&hit.owner===0&&hit.kind==='bld'){if((mine.some(u=>u.type==='sheep'||u.type==='cow')||(hit.type==='forester'&&hit.built&&mine.some(u=>u.type==='villager'))||(typeof villDirect==='function'&&villDirect(mine,hit)))&&cmdToBuilding(mine,hit))return;G.prevSel=mine.filter(u=>u.type==='villager').map(u=>u.id);G.prevSelFor=hit.id;setSel([hit]);panelKeyLast='';return;}
     if(!hit&&G.jobKey&&G.jobKey===selKeyNow()){G.jobKey=null;G.sel=[];panelKeyLast='';return;}
     {const now=performance.now(),lg=G.lastGTap,rs=mine.filter(u=>rangeOf(u)>0);G.lastGTap={t:now,x:wx,y:wy};if(rs.length&&lg&&now-lg.t<450&&Math.hypot(lg.x-wx,lg.y-wy)<44/cam.z){G.lastGTap=null;for(const u of rs){u.order={type:'aground',x:wx,y:wy,once:1};u.path=null;}G.fx.push({type:'crater',x:wx,y:wy,t:.01,r:1});mark(wx,wy,'#ff5a4a');return;}}orderMoveForm(mine,wx,wy,G.selForm);if(flock.length){for(const q of flock){q.penId=0;q.hx=tl(wx);q.hy=tl(wy);}orderMove(flock,wx,wy);}mark(wx,wy,'#8fe36a');return;
   }
@@ -10278,3 +10281,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
