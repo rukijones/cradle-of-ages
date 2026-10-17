@@ -1484,6 +1484,7 @@ function nearestEnemy(u,range,bldOnly){
   for(const e of G.ents){
     if(e.dead||e.owner<0||e.owner===u.owner||e.kind==='poi'||e.type==='deer'||(e.air&&!AAOK.has(u.type))||!innSeen(e,u.owner)||LIVE[e.type]||(e.owner===2&&(e.type==='donkey'||e.type==='ox')))continue;
     if(bldOnly&&e.kind!=='bld')continue;
+    if(seaSplit(u,e))continue;
     if(u.owner===2&&e.owner===2)continue;
     if(u.owner===0&&e.kind==='unit'&&!G.vis[0][ti(tl(e.x),tl(e.y))])continue;
     const d=distPtEnt(u.x,u.y,e);
@@ -1962,8 +1963,8 @@ function computeVis(){
       if(e.owner!==o||e.dead)continue;
       if(e.kind==='poi')continue;
       const s=e.kind==='bld'?(e.built?DEF[e.type].sight:2)+(e.size>>1):DEF[e.type].sight;
-      const cx=tl(e.x),cy=tl(e.y),r2=s*s+s;
-      for(let dy=-s;dy<=s;dy++)for(let dx=-s;dx<=s;dx++){if(dx*dx+dy*dy>r2)continue;const x=cx+dx,y=cy+dy;if(!inB(x,y))continue;const i=ti(x,y);V[i]=1;E[i]=1;}
+      const cx=tl(e.x),cy=tl(e.y),r2=s*s+s;const IM=islMap(),hi=IM&&!seaEnt(e),own=hi?IM[ti(cx,cy)]:0;
+      for(let dy=-s;dy<=s;dy++)for(let dx=-s;dx<=s;dx++){if(dx*dx+dy*dy>r2)continue;const x=cx+dx,y=cy+dy;if(!inB(x,y))continue;const i=ti(x,y);if(hi){const q=IM[i];if(q&&q!==own)continue;}V[i]=1;E[i]=1;}
     }
   }
   if(G.cheat.reveal){G.vis[0].fill(1);G.exp[0].fill(1);}
@@ -10153,18 +10154,18 @@ try{renderGround=(function(prev){return function(){if(G)G.oceanPic=null;const r=
      (yours, the enemy's, or an island dock): it sails there and everyone gets off. Boats only land at docks. Units aboard still count for population;
      if the boat sinks they are lost.
    - Placeholder pictures: the transport is the fishing boat drawn bigger; island docks are drawn piers with a flag (art wanted). ===== */
-const ISL={cap:20,carry:5,names:{sacred:'Sacred Isle',gold:'Gold Isle',ruin:'Ruin Isle'}};
+const ISL={e:4.5,gap:7,cap:20,carry:5,names:{sacred:'Sacred Isle',gold:'Gold Isle',ruin:'Ruin Isle'}};
 try{DEF.transport={kind:'unit',name:'Transport boat',plural:'Transport boats',hp:180,atk:0,range:0,cd:2,speed:62,sight:7,r:13,cost:{w:150,g:20},time:30,age:1,naval:1}}catch(err){}
 function islAt(tx,ty){const I=G&&G.islands;if(!I)return null;for(const s of I)if(tx>=s.x0&&tx<=s.x1&&ty>=s.y0&&ty<=s.y1&&s.set&&s.set[ti(tx,ty)])return s;return null}
 function islSet(s){if(!s.set){s.set={};for(const i of s.tiles)s.set[i]=1}return s}
 function islandsGen(){if(!G||!G.landBox||G.islands)return;const O=OCEAN,T=G.terrain,B=G.bases||[];const C=[];
-  for(const t of [.25,.5,.75]){const p=Math.round(O+LAND*t);C.push([O/2-.5,p,0],[MW-O/2-.5,p,0],[p,O/2-.5,1],[p,MH-O/2-.5,1])}
+  for(const t of [.25,.5,.75]){const p=Math.round(O+LAND*t);C.push([ISL.e,p,0],[MW-1-ISL.e,p,0],[p,ISL.e,1],[p,MH-1-ISL.e,1])}
   const sc=C.map(c=>{const d=B.map(b=>Math.hypot(c[0]-b[0],c[1]-b[1]));return {c,bal:d.length>1?Math.abs(d[0]-d[1]):0,near:Math.min(...d)}}).filter(x=>x.near>=26).sort((a,b)=>a.bal-b.bal);
   const picks=[];for(const x of sc){if(picks.every(p=>Math.hypot(p.c[0]-x.c[0],p.c[1]-x.c[1])>45))picks.push(x);if(picks.length===3)break}
   const kinds=['sacred','gold','ruin'];G.islands=[];
   picks.forEach((p,i)=>{const [cx,cy,wide]=p.c,rx=wide?5.6:3.4,ry=wide?3.4:5.6,tiles=[];let x0=1e9,y0=1e9,x1=-1,y1=-1;
     for(let y=Math.floor(cy-ry-1);y<=Math.ceil(cy+ry+1);y++)for(let x=Math.floor(cx-rx-1);x<=Math.ceil(cx+rx+1);x++){if(!inB(x,y)||x<2||y<2||x>MW-3||y>MH-3)continue;
-      const L=G.landBox;if(x>=L[0]-3&&x<L[2]+3&&y>=L[1]-3&&y<L[3]+3)continue;const q=((x-cx)/rx)**2+((y-cy)/ry)**2;if(q>1+(Math.sin(x*1.7+y*.9+i)*.18))continue;
+      const L=G.landBox;if(x>=L[0]-ISL.gap&&x<L[2]+ISL.gap&&y>=L[1]-ISL.gap&&y<L[3]+ISL.gap)continue;const q=((x-cx)/rx)**2+((y-cy)/ry)**2;if(q>1+(Math.sin(x*1.7+y*.9+i)*.18))continue;
       T[ti(x,y)]=0;tiles.push(ti(x,y));x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
     if(tiles.length<12)return;
     for(const e of G.ents)if(e.type==='fish'&&!e.dead&&e.tx>=x0-1&&e.tx<=x1+1&&e.ty>=y0-1&&e.ty<=y1+1)e.dead=true;
@@ -10343,6 +10344,15 @@ try{drawUnit=(function(prev){return function(c,u,x,y,now){if(!(u&&u.type==='tran
 try{cargoChips=(function(prev){return function(u){let h=prev.apply(this,arguments);try{if(u&&u.type==='transport'&&u.owner===0&&(u.cargo||[]).length){
   let p=0;const d=u.dest&&G.byId.get(u.dest);if(d){const w=dockWater(d);if(w)p=seaPct(seaRisk(u,Math.hypot((w.x+.5)*TILE-u.x,(w.y+.5)*TILE-u.y)/TILE*1.15))}
   const chip='<span class="ch'+(u._storm?'':(p?'':' dim'))+'">'+(u._storm?'⛈':'🌊')+'<b>'+(u._storm?seaPct(seaSinkP(0)):p)+'%</b></span>';h=String(h).replace('</div>',chip+'</div>')}}catch(err){}return h}})(cargoChips)}catch(err){}
+
+/* ===== Islands apart (gameplay chat 1, Josh Oct 17 "yes"): islands sit at the map's outer edge (~8 tiles of sea),
+   nothing on an island can attack the mainland or the other way round (boats and air units excepted), and the
+   mainland can't see onto an island: you find them by sailing near or landing. ===== */
+let _islM=null,_islK=null;function islMap(){const I=G&&G.islands;if(!I||!I.length)return null;if(_islK!==I||_islM.length!==MW*MH){_islM=new Uint8Array(MW*MH);I.forEach((s,k)=>{for(const t of s.tiles)_islM[t]=k+1});_islK=I}return _islM}
+function seaEnt(e){const d=e&&DEF[e.type];return !!(d&&(d.naval||d.air))}
+function seaSplit(a,b){if(!G||!G.islands||!G.islands.length||!a||!b||seaEnt(a)||seaEnt(b))return false;const M=islMap();return M[ti(tl(a.x),tl(a.y))]!==M[ti(tl(b.x),tl(b.y))]}
+try{damage=(function(prev){return function(t,amt,src){if(src&&t&&src.kind&&seaSplit(src,t))return;return prev.apply(this,arguments)}})(damage)}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){try{const o=u.order;if(o&&o.type==='attack'){const t=G.byId.get(o.id);if(t&&seaSplit(u,t)){u.order=null;u.path=null;if(u.owner===0&&!(G._seaT>G.t)){G._seaT=G.t+4;toast('🌊 Too far across the sea: take a boat')}}}}catch(err){}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11297,3 +11307,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
