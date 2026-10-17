@@ -9473,6 +9473,19 @@ function ecoFar(tc,etc){const F=START_ECO.far;let best=null,bs=-1e9;for(let k=0;
   if(!best)return;const[cx,cy]=best;const G5=[[-1,0],[0,0],[1,0],[-1,1],[0,1]],S4=[[2,0],[2,1],[1,2],[2,2]];for(const[dx,dy]of G5.slice(0,F.gold))mkRes('gold',cx+dx,cy+dy);for(const[dx,dy]of S4.slice(0,F.stone))if(ecoFree(cx+dx,cy+dy))mkRes('stone',cx+dx,cy+dy)}
 try{newGame=(function(prev){return function(diff){const r=prev.apply(this,arguments);try{if(G&&G.diff==='easy'&&!G.ecoDone){G.ecoDone=1;const tcs=G.ents.filter(e=>e.type==='towncenter'&&!e.dead&&e.owner<2);
   for(const tc of tcs){const P=G.players[tc.owner];if(P)for(const k in START_ECO.res)P[k]=Math.max(P[k]||0,START_ECO.res[k]);ecoFill('gold',tc,START_ECO.homeGold);ecoFill('stone',tc,START_ECO.homeStone);ecoFar(tc,tcs.find(t=>t.owner!==tc.owner))}}}catch(err){}return r}})(newGame)}catch(err){}
+/* ===== gameplay chat 1: Poultry yard / steam bakery building sites are easier to use (Josh, Oct 17: "After i placed the poultry yard, the other chicken coops still appeared (before it was built), and i couldn't figure out how to get anyone to build it. I couldn't click on it after highlighting a villager to build it. And when i clicked on it, nothing came up to have anyone build it").
+   - A tap anywhere on the site picks the site (its anchor), not one hidden member.
+   - With villagers selected, tapping the site sends them to build it ("N villagers going to build the Poultry yard").
+   - Tapping it with nothing selected says how far along it is, who is building, and how to add builders.
+   - The old coops / bakeries that will be replaced are drawn faded (they keep working until the new one is done). ===== */
+function mgAnchorOf(e){if(!e||!(e.ysite||e.bsite))return null;const A=G.byId.get(e.siteA);return A&&!A.dead&&A.mergeJob&&A.mergeJob.site?A:null}
+function mgName(A){return A.mergeJob.k==='yard'?'Poultry yard':'steam bakery'}
+try{pick=(function(prev){return function(wx,wy){const r=prev(wx,wy);try{const A=mgAnchorOf(r);if(A)return A}catch(err){}return r}})(pick)}catch(err){}
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const hit=pick(wx,wy);if(hit&&hit.owner===0&&hit.mergeJob&&hit.mergeJob.site&&hit.upT>0){const vs=selEnts().filter(u=>u.owner===0&&u.type==='villager'&&!u.dead);
+  if(vs.length){for(const u of vs){u.shep=0;u.forester=0;u.bq=[];u.order={type:'upgrade',id:hit.id};u.path=null}mark(hit.x,hit.y,'#ffd25a');toast(vs.length+' villager'+(vs.length>1?'s':'')+' going to build the '+mgName(hit));return}
+  const r=prev.apply(this,arguments);const J=hit.mergeJob,n=G.ents.filter(u=>u.owner===0&&!u.dead&&u.order&&u.order.type==='upgrade'&&u.order.id===hit.id).length,pct=J.T?Math.round(100*(1-hit.upT/J.T)):0;
+  toast(mgName(hit)+' '+Math.max(0,pct)+'% built, '+n+' builder'+(n===1?'':'s')+'. To add builders: select villagers, then tap the '+mgName(hit).toLowerCase()+'. The old '+(J.k==='yard'?'coops':'bakeries')+' keep working until it is done');try{clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('show'),5500)}catch(err){}return r}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
+try{drawBuilding=(function(prev){return function(c,e,now){if(e&&e.mgOld&&G.byId.get(e.mgOld)){c.save();c.globalAlpha*=.55;try{return prev.apply(this,arguments)}finally{c.restore()}}return prev.apply(this,arguments)}})(drawBuilding)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
