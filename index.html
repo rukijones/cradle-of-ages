@@ -9305,7 +9305,7 @@ const LESSONS=[
   {t:'<b>Enemies are attacking!</b> Tap <b>Army</b> on the right to select your soldiers, then tap an enemy to attack it.',dom:['#armyBtn','[data-sel="army"]'],done:()=>G.ents.some(e=>e.owner===0&&!e.dead&&tSol(e)&&e.order&&e.order.type==='attack'),wait:25},
   {t:'Villagers can hide: tap your town center and <b>Ring town bell</b>. They shelter inside and the town center shoots back. Tap <b>All clear</b> when it is safe.',ent:()=>tMine('towncenter')[0],last:1}]},
  {id:'upg',when:()=>G.players[0].age>=1&&tMine('forge').some(b=>b.built),steps:[
-  {t:'Buildings like the <b>forge</b> and the <b>storage pit</b> have <b>upgrades</b>. Each button says what it does, like faster gathering or stronger soldiers.'},
+  {t:'Each new <b>age</b> brings better tools, weapons, armor and towers on its own. The <b>forge</b> and <b>storage pit</b> keep a few special upgrades.'},
   {t:'Tap your <b>forge</b> and research <b>Bronze working</b>.',ent:()=>tMine('forge')[0],dom:['[data-act="train:bronzework"]'],skip:()=>!!techState(0,'bronzework'),done:()=>!!techState(0,'bronzework')},
   {t:'Upgrades cost resources and take time, but they last the whole game. <b>Upgrades</b> on the right lists everything you can research.',last:1}]},
  {id:'age',when:()=>{const k=nxAge();return k&&TECH[k]&&!reqMissing(0,k)&&canAfford(G.players[0],TECH[k].cost)&&!techState(0,k)},steps:[
@@ -9999,6 +9999,21 @@ const CATREL={off:false,delay:.107,bk:[[99,49],[80,52],[78,68],[82,72],[100,72]]
 GFX.WT_OWN=true;
 try{bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(GFX.WT_OWN&&e&&e.type==='tower'&&e.built!==false&&GFX.mode==='V23D'&&GFX.wallTower&&GFX.wallTower(e)){
   const lone=prev(Object.assign(Object.create(Object.getPrototypeOf(e)),e,{tx:-999,ty:-999,x:-99999,y:-99999}));if(lone&&lone.w)return lone}}catch(err){}return s}})(bldSpr0)}catch(err){}
+/* Upgrades come with the age (gameplay, Josh Oct 17: "the upgrades can get annoying for the bronze and steel tools, weapons etc."; he picked "built into
+   the age-up"). Tools, weapons, armor and tower levels are no longer separate research: each age-up (and Bronze working) grants its set at once, for both
+   players, and those buttons are gone from the forge and storage pit. The age-ups cost ~30% of what the separate upgrades cost, so progress is faster
+   than buying them one by one. Forge keeps Bronze working + Ballistics; storage pit keeps Coppicing + Forester's yard. */
+const AUTOTECH={bronze:['axes','picks','plow','armor','sentry'],bronzework:['weapons','bronzearmor','bronzetools'],iron:['wheel','ironweap','chainmail','guardtower'],medieval:['steel','plate','keeps']};
+const AUTOSET=new Set([].concat(...Object.values(AUTOTECH)));
+try{for(const b of ['forge','storage'])if(DEF[b]&&DEF[b].techs)DEF[b].techs=DEF[b].techs.filter(k=>!AUTOSET.has(k));
+  Object.assign(TECH.bronze,{cost:{f:600,w:100,s:100}});Object.assign(TECH.bronzework,{cost:{f:60,w:200,s:100,g:60}});
+  Object.assign(TECH.iron,{cost:{f:1100,w:50,s:60,g:390}});Object.assign(TECH.medieval,{cost:{f:1540,s:90,g:640}});
+  Object.assign(TECHFX,{bronze:'Next age + copper tools, hide armor, sentry towers',bronzework:'Swordsmen + bronze weapons, armor and tools',iron:'Next age + iron weapons, chain mail, the wheel, guard towers',medieval:'Next age + steel weapons, plate armor, keeps'});
+}catch(err){}
+let autoQuiet=0;try{toast=(function(prev){return function(){if(autoQuiet)return;return prev.apply(this,arguments)}})(toast)}catch(err){}
+try{applyTech=(function(prev){return function(o,k){const r=prev.apply(this,arguments);const L=AUTOTECH[k];if(L){const P=G.players[o],got=[];autoQuiet++;try{for(const t of L)if(TECH[t]&&!P.tech[t]){try{prev(o,t)}catch(err){}got.push(TECH[t].name)}}finally{autoQuiet--}
+  if(o===0&&got.length)setTimeout(()=>{try{toast('Included: '+got.join(', '))}catch(err){}},k==='bronzework'?600:5200)}return r}})(applyTech)}catch(err){}
+try{enqueue=(function(prev){return function(b,k){if(AUTOSET.has(k))return false;return prev.apply(this,arguments)}})(enqueue)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
