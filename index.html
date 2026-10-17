@@ -220,7 +220,7 @@ button.sb{border:0;background:none;padding:0;width:100%;color:inherit;font:inher
 
 <script>
 (()=>{'use strict';
-const TILE=32,MW=128,MH=128,BASE=12,WW=MW*TILE,WH=MH*TILE;
+const TILE=32,BASE=12,LAND=128,OCEAN=16;let MW=LAND+2*OCEAN,MH=LAND+2*OCEAN,WW=MW*TILE,WH=MH*TILE;/* ocean ring (Josh Oct 17): the land is still 128x128, set inside a 16-tile ocean */
 const RATE={f:.8,w:.65,s:.55,g:.5,tin:.45},CARRY=10,POPMAX=150,STEP=1/30;
 const RCOL={f:'#d9534f',w:'#a8723d',s:'#b1b1aa',g:'#e6c34a'};
 const PCOL=['#3f7fd6','#d6453a'],PDARK=['#244f8c','#8c2a22'];
@@ -599,9 +599,9 @@ function renderGround(){
       if(d>=1&&w.lily){const lx=x+w.lx,ly=y+w.ly;g.fillStyle='#4f8a3a';g.beginPath();g.moveTo(lx,ly);g.ellipse(lx,ly,4.5,3,0,.4,Math.PI*2-.1);g.closePath();g.fill();if(w.fl){g.fillStyle='#f3d9e8';circ(g,lx+1,ly-1,1.3);g.fill();}}
     });
   });
-  const CH=2048,nx=Math.ceil(WW/CH),ny=Math.ceil(WH/CH),chunks=[];
+  const CH=2048,LB=G.landBox||[0,0,MW,MH],LX0=LB[0]*TILE,LY0=LB[1]*TILE,LX1=LB[2]*TILE,LY1=LB[3]*TILE,nx=Math.ceil((LX1-LX0)/CH),ny=Math.ceil((LY1-LY0)/CH),chunks=[];
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
-    const cx=i*CH,cy=j*CH,c=document.createElement('canvas');c.width=Math.min(CH,WW-cx);c.height=Math.min(CH,WH-cy);const g=c.getContext('2d');
+    const cx=LX0+i*CH,cy=LY0+j*CH,c=document.createElement('canvas');c.width=Math.min(CH,LX1-cx);c.height=Math.min(CH,LY1-cy);const g=c.getContext('2d');
     g.translate(-cx,-cy);g.imageSmoothingEnabled=true;g.lineCap='butt';
     if(!GFX.ground(g,cx,cy,CH,n1)){g.drawImage(n1,0,0,WW,WH);g.globalAlpha=.5;g.drawImage(n2,0,0,WW,WH);g.globalAlpha=.22;g.drawImage(n3,0,0,WW,WH);g.globalAlpha=1;}
     for(const[x,y,r,f]of feats){if(r<ALL&&(x+r<cx||y+r<cy||x-r>cx+CH||y-r>cy+CH))continue;f(g,cx,cy,CH);}
@@ -636,11 +636,11 @@ function loadGame(){let raw=null;try{raw=localStorage.getItem(SAVE_KEY);}catch(e
   const TA={Uint8Array,Int32Array,Uint16Array,Int16Array,Float32Array,Float64Array,Uint32Array};let o;
   try{o=JSON.parse(raw,(k,v)=>{if(!(v&&v.__ta))return v;const a=new TA[v.__ta](v.n||(v.d?v.d.length:0));if(v.d)a.set(v.d);else{let i=0;for(let j=0;j<v.r.length;j+=2){a.fill(v.r[j],i,i+v.r[j+1]);i+=v.r[j+1];}}return a;});}catch(e){return false;}
   audioInit();CELE.on=false;$('ageUp').classList.remove('show');
-  G=o.G;G.byId=new Map();for(const e of G.ents){delete e._kick;delete e._kdx;delete e._pop;G.byId.set(e.id,e);}G.rand=mulberry(((G.seed||1)^((G.t*1000)|0))>>>0);G.vis=[new Uint8Array(MW*MH),new Uint8Array(MW*MH)];G.paused=false;G.place=null;G.aground=false;
+  G=o.G;G.byId=new Map();for(const e of G.ents){delete e._kick;delete e._kdx;delete e._pop;G.byId.set(e.id,e);}G.rand=mulberry(((G.seed||1)^((G.t*1000)|0))>>>0);G.vis=[new Uint8Array(MW*MH),new Uint8Array(MW*MH)];G.paused=false;G.place=null;G.aground=false;let _oceanMig=false;try{_oceanMig=oceanMigrate()}catch(err){}
   SEL_CULT=ONLY_WEST?'west':(o.cult||'west');if(ONLY_WEST)G.culture=['west','west'];for(const q of[0,1])if(!SPR.cult||SPR.cult[q]!==G.culture[q]){genAgeSprites(q,G.culture[q]);if(q===0)refreshThumbs0();}
   try{growOld();}catch(e){}try{growRanchOld();}catch(e){}renderGround();computeVis();
   VIS.parts=[];VIS.birds=[];VIS.birdT=8;spawnClouds();
-  if(o.cam){cam.z=clampZ(o.cam.z||1);cam.x=o.cam.x;cam.y=o.cam.y;}
+  if(o.cam){cam.z=clampZ(o.cam.z||1);cam.x=o.cam.x+(_oceanMig?OCEAN*TILE:0);cam.y=o.cam.y+(_oceanMig?OCEAN*TILE:0);}if(_oceanMig)setTimeout(()=>{try{toast('Your saved game now has an ocean around it. Units were stopped: give them new orders')}catch(e){}},1500);
   panelKeyLast='';G.lastSaveT=G.t;$('start').hidden=true;$('end').hidden=true;$('pause').hidden=true;toast('Game resumed');return true;}
 const TIPS=['Three oxen fields touching in a straight row need only one farmer: he guides the oxen on all three.',
   'A windmill grinds grain from up to 18 farms within 5 tiles of it. Plan a block of farm rows around it.',
@@ -7922,6 +7922,7 @@ function draw(){
   c.setTransform(dpr,0,0,dpr,0,0);c.fillStyle='#120d08';c.fillRect(0,0,W,H);
   c.setTransform(dpr*z,0,0,dpr*z,-cam.x*dpr*z,-cam.y*dpr*z);
   const vx0=Math.max(0,cam.x),vy0=Math.max(0,cam.y),vx1=Math.min(WW,cam.x+W/z),vy1=Math.min(WH,cam.y+H/z);
+  try{drawOcean(c,vx0,vy0,vx1,vy1)}catch(err){}
   for(const ch of G.ground.chunks){const x0=Math.max(vx0,ch.x),y0=Math.max(vy0,ch.y),x1=Math.min(vx1,ch.x+ch.c.width),y1=Math.min(vy1,ch.y+ch.c.height);if(x1>x0&&y1>y0)c.drawImage(ch.c,x0-ch.x,y0-ch.y,x1-x0,y1-y0,x0,y0,x1-x0,y1-y0);}
   const inView=(x,y,m)=>x>cam.x-m&&y>cam.y-m&&x<cam.x+W/z+m&&y<cam.y+H/z+m;
   drawWater(c,now,inView);
@@ -10056,6 +10057,60 @@ setInterval(()=>{try{if($('pchips'))pcApply()}catch(err){}},500);
    something, the game runs at normal speed from your first tap on the map or the buttons, so the order can play out; text steps stay paused until Next. */
 try{document.addEventListener('pointerdown',ev=>{try{const L=TUT.cur,st=L&&L.steps[TUT.step];if(!st||!st.done||TUT.run)return;if(TUT.box&&TUT.box.contains(ev.target))return;
   TUT.run=true;window.TUTSLOW=1;const w=TUT.box&&TUT.box.querySelector('.wt');if(w)w.textContent='Waiting for you…'}catch(err){}},true)}catch(err){}
+/* ===== Ocean ring, step 1 (gameplay chat 1, Josh Oct 17: "can the map be surrounded by ocean? ... increase the size of the map, but only the exterior.
+   And so you can fish and boat on that." He picked a ~16-tile ring). The land is generated exactly as before (128x128, same bases, resources and
+   points of interest) and set inside a 160x160 map: the outer 16 tiles are ocean (terrain 1, like lakes). G.landBox = [16,16,144,144].
+   - Ground canvases cover only the land; the ocean is a small pre-drawn picture (1/4 scale, drawOcean) under them, with the usual ripples on top.
+   - Most of the tree ring at the old map edge is thinned so the coast can be reached; ~36 fish swim in the shallows; docks work on the coast as on lakes
+     (catch a fish from the shore first).
+   - Old saved games are moved into the middle of the bigger map on load (units are stopped). OCEAN is a constant (0 = old map). ===== */
+function oceanShiftEnt(e,O){const P=O*TILE;for(const k of ['tx','ty','hx','hy'])if(typeof e[k]==='number')e[k]+=O;for(const k of ['x','y','px','py','ax','ay','lx','ly'])if(typeof e[k]==='number')e[k]+=P;}
+function oceanRemap(a,fillV){const N=new a.constructor(MW*MH);if(fillV)N.fill(fillV);for(let y=0;y<LAND;y++)for(let x=0;x<LAND;x++)N[(y+OCEAN)*MW+x+OCEAN]=a[y*LAND+x];return N}
+function oceanFinish(){const O=OCEAN,T=G.terrain;G.landBox=[O,O,O+LAND,O+LAND];
+  const near=(x,y,r)=>{for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const nx=x+dx,ny=y+dy;if(inB(nx,ny)&&(nx<O||ny<O||nx>=O+LAND||ny>=O+LAND))return true}return false};
+  /* thin the old edge tree ring: keep ~1 in 4 trees within 2 tiles of the ocean */
+  for(const e of G.ents){if(e.dead||e.type!=='tree'||e.kind!=='res')continue;if(near(e.tx,e.ty,2)&&Math.random()<.75){e.dead=true;if(G.occ[ti(e.tx,e.ty)]===e.id)G.occ[ti(e.tx,e.ty)]=0}}
+  G.ents=G.ents.filter(e=>!e.dead);
+  /* a natural coastline: bays up to 3 tiles deep cut into the land edge (never under buildings, points of interest or near the bases) */
+  if(!G._oceanOld){const ph=[0,1,2,3].map(()=>[Math.random()*7,Math.random()*7,Math.random()*7]);const dep=(side,t)=>{const p=ph[side];return Math.max(0,Math.round(1.2+1.1*Math.sin(t*.13+p[0])+.9*Math.sin(t*.31+p[1])+.6*Math.sin(t*.07+p[2])))};
+    const blocked=(x,y)=>{if(G.bases.some(([bx,by])=>Math.hypot(x-bx,y-by)<9))return true;for(const e of G.ents){if(e.dead)continue;if((e.kind==='poi'||e.kind==='bld')&&Math.abs(e.tx-x)<=2&&Math.abs(e.ty-y)<=2)return true}return false};
+    for(let t=0;t<LAND;t++)for(let side=0;side<4;side++){const d=Math.min(3,dep(side,t));for(let k=0;k<d;k++){const x=side===0?O+k:side===1?O+LAND-1-k:O+t,y=side===2?O+k:side===3?O+LAND-1-k:O+t;if(!inB(x,y)||blocked(x,y))continue;
+      const id=G.occ[ti(x,y)];if(id){const e=G.byId.get(id);if(e&&e.kind==='res'){e.dead=true;G.occ[ti(x,y)]=0}else continue}
+      for(const u of G.ents)if(u.kind==='unit'&&!u.dead&&tl(u.x)===x&&tl(u.y)===y)u.dead=true;T[ti(x,y)]=1}}
+    G.ents=G.ents.filter(e=>!e.dead)}
+  /* fish in the shallows (1-3 tiles off the coast) */
+  const sh=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(!T[ti(x,y)])continue;const inO=x<O||y<O||x>=O+LAND||y>=O+LAND;if(!inO)continue;const d=Math.min(Math.abs(x-(O-1)),Math.abs(x-(O+LAND)),Math.abs(y-(O-1)),Math.abs(y-(O+LAND)));if(d<=2)sh.push([x,y])}
+  for(let i=0,n=0;i<400&&n<36;i++){const w=sh[(Math.random()*sh.length)|0];if(!w)break;if(G.ents.some(e=>e.type==='fish'&&Math.abs(e.tx-w[0])<4&&Math.abs(e.ty-w[1])<4))continue;
+    addEnt({kind:'res',type:'fish',owner:-1,tx:w[0],ty:w[1],size:1,x:(w[0]+.5)*TILE,y:(w[1]+.5)*TILE,amt:RES.fish.amt,v:Math.random(),noOcc:1,sea:1});n++}}
+if(OCEAN>0)try{genMap=(function(prev){return function(){const FM=MW,FH=MH;MW=MH=LAND;WW=WH=LAND*TILE;try{prev.apply(this,arguments)}finally{MW=FM;MH=FH;WW=MW*TILE;WH=MH*TILE}
+  const O=OCEAN;G.terrain=oceanRemap(G.terrain,1);G.occ=oceanRemap(G.occ,0);G.wocc=oceanRemap(G.wocc,0);
+  for(const e of G.ents)oceanShiftEnt(e,O);G.bases=G.bases.map(([x,y])=>[x+O,y+O]);if(G.veins)for(const v of G.veins){v.x+=O;v.y+=O}
+  oceanFinish()}})(genMap)}catch(err){}
+/* old saves (128x128): move everything into the middle */
+function oceanMigrate(){if(!OCEAN||!G||!G.terrain||G.terrain.length!==LAND*LAND)return false;const O=OCEAN;
+  for(const k of Object.keys(G)){const v=G[k];if(k==='vis')continue;if(ArrayBuffer.isView(v)&&v.length===LAND*LAND)G[k]=oceanRemap(v,k==='terrain'?1:0);
+    else if(Array.isArray(v)&&v.length&&v.every(a=>ArrayBuffer.isView(a)&&a.length===LAND*LAND))G[k]=v.map(a=>oceanRemap(a,0))}
+  for(const e of G.ents){oceanShiftEnt(e,O);if(e.kind==='unit'){e.order=null;e.path=null;e.moving=false}if(e.rally)e.rally=null}
+  if(G.bases)G.bases=G.bases.map(([x,y])=>[x+O,y+O]);if(G.veins)for(const v of G.veins){v.x+=O;v.y+=O}
+  if(G.rubble)for(const r of G.rubble){if(typeof r.x==='number')r.x+=O;if(typeof r.y==='number')r.y+=O}
+  if(G.deadTw)for(const k in G.deadTw){const d=G.deadTw[k];d.tx+=O;d.ty+=O}
+  G.projs=[];G.fx=[];G.marks=[];G.troops=[];G.abk=null;G.gate=null;G._oceanOld=1;
+  for(const k of ['exp'])if(Array.isArray(G[k]))for(const a of G[k]){}
+  oceanFinish();return true}
+/* the ocean picture: 1/4 scale, drawn once per map under the land canvases */
+const OCS=8;
+function oceanPaint(){if(!G||!G.landBox){G&&(G.oceanPic=null);return}const T=G.terrain,c=document.createElement('canvas');c.width=MW*OCS;c.height=MH*OCS;const g=c.getContext('2d');
+  const R=mulberry((G.seed||1)+99);g.fillStyle='#1f4c6d';g.fillRect(0,0,c.width,c.height);
+  const dist=new Uint8Array(MW*MH).fill(9);const q=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(!T[ti(x,y)]){dist[ti(x,y)]=0;q.push(ti(x,y))}
+  for(let h=0;h<q.length;h++){const i=q[h],x=i%MW,y=(i/MW)|0,d=dist[i];if(d>=8)continue;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!inB(nx,ny))continue;const j=ti(nx,ny);if(dist[j]>d+1){dist[j]=d+1;q.push(j)}}}
+  const cols=['','#4a87a6','#35698b','#285a7b','#265778','#245475','#225172','#204e6f','#1f4c6d'];
+  for(let d=8;d>=1;d--){g.fillStyle=cols[d];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(dist[ti(x,y)]!==d)continue;g.beginPath();g.arc((x+.5)*OCS,(y+.5)*OCS,OCS*(.95+R()*.25),0,7);g.fill()}}
+  g.globalAlpha=.07;for(let i=0;i<MW*MH/6;i++){const x=R()*c.width,y=R()*c.height;g.fillStyle=R()<.5?'#ffffff':'#0b2a40';g.fillRect(x,y,2+R()*6,1)}g.globalAlpha=1;
+  G.oceanPic=c}
+function drawOcean(c,vx0,vy0,vx1,vy1){if(!G||!G.landBox)return;if(!G.oceanPic||G.oceanPic._s!==G.seed){oceanPaint();if(G.oceanPic)G.oceanPic._s=G.seed}const P=G.oceanPic;if(!P)return;
+  const x0=Math.max(0,vx0),y0=Math.max(0,vy0),x1=Math.min(WW,vx1),y1=Math.min(WH,vy1);if(x1<=x0||y1<=y0)return;const k=OCS/TILE;
+  c.drawImage(P,x0*k,y0*k,(x1-x0)*k,(y1-y0)*k,x0,y0,x1-x0,y1-y0)}
+try{renderGround=(function(prev){return function(){if(G)G.oceanPic=null;const r=prev.apply(this,arguments);try{const L=G.landBox;if(L&&G.water)for(const w of G.water){const tx=tl(w[0]),ty=tl(w[1]);if((tx<L[0]||ty<L[1]||tx>=L[2]||ty>=L[3])&&w[2]<1)w[2]=1}}catch(err){}return r}})(renderGround)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
