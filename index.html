@@ -10235,6 +10235,56 @@ try{drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='transp
   c.save();c.translate(x,y);c.scale(1.4,1.4);c.translate(-x,-y);try{prev.call(this,c,P,x,y,now)}finally{c.restore()}const n=(u.cargo||[]).length;if(n){c.save();c.fillStyle='rgba(20,14,8,.8)';c.beginPath();c.arc(x+16,y-22,8,0,7);c.fill();c.fillStyle='#fff';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(n,x+16,y-18.5);c.restore()}return}
   return prev.apply(this,arguments)}})(drawUnit)}catch(err){}
 try{cargoChips=(function(prev){return function(u){if(u&&u.type==='transport'&&u.owner===0){const n=(u.cargo||[]).length;return '<div class="hint chips"><span class="ch'+(n?'':' dim')+'">🧍<b>'+n+'<small>/'+ISL.carry+'</small></b></span><span class="ch"><small>'+(n?'Tap a dock to land':'Select units, tap the boat')+'</small></span></div>'}return prev.apply(this,arguments)}})(cargoChips)}catch(err){}
+/* ===== Computer spends its savings, gameplay chat 2 (Josh, Oct 17 2026: picked "Computer hoarding fix") =====
+   Late in the game the computer piled up thousands of food/wood/gold: it trains from one barracks, one range and one stable
+   with 1-2 in each queue, so income outgrew spending. Wraps aiTick, every 2 s, for the computer (and blue in "watch"), not on
+   the gentle Easy mode (which caps its army on purpose). Once it is allowed to age up, it never spends into what that age costs:
+   - when its bank (food+wood+gold) is over HOARD.bank, every barracks / range / stable / castle it owns keeps HOARD.q units
+     queued: the most advanced soldier it can train there that it can afford, leaving HOARD.keep of each resource;
+   - when the bank is over HOARD.build and it has room, it puts up another barracks, range or stable (up to HOARD.max of each),
+     one at a time, at most every HOARD.gap s;
+   - when it is within 8 of its pop cap (and under the 150 limit) it builds houses, up to 2 at a time; it stops queueing
+     soldiers within 6 of the cap.
+   - with a market: sells 100 surplus food every 2 s (over next-age cost + 1200, while the price is 45+), or buys wood with
+     spare gold when wood is under 300 (shared prices move like when you trade);
+   - when food is over 1500 and wood or gold under 700, it moves 2 food gatherers every 2 s to the lower of the two.
+   HOARD.off=true turns it off. */
+const HOARD={off:false,bank:1800,build:3000,q:3,keep:250,max:3,gap:75};
+{const _ai=aiTick;
+  const MIL=['barracks','range','stable','castle'];let RSV={};
+  function best(b,o){const P=G.players[o];const list=(DEF[b.type].trains||[]).filter(k=>DEF[k]&&DEF[k].kind==='unit'&&!NONMIL.has(k)&&!SIEGE.has(k)&&canTrain(o,k)&&(!DEF[k].needTech||P.tech[DEF[k].needTech])&&canQueue(b,k));
+    for(let i=list.length-1;i>=0;i--){const c=DEF[list[i]].cost||{};if(['f','w','s','g'].every(r=>(P[r]||0)-(c[r]||0)>=((c[r]||0)?HOARD.keep+(RSV[r]||0):0)))return list[i];}return null;}
+  aiTick=function(o){const r=_ai.apply(this,arguments);
+    try{const ai=G.ais&&G.ais[o];if(HOARD.off||!ai||G.gentle||G.cheat&&G.cheat.peace)return r;
+      if((ai.hoT=(ai.hoT||0)-1)>0)return r;ai.hoT=4;
+      const P=G.players[o],bank=(P.f||0)+(P.w||0)+(P.g||0);if(bank<HOARD.bank||P.age<2)return r;
+      const vills=G.ents.filter(e=>e.owner===o&&e.type==='villager'&&!e.dead&&(!e.order||e.order.type==='gather')&&!e.shep&&!e.forester);
+      const base=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&e.built&&!e.dead);
+      if(P.f>1500&&(P.w<700||P.g<700)){   // food piling up: move 2 farmers/foragers to whichever of wood/gold is lower
+        const to=P.g<P.w&&P.tech.picks?'g':'w';let moved=0;
+        for(const v of vills){if(moved>=2)break;const od=v.order;if(!od||od.type!=='gather'||!RES[od.rtype]||RES[od.rtype].r!=='f'||(v.carry&&v.carry.amt>=5))continue;
+          const t=to==='g'?(nearestRes('goldmine',v.x,v.y,30*TILE,0,o)||nearestRes('gold',v.x,v.y,30*TILE)):nearestRes('tree',v.x,v.y,25*TILE);
+          if(t){if(v.carry)v.carry.amt=0;orderGather(v,t);if(v.order&&v.order.id===t.id){v._aiT=G.t;v._aiTgt=t.id;moved++;}}}}
+      if(popCap(o)<POPMAX&&popUsed(o)>=popCap(o)-8&&base&&vills.length>4&&canAfford(P,DEF.house.cost)&&G.ents.filter(e=>e.owner===o&&e.type==='house'&&!e.built&&!e.dead).length<2){   // out of room: more houses
+        vills.sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y));aiBuild('house',base,vills.slice(0,1),6,o);}
+      if(popUsed(o)>=popCap(o)-6)return r;
+      const nxt=TECH[['bronze','iron','medieval','renaissance','industrial','modern'][P.age]],RS=(nxt&&nxt.cost&&(typeof aiAgeOK!=='function'||aiAgeOK(ai,P.age+1)))?nxt.cost:{};   // once it may age, never dip into what the next age costs
+      const mkt=G.ents.find(e=>e.owner===o&&e.type==='market'&&e.built&&!e.dead),pr=G.prices;
+      if(mkt&&pr){                                                                      // trade the surplus at the market like a player would
+        if(P.f>(RS.f||0)+1200&&pr.f>=45){P.f-=100;P.g+=Math.round(pr.f*.75);pr.f=Math.max(30,pr.f*.93);}
+        else if(P.w<300&&P.g>(RS.g||0)+700&&pr.w<=160){P.g-=Math.round(pr.w);P.w+=100;pr.w=Math.min(300,pr.w*1.07);}}
+      RSV=RS;const blds=G.ents.filter(e=>e.owner===o&&e.kind==='bld'&&e.built&&!e.dead&&MIL.includes(e.type));
+      for(const b of blds){let n=b.queue.filter(k=>DEF[k]&&DEF[k].kind==='unit').length;
+        while(n<HOARD.q&&popUsed(o)+n<popCap(o)-6){const k=best(b,o);if(!k||!enqueue(b,k))break;n++;}}
+      if(bank>=HOARD.build&&G.t-(ai.hoB||-1e9)>HOARD.gap){
+        if(base&&vills.length>8){const cnt=t=>G.ents.filter(e=>e.owner===o&&e.type===t&&!e.dead).length;
+          const pick=['barracks','range','stable'].filter(t=>bAvail(o,t)&&cnt(t)<HOARD.max&&canAfford(P,DEF[t].cost)).sort((a,b)=>cnt(a)-cnt(b))[0];
+          if(pick){vills.sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y));if(aiBuild(pick,base,vills.slice(0,2),5,o))ai.hoB=G.t;}}}
+    }catch(err){}
+    return r;};
+  window.__hoard=HOARD;
+}
+/* ===== END computer spends its savings ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
