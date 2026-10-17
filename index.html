@@ -9387,7 +9387,7 @@ try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){co
    a new selection plays Select; a new order on your units plays the "got it" for the biggest group in it.
    Off switch: UISFX.OFF=true. Levels: UISFX.VOL. Test hook: window.__uisfx. */
 const UISFX=(function(){
-  const U={OFF:false,VOL:{tap:.8,sel:.9,ack:.9},last:{}};
+  const U={OFF:false,TAP:false,VOL:{tap:.8,sel:.9,ack:.9},last:{}};   /* TAP off: Josh found the button click too loud/annoying (Oct 16) */
   let NB=null;
   const ctx=()=>AUD.ctx(),bus=()=>AUD.bus('ui');
   function nbuf(c){if(NB)return NB;const n=c.sampleRate;NB=c.createBuffer(1,n,c.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return NB;}
@@ -9408,7 +9408,7 @@ const UISFX=(function(){
   const MACH=new Set(['tank','armoredcar','truck','heli','bomber']);
   function group(u){if(MACH.has(u.type)||(typeof VEHICLES!=='undefined'&&VEHICLES.has(u.type))||u.air)return 'mac';if(NONMIL.has(u.type))return 'vil';return 'sol';}
   /* 1. buttons (bottom bar, menus, group slots). Click only, so scrolling the bar stays silent */
-  document.addEventListener('click',e=>{try{const el=e.target&&e.target.closest&&e.target.closest('button,.b,.grp');if(!el||el.closest('#audRow'))return;U.play('tap');}catch(err){}},true);
+  document.addEventListener('click',e=>{try{if(!U.TAP)return;const el=e.target&&e.target.closest&&e.target.closest('button,.b,.grp');if(!el||el.closest('#audRow'))return;U.play('tap');}catch(err){}},true);
   /* 2. taps on the map */
   function snap(){try{const ids=(G&&G.sel)||[],ord=new Map();for(const id of ids){const u=G.byId.get(id);if(u&&u.owner===0&&u.kind==='unit')ord.set(u,u.order);}return {key:ids.join(','),ord};}catch(err){return null;}}
   function after(s){if(!s||!G)return;try{
@@ -10272,4 +10272,3 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
-
