@@ -9992,6 +9992,13 @@ const CATREL={off:false,delay:.107,bk:[[99,49],[80,52],[78,68],[82,72],[100,72]]
   window.__catrel=CATREL;
 }
 /* ===== END catapult release ===== */
+/* Walled towers keep their own age's look (gameplay, Josh Oct 17: "when stone walls are built in Iron Age between towers, the towers turn into some old
+   weird version ... the angle is way off"; he picked "each age's own tower"). A tower joined to a wall used to switch to the stone wall-kit tower
+   (redrawn Oct 16, now leaning) in Stone-Iron and for Medieval/Renaissance watch/sentry towers. Now a walled tower is drawn with the same picture as a
+   lone tower of its age and level; the walls still join it. GFX.WT_OWN=false turns this off. */
+GFX.WT_OWN=true;
+try{bldSpr0=(function(prev){return function(e){const s=prev(e);try{if(GFX.WT_OWN&&e&&e.type==='tower'&&e.built!==false&&GFX.mode==='V23D'&&GFX.wallTower&&GFX.wallTower(e)){
+  const lone=prev(Object.assign(Object.create(Object.getPrototypeOf(e)),e,{tx:-999,ty:-999,x:-99999,y:-99999}));if(lone&&lone.w)return lone}}catch(err){}return s}})(bldSpr0)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10819,3 +10826,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
