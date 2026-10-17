@@ -9361,7 +9361,7 @@ const MUSIC=(function(){
    With G.gentle the computer: makes no attack in the first 12 minutes (old easy rule); waits at least 7 minutes between attacks; never sends more soldiers than you have (at least 2; +3 from the Medieval Age);
    reaches the Bronze Age no sooner than 12 min, Iron 30, Medieval 50, Renaissance 70, Industrial 90, Modern 110 and is never more than one age ahead of you;
    keeps its villagers within 4 of yours (at least 10) and its army within 2 of yours (1.5x + 3 from the Medieval Age); gets 25% less from trade and workshops (old easy aiMult).
-   For you: 5 villagers at the start instead of 3, the gold piles near your town are doubled (600 each), and gold/stone mines may go up to 10 tiles past your border without an outpost.
+   For you: 5 villagers at the start instead of 3, twice as many gold piles near your town (extra 300-gold piles next to the existing ones; doubling a pile's amount made its picture look like it floated), and gold/stone mines may go up to 10 tiles past your border without an outpost.
    GENTLE = the numbers. ===== */
 const GENTLE={ageAt:[0,720,1800,3000,4200,5400,6600],vilPlus:4,vilMin:10,armyPlus:2};
 function gentleArmy(o){let n=0;for(const e of G.ents)if(e.owner===o&&!e.dead&&e.kind==='unit'&&!NONMIL.has(e.type)&&!(DEF[e.type]&&DEF[e.type].animal))n++;return n}
@@ -9369,7 +9369,7 @@ function gentleCap(aiAge){const pa=gentleArmy(0);return Math.max(2,aiAge>=3?Math
 function nearTerr(o,tx,ty,size,extra){const cx=tx+size/2,cy=ty+size/2;for(const e of G.ents){if(e.owner!==o||e.kind!=='bld'||e.dead||!e.built||e.type==='farm'||e.type==='wall'||e.type==='gate')continue;if(Math.hypot(cx-(e.tx+e.size/2),cy-(e.ty+e.size/2))<=terrR(e)+e.size/2+extra)return true;}return false}
 try{newGame=(function(prev){return function(diff){const gentle=diff==='gentle';const args=[...arguments];if(gentle)args[0]='easy';const r=prev.apply(this,args);try{if(gentle&&G){G.gentle=true;
   const tc=G.ents.find(e=>e.owner===0&&e.type==='towncenter'&&!e.dead);if(tc){for(let i=3;i<5;i++){const ex=exitTile(tc,MW/2,MH/2,i);mkUnit('villager',0,(ex.x+.5)*TILE,(ex.y+.5)*TILE)}
-    for(const e of G.ents)if(e.type==='gold'&&e.kind==='res'&&!e.dead&&Math.hypot(e.x-tc.x,e.y-tc.y)<16*TILE){e.amt=(e.amt||300)*2;if(e.max)e.max*=2}}}}catch(err){}return r}})(newGame)}catch(err){}
+    const near=G.ents.filter(e=>e.type==='gold'&&e.kind==='res'&&!e.dead&&Math.hypot(e.x-tc.x,e.y-tc.y)<16*TILE);let add=near.length;for(const g of near){if(add<=0)break;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1],[2,0],[0,2],[-2,0],[0,-2]]){const x=g.tx+dx,y=g.ty+dy;if(!inB(x,y)||G.occ[ti(x,y)]||G.terrain[ti(x,y)]||(G.wocc&&G.wocc[ti(x,y)]))continue;mkRes('gold',x,y);add--;break}}}}}catch(err){}return r}})(newGame)}catch(err){}
 try{aiAgeOK=(function(prev){return function(ai,n){const ok=prev(ai,n);if(!G||!G.gentle)return ok;const pa=(G.players[0]&&G.players[0].age)||0;return ok&&G.t+(G.aiOff||0)>=(GENTLE.ageAt[n]||0)&&n<=pa+1}})(aiAgeOK)}catch(err){}
 try{enqueue=(function(prev){return function(b,k){try{if(G&&G.gentle&&b&&b.owner===1&&DEF[k]&&DEF[k].kind==='unit'){
   if(k==='villager'){const v0=G.ents.filter(e=>e.owner===0&&!e.dead&&e.type==='villager').length,v1=G.ents.filter(e=>e.owner===1&&!e.dead&&e.type==='villager').length;if(v1>=Math.max(GENTLE.vilMin,v0+GENTLE.vilPlus))return false}
@@ -9451,6 +9451,12 @@ const RAIDGAP={off:false,min:240,raider:300,cap:[3,5,7],raiderCut:.75};
     return r;};
 }
 /* ===== END fewer early raids ===== */
+/* ===== gameplay chat 1: Iron Age town center drawn 15% bigger (Josh, Oct 17: "The Iron age town center needs something to make it seem more substantial ... Make it 15% bigger"). Same 3x3 plot; the picture is scaled about its bottom centre so it still stands on the same spot. GFX.TC_IRON_K (1.15). The door box carries over. Art chat 1: if you repaint the Iron town center bigger, set GFX.TC_IRON_K=1. ===== */
+GFX.TC_IRON_K=1.15;
+try{bldSpr0=(function(prev){const C=new WeakMap();return function(e){const sp=prev(e);try{if(!sp||!e||e.type!=='towncenter'||GFX.mode!=='V23D')return sp;const P=G.players[e.owner];if(!P||P.age!==2)return sp;const K=GFX.TC_IRON_K||1;if(K===1||!sp.width||!sp.w)return sp;
+  let c=C.get(sp);if(c)return c;c=document.createElement('canvas');c.width=Math.round(sp.width*K);c.height=Math.round(sp.height*K);const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(sp,0,0,c.width,c.height);
+  c.w=sp.w*K;c.h=sp.h*K;c.dx=(sp.dx||0)+(sp.w*K-sp.w)/2;c.ov=(sp.ov||0)+(sp.h*K-sp.h);for(const k of ['smoke','smoke2','fire','flag','_nf'])if(sp[k]!==undefined)c[k]=sp[k];
+  let d=sp.door;if(!d&&typeof DOORTAB!=='undefined'){const r=DOORTAB['towncenter2'];if(r&&r[6]===sp.width&&r[7]===sp.height)d=r.slice(0,6)}if(d)c.door=d;C.set(sp,c);return c}catch(err){return sp}}})(bldSpr0)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10272,3 +10278,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
