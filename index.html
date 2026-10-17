@@ -4398,7 +4398,7 @@ GFX.draw3d=function(c,u,x,y,now,S){const A=u.anim;let d=A&&A.dir8!=null?A.dir8:(
   const sc=S.bodyH?23.5/S.bodyH:27/S.fh,w=S.fw*sc,h=S.fh*sc,hit=A&&A.hit?1.5:0;
   c.fillStyle='rgba(15,20,8,.26)';ell(c,x,y+5.4,7.5,2.4);c.fill();
   const RM=S.rows5?[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]][d]:[d,0],row=RM[0],mir=RM[1];
-  const blit=(cv,lf,al)=>{const kk=cv._k||1,sx=lf*S.fw*kk;c.save();c.globalAlpha=al;if(mir){c.translate(x+hit,0);c.scale(-1,1);c.drawImage(cv,sx,row*S.fh*kk,S.fw*kk,S.fh*kk,-w/2,y+5.6-S.foot*sc,w,h)}else c.drawImage(cv,sx,row*S.fh*kk,S.fw*kk,S.fh*kk,x-w/2+hit,y+5.6-S.foot*sc,w,h);c.restore()};
+  const blit=(cv,lf,al)=>{const kk=cv._k||1,sx=lf*S.fw*kk,a0=c.globalAlpha;c.globalAlpha=al;if(mir){const tx=x+hit;c.translate(tx,0);c.scale(-1,1);c.drawImage(cv,sx,row*S.fh*kk,S.fw*kk,S.fh*kk,-w/2,y+5.6-S.foot*sc,w,h);c.scale(-1,1);c.translate(-tx,0)}else c.drawImage(cv,sx,row*S.fh*kk,S.fw*kk,S.fh*kk,x-w/2+hit,y+5.6-S.foot*sc,w,h);c.globalAlpha=a0};/* speed (gameplay chat 1, Oct 17): no save/restore per unit */
   const lf=f-sg[0];if(q.sg!==seg){q.pc=q.c;q.plf=q.lf;q.ct=now;q.sg=seg}const bt=q.pc?(now-q.ct)/160:1;
   if(bt<1&&q.pc&&q.pc.width){blit(q.pc,q.plf,1);blit(im,lf,Math.max(.15,bt))}else blit(im,lf,1);q.c=im;q.lf=lf;q.f=f;
   if(S.over)try{S.over(c,u,x,y,now,seg,f,row,mir,sc)}catch(e){}
@@ -10515,6 +10515,10 @@ function cliffPaint(){if(!G||!G.ground||G.mapType!=='corners')return;const T=G.t
 try{renderGround=(function(prev){return function(){const r=prev.apply(this,arguments);try{cliffPaint()}catch(err){}return r}})(renderGround)}catch(err){}
 /* no building out in the sea ring or the corner forest (islands excepted) */
 try{placeWhy=(function(prev){return function(type,tx,ty,o){const r=prev.apply(this,arguments);if(r)return r;try{const L=G.landBox;if(L&&G.mapType){const sz=(DEF[type]&&DEF[type].size)||1;for(let y=ty;y<ty+sz;y++)for(let x=tx;x<tx+sz;x++)if((x<L[0]||y<L[1]||x>=L[2]||y>=L[3])&&!islAt(x,y))return 'Too close to the edge of the map'}}catch(err){}return r}})(placeWhy)}catch(err){}
+
+/* ===== FPS readout (cheat code "fps"): frames per second, drawing time, buffer size, speed step ===== */
+setTimeout(()=>{try{CHEATS.fps=()=>{PERF.show=!PERF.show;let d=document.getElementById('fpsBox');if(!d){d=document.createElement('div');d.id='fpsBox';d.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;background:rgba(0,0,0,.6);color:#fff;font:12px/1.3 monospace;padding:4px 7px;border-radius:6px;pointer-events:none';document.body.appendChild(d)}d.hidden=!PERF.show;return PERF.show?'FPS display on':'FPS display off'}}catch(err){}},0);
+try{draw=(function(prev){let n=0,t0=0,dm=0;return function(){const a=performance.now();const r=prev.apply(this,arguments);if(PERF.show){const b=performance.now();dm+=b-a;n++;if(!t0)t0=b;if(b-t0>=500){const d=document.getElementById('fpsBox');if(d)d.textContent=Math.round(n*1000/(b-t0))+' fps · draw '+(dm/n).toFixed(1)+' ms · '+cv.width+'×'+cv.height+' · step '+PERF.lvl;n=0;dm=0;t0=b}}return r}})(draw)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11317,7 +11321,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.over
 
 /* ---------- loop ---------- */
 let DPRCAP=2,slowT=0,fastCheckT=0;
-function resize(){W=app.clientWidth;H=app.clientHeight;dpr=Math.min(DPRCAP,window.devicePixelRatio||1);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);mini.width=mini.height=Math.round(112*Math.min(2,dpr));makeVignette();if(G)clampCam();checkRotate();}
+function resize(){W=app.clientWidth;H=app.clientHeight;dpr=Math.min(DPRCAP,window.devicePixelRatio||1,Math.max(1,Math.sqrt((window.PXB||3.6e6)/Math.max(1,W*H))));cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);mini.width=mini.height=Math.round(112*Math.min(2,dpr));makeVignette();if(G)clampCam();checkRotate();}
 window.addEventListener('resize',resize);
 let last=performance.now(),acc=0;
 function frame(now){
@@ -11448,12 +11452,14 @@ function detail(c,inView){if(!S.detail||!GFX.groundOn||!GFX.groundOn())return;co
   const cv=c.canvas,mk=()=>{const k=document.createElement('canvas');return k},D=S._d||(S._d=mk());if(D.width!==cv.width||D.height!==cv.height){D.width=cv.width;D.height=cv.height;S._dk=null}
   let sand=false;if(ok('ds')){const P=m.cp;for(let i=0;i<P.length;i+=6)if(inView(P[i],P[i+1],2*TILE)){sand=true;break}}
   const key=[T.a,T.e,T.f,cv.width,cv.height,sand,m.seed].join('|');
-  if(S._dk!==key&&ok('dg')){const d=D.getContext('2d');dlayer(d,IM.dg,168/IM.dg.naturalWidth,m.wt,vx0,vy0,vx1,vy1,T);
+  if(key!==S._lk){S._lk=key;S._st=0}else S._st=(S._st||0)+1;
+  if(S._dk!==key&&S._st<3)return;/* speed (gameplay chat 1, Oct 17): skip while panning/zooming */
+  if(S._dk!==key&&ok('dg')){S._fa=0;const d=D.getContext('2d');dlayer(d,IM.dg,168/IM.dg.naturalWidth,m.wt,vx0,vy0,vx1,vy1,T);
     if(sand){const X=S._t||(S._t=mk());if(X.width!==cv.width||X.height!==cv.height){X.width=cv.width;X.height=cv.height}const x=X.getContext('2d');dlayer(x,IM.ds,.25,m.ws,vx0,vy0,vx1,vy1,T);
       d.setTransform(1,0,0,1,0,0);d.globalCompositeOperation='source-over';d.drawImage(X,0,0)}
     S._dk=key}
   if(S._dk!==key)return;
-  c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation=S.blend||'source-over';c.globalAlpha=S.det;c.drawImage(D,0,0);c.restore()}
+  S._fa=Math.min(1,(S._fa==null?1:S._fa)+.12);c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation=S.blend||'source-over';c.globalAlpha=S.det*S._fa;c.drawImage(D,0,0);c.restore()}
 function surf(c,now,inView){const m=M;if(!m)return;const t=now/1000,P=m.cp,L=TILE*.3;c.save();c.lineCap='round';
   for(let i=0;i<P.length;i+=6){const x=P[i],y=P[i+1];if(!inView(x,y,40))continue;const nx=P[i+2],ny=P[i+3],h=P[i+4],ph=P[i+5],tx=-ny,ty=nx;
     const a0=.16+.1*Math.sin(t*1.1+h*19);c.fillStyle='rgba(255,255,255,'+a0.toFixed(3)+')';c.beginPath();c.ellipse(x+nx*(2+h*2),y+ny*(2+h*2),L*1.25,2.2+h*2.2,Math.atan2(ty,tx),0,7);c.fill();
