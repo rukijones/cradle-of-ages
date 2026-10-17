@@ -248,7 +248,7 @@ const DEF={
   coop:{kind:'bld',name:'Chicken coop',hp:100,size:2,sight:2,techs:[],cost:{w:75},time:15,age:2},
   pen:{kind:'bld',name:'Sheep wing',hp:200,size:3,sight:3,techs:[],cost:{w:150},time:25,age:4,walkable:1},
   butcher:{kind:'bld',name:'Butcher',hp:200,size:2,sight:3,drop:1,dropOnly:'f',cost:{w:120},time:25,age:2},
-  dock:{kind:'bld',name:'Dock',hp:250,size:2,sight:5,drop:1,dropOnly:'f',trains:['fishboat'],cost:{w:120},time:25,age:1},
+  dock:{kind:'bld',name:'Dock',hp:250,size:2,sight:5,drop:1,dropOnly:'f',trains:['fishboat','transport'],cost:{w:120},time:25,age:1},
   outpost:{kind:'bld',name:'Outpost',hp:150,size:1,sight:9,cost:{w:40,s:25},time:15,age:2},
   knight:{kind:'unit',name:'Knight',plural:'Knights',hp:150,atk:11,arm:2,range:0,cd:1.35,speed:108,sight:7,r:11,cost:{f:70,g:75},time:28,age:3},
   crossbow:{kind:'unit',name:'Crossbowman',plural:'Crossbowmen',hp:42,atk:7,arm:1,range:7.5,cd:1.6,speed:76,sight:9,r:8,cost:{f:35,w:45},time:20,age:3},
@@ -391,7 +391,7 @@ const BONUS={bazooka:{vs:['tank','armoredcar','truck'],amt:110,label:'Tanks, veh
 const WEAK={bazooka:'Infantry, helicopters',heli:'Anti-aircraft guns',infantry:'Tanks, artillery',tank:'Anti-tank guns, bazooka men, Tesla coils',armoredcar:'Tanks, anti-tank guns, bazooka men',atgun:'Infantry, armored cars',artillery:'Anything that reaches it',rifleman:'Cavalry up close',cuirassier:'Riflemen in numbers',fieldgun:'Cavalry',arquebus:'Cavalry up close',bombard:'Cavalry',knight:'Halberdiers',crossbow:'Knights',longsword:'Crossbows, siege',halberdier:'Archers',trebuchet:'Everything up close',legionary:'Archers, catapults',pikeman:'Archers',compbow:'Cavalry',cavalry:'Pikemen',catapult:'Cavalry',scout:'Most soldiers',bowman:'Horse riders',slinger:'Horse riders',rider:'Spearmen',clubman:'Swordsmen',axeman:'Swordsmen',spearman:'Bowmen',swordsman:'Bowmen'};
 const CONV={axemen:['clubman','axeman'],legion:['swordsman','legionary'],pikes:['spearman','pikeman'],composite:['bowman','compbow'],cavtech:['rider','cavalry'],chivalry:['cavalry','knight'],crossbows:['compbow','crossbow'],longswords:['legionary','longsword'],halberds:['pikeman','halberdier'],rifles:['arquebus','rifleman'],cuirass:['knight','cuirassier'],shells:['bombard','fieldgun'],automatic:['rifleman','infantry'],motorize:['cuirassier','armoredcar'],howitzers:['fieldgun','artillery']};
 const WORK={pub:{max:2,rate:{},label:'brewers'},shaft:{max:3,rate:{},label:'miners'},factory:{max:4,rate:{g:.22},fuel:{w:.1,s:.05},label:'extra factory hands'},bakery:{max:3,rate:{f:2.1},fuel:{w:.12},label:'bakers'},dairy:{max:2,rate:{f:.7},label:'dairy workers'},weaver:{max:2,rate:{},label:'weavers'}};
-const NONMIL=new Set(['villager','settler','fishboat','sheep','cow','deer','wolf','tradecart','donkey','ox','explorer','truck','caravan']);
+const NONMIL=new Set(['villager','settler','fishboat','transport','sheep','cow','deer','wolf','tradecart','donkey','ox','explorer','truck','caravan']);
 const USES={
   dairy:[['milk','Milk','About 15 food a minute per milked cow'],['cheese','Cheese','Gold, or cheese crates for trade once you have a market']],
   pen:[['meat','Mutton','Shepherds slaughter extra sheep for meat'],['wool','Wool cloth','Shepherds shear: gold, or cloth crates for trade once you have a market']],
@@ -803,7 +803,7 @@ function reqMissing(o,k){const it=TECH[k];if(!it||!it.req)return null;const miss
 function canQueue(b,k){const o=b.owner,it=itemOf(k);if(it.needTech&&!G.players[o].tech[it.needTech])return false;if(DEF[k]&&!canTrain(o,k))return false;if((it.age||0)>G.players[o].age)return false;if(TECH[k]&&upgTo(k)&&RETIRE[upgTo(k)]&&G.players[o].age>=RETIRE[upgTo(k)])return false;if(TECH[k]&&(techState(o,k)||reqMissing(o,k)))return false;return true;}
 function atkOf(u){const t=G.players[u.owner].tech,mil=!NONMIL.has(u.type);return (RANGED.has(u.type)&&BON(u.owner).feathers?1:0)+DEF[u.type].atk+(mil&&t.weapons?2:0)+(mil&&t.ironweap?2:0)+(mil&&t.steel?2:0)+(u.type==='slinger'&&t.vetsling?1:0);}
 function speedOf(u){return (G.road&&G.players[u.owner]&&G.players[u.owner].age>=6&&G.road[ti(tl(u.x),tl(u.y))]?(u.type==='truck'?1.6:1.3):1)*DEF[u.type].speed*(SIEGE.has(u.type)&&BON(u.owner).oxen?1.25:1)*((u.type==='villager'||u.type==='settler')&&G.players[u.owner].tech.wheel?1.25:1)*spiritSpeed(u);}
-function capOf(u){if(u.type==='fishboat')return 25;if(u.type==='villager'&&u.donkey){const d=G.byId.get(u.donkey);if(d&&!d.dead&&d.owner===u.owner&&Math.hypot(d.x-u.x,d.y-u.y)<3*TILE)return CARRY*2;}return CARRY;}
+function capOf(u){if(u.type==='fishboat')return 10;if(u.type==='villager'&&u.donkey){const d=G.byId.get(u.donkey);if(d&&!d.dead&&d.owner===u.owner&&Math.hypot(d.x-u.x,d.y-u.y)<3*TILE)return CARRY*2;}return CARRY;}
 function rangeOf(u){const t=G.players[u.owner].tech;return (DEF[u.type].range||0)+(u.type==='slinger'&&t.vetsling?1:0)+(t.ballistics&&RANGED.has(u.type)?1:0);}
 function hitAmt(u,t){let a=atkOf(u)*(u.buff&&u.buff.type==='morale'&&u.buff.until>G.t?1.1:1)*(1+.1*(u.rank||0));const b=BONUS[u.type];if(b&&b.vs.includes(t.type))a+=b.amt;return a;}
 /* Josh: only the soldiers of the time can be trained. A unit line retires from this age on (its last version is from 2+ ages earlier). */
@@ -1255,7 +1255,7 @@ $('gmenu').addEventListener('click',e=>{const tb=e.target.closest('button[data-t
   const org=ends.find(en=>en!==dest&&Math.hypot(board[0].x-en.x,board[0].y-en.y)<6*TILE);const dist=Math.hypot(dest.x-org.x,dest.y-org.y)/TILE,trav=Math.round(4+dist/12);
   for(const u of board){u.dead=true;u.sheltered=true;}(G.troops=G.troops||[]).push({units:board,dest:dest.id,x:dest.x,y:dest.y,ret:G.t+trav,o:0});G.sel=[];panelKeyLast='';toast(board.length+' soldier'+(board.length>1?'s':'')+' boarded the train. Arriving in about '+trav+' seconds');sfx('horn',org.x,org.y);});
 function coppiceOwner(t){for(const o of[0,1])if(G.players[o].tech.coppicing&&inTerritory(o,t.tx,t.ty,1))return o;return -1;}
-function gatherRate(u,t){const p=G.players[u.owner],rt=RES[t.type].r;let r=t.copd&&!t.stump?RATE.w*1.2:t.type==='farm'?.55:t.type==='carcass'?1:t.type==='fish'?(u.type==='fishboat'?1:.5):RATE[rt];if(t.type==='goldmine'||t.type==='stonemine')r*=1.15;if(t.type==='farm'){if(bigFarm(t))r*=2;if(!t.mc||G.t-t.mc>5){t.mc=G.t;const ml=millOf(t);t.milled=!!ml;t.millUse=ml&&!(ml.useT>0)?useOf(ml):null;}if(t.milled)r*=1.25;if(t.millUse==='flax')r*=.45;else if(t.millUse==='barley'||t.millUse==='hay')r*=.7;if(BON(u.owner).oxen)r*=1.2;}if(u.forester){r*=2;if(p.tech.sawmill)r*=1.5;}if(p.tech.bronzetools&&u.type==='villager')r*=1.2;if(u.buff&&u.buff.type==='rest'&&u.buff.until>G.t)r*=1.15;if(t.type==='farm'&&t.ox){const ox=G.byId.get(t.ox);if(ox&&!ox.dead&&ox.owner===u.owner&&ox.plowing)r*=1.4;}if(rt==='w'&&p.tech.axes)r*=1.25;if(rt==='s'&&p.tech.picks)r*=1.25;if(t.type==='farm'&&p.tech.plow)r*=1.25;r*=spiritGather(u.owner,t,rt);return r*(u.owner===1?G.aiMult:1);}
+function gatherRate(u,t){const p=G.players[u.owner],rt=RES[t.type].r;let r=t.copd&&!t.stump?RATE.w*1.2:t.type==='farm'?.55:t.type==='carcass'?1:t.type==='fish'?(u.type==='fishboat'?.2:.4):RATE[rt];if(t.type==='goldmine'||t.type==='stonemine')r*=1.15;if(t.type==='farm'){if(bigFarm(t))r*=2;if(!t.mc||G.t-t.mc>5){t.mc=G.t;const ml=millOf(t);t.milled=!!ml;t.millUse=ml&&!(ml.useT>0)?useOf(ml):null;}if(t.milled)r*=1.25;if(t.millUse==='flax')r*=.45;else if(t.millUse==='barley'||t.millUse==='hay')r*=.7;if(BON(u.owner).oxen)r*=1.2;}if(u.forester){r*=2;if(p.tech.sawmill)r*=1.5;}if(p.tech.bronzetools&&u.type==='villager')r*=1.2;if(u.buff&&u.buff.type==='rest'&&u.buff.until>G.t)r*=1.15;if(t.type==='farm'&&t.ox){const ox=G.byId.get(t.ox);if(ox&&!ox.dead&&ox.owner===u.owner&&ox.plowing)r*=1.4;}if(rt==='w'&&p.tech.axes)r*=1.25;if(rt==='s'&&p.tech.picks)r*=1.25;if(t.type==='farm'&&p.tech.plow)r*=1.25;r*=spiritGather(u.owner,t,rt);return r*(u.owner===1?G.aiMult:1);}
 function applyTech(o,k){
   if(k==='renaissance'){try{caravanUp(o);}catch(err){}}
   if(k==='harvesters'){let n=0;for(const u of G.ents)if(u.owner===o&&u.type==='villager'&&u.order&&u.order.type==='gather'&&u.order.rtype==='farm'){u.order=null;u.path=null;n++;}if(o===0)toast('Steam harvesters now work your farms. '+n+' farmer'+(n===1?' is':'s are')+' free for other work');}
@@ -2059,7 +2059,7 @@ function updPOIs(dt){try{wolfTick(dt);}catch(e){}try{spiritTick(dt);}catch(e){co
     if(side>=0&&sh.owner!==side){sh.owner=side;sh.order=null;sh.path=null;sh.scan=0;if(sh.type==='sheep'){G.fx.push({type:'float',x:sh.x,y:sh.y-18,t:1.4,text:'Collared',col:PCOL[side]});for(const f of G.ents)if(f.type==='sheep'&&f.owner===2&&!f.dead&&Math.hypot(f.x-sh.x,f.y-sh.y)<4*TILE){f.owner=side;f.order=null;f.path=null;f.scan=Math.random();}}if(side===0&&G.t-(G.lastSheepMsg||-99)>20){G.lastSheepMsg=G.t;toast(sh.type!=='sheep'?'You found cows. Herd them to a dairy':G.ents.some(e=>isPen(e)&&e.owner===0&&e.built&&!e.dead)?'Your villager put collars on wild sheep. They stay put: your shepherd can call them to the pen, or select them and tap the pen':'Your villager put collars on wild sheep. They stay put until you move them. Build a livestock pen and a shepherd can call them in');}}}
   for(const p of G.ents){
     if(p.kind!=='poi')continue;
-    if(p.type==='tradepost')continue;
+    if(p.type==='tradepost'||p.type==='idock')continue;
     if(p.type==='ruin'){if(p.looted)continue;for(const u of G.ents)if(u.kind==='unit'&&u.owner<2&&!u.dead&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<56&&Math.abs(u.y-p.y)<56&&Math.hypot(u.x-p.x,u.y-p.y)<1.7*TILE){claimRuin(p,u.owner);break;}continue;}
     if(p.type==='sacred'&&p.hid)sacDisc(p,dt);
     const pres=[0,0];for(const u of G.ents)if(u.kind==='unit'&&u.owner<2&&!u.dead&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<110&&Math.hypot(u.x-p.x,u.y-p.y)<3.2*TILE&&sacFound(p,u.owner))pres[u.owner]++;
@@ -7955,7 +7955,7 @@ function draw(){
   for(const it of list){const e=it[1];
     if(e.kind==='decor'){drawDecor(c,e,now);continue;}
     if(e.kind==='res')drawRes(c,e);
-    else if(e.kind==='poi'){if(e.type==='ruin')drawRuin(c,e,now);else if(e.type==='tradepost')drawTradepost(c,e,now);else drawSacred(c,e,now);}
+    else if(e.kind==='poi'){if(e.type==='ruin')drawRuin(c,e,now);else if(e.type==='tradepost')drawTradepost(c,e,now);else if(e.type==='idock'){try{drawIDock(c,e,now)}catch(err){}}else drawSacred(c,e,now);}
     else if(e.kind==='bld'){if(selSet.has(e.id)){const S=e.size*TILE,g=((e.type==='pen'||e.type==='corral')&&e.mgrp)||(e.type==='coop'&&(e.yard||yardJobBox(e)))||(e.type==='bakery'&&(e.sgrp||steamJobBox(e)))||(e.type==='farm'&&e.frow);c.strokeStyle=e.owner===0?'#fff':'#ff8a7a';c.lineWidth=1.5+1/z;c.beginPath();if(g)c.ellipse((g.x0+g.x1)/2*TILE,(g.y0+g.y1)/2*TILE+2,(g.x1-g.x0)*TILE*.55,(g.y1-g.y0)*TILE*.48,0,0,7);else if(!(GFX._ranchOutline&&GFX._ranchOutline(c,e)))c.ellipse(e.x,e.y+2,S*.55,S*.48,0,0,7);c.stroke();}drawBuilding(c,e,now);if(e.dOpen!==undefined){try{drawDoorAnim(c,e);}catch(err){}}if(e.built&&cam.z>=.6&&BANIM[e.type]&&e.anim)BANIM[e.type](c,e,now);}
     else{const ux=it[2],uy=it[3];
       if(selSet.has(e.id)&&!uHidden(e)){c.save();c.strokeStyle=e.owner===0?'#ffffff':'#ff8a7a';c.lineWidth=1.6;c.setLineDash([5,3]);c.lineDashOffset=-now/50;c.beginPath();c.ellipse(ux,uy+5,10.5,4.6,0,0,7);c.stroke();c.restore();}
@@ -10123,6 +10123,118 @@ function drawOcean(c,vx0,vy0,vx1,vy1){if(!G||!G.landBox)return;if(!G.oceanPic||G
   const x0=Math.max(0,vx0),y0=Math.max(0,vy0),x1=Math.min(WW,vx1),y1=Math.min(WH,vy1);if(x1<=x0||y1<=y0)return;const k=OCS/TILE;
   c.drawImage(P,x0*k,y0*k,(x1-x0)*k,(y1-y0)*k,x0,y0,x1-x0,y1-y0)}
 try{renderGround=(function(prev){return function(){if(G)G.oceanPic=null;const r=prev.apply(this,arguments);try{const L=G.landBox;if(L&&G.water)for(const w of G.water){const tx=tl(w[0]),ty=tl(w[1]);if((tx<L[0]||ty<L[1]||tx>=L[2]||ty>=L[3])&&w[2]<1)w[2]=1}}catch(err){}return r}})(renderGround)}catch(err){}
+/* ===== Ocean step 2: islands + transport boat (gameplay chat 1, Josh Oct 17: 3 islands, one with a sacred site, a gold isle; "hold and defend").
+   - 3 islands in the ocean ring, placed where both bases are about the same distance away: Sacred Isle (one of the 4 sacred sites moves there),
+     Gold Isle (gold + stone deposits; build a mine there once you hold it) and Ruin Isle (2 ruins).
+   - Each island has a ready-made island dock (poi 'idock', can't be destroyed). Holding: an island turns to whoever has units or buildings on it
+     with no enemy units/buildings there for ISL.cap seconds; the new owner gets a free watchtower by the dock. Only the owner can build on it.
+     Lose everything on it and it can be taken.
+   - Transport boat (dock, Bronze Age, 150 wood 20 gold): carries 5. Select land units, tap your transport: they board. Select the transport and tap a dock
+     (yours, the enemy's, or an island dock): it sails there and everyone gets off. Boats only land at docks. Units aboard still count for population;
+     if the boat sinks they are lost.
+   - Placeholder pictures: the transport is the fishing boat drawn bigger; island docks are drawn piers with a flag (art wanted). ===== */
+const ISL={cap:20,carry:5,names:{sacred:'Sacred Isle',gold:'Gold Isle',ruin:'Ruin Isle'}};
+try{DEF.transport={kind:'unit',name:'Transport boat',plural:'Transport boats',hp:180,atk:0,range:0,cd:2,speed:62,sight:7,r:13,cost:{w:150,g:20},time:30,age:1,naval:1}}catch(err){}
+function islAt(tx,ty){const I=G&&G.islands;if(!I)return null;for(const s of I)if(tx>=s.x0&&tx<=s.x1&&ty>=s.y0&&ty<=s.y1&&s.set&&s.set[ti(tx,ty)])return s;return null}
+function islSet(s){if(!s.set){s.set={};for(const i of s.tiles)s.set[i]=1}return s}
+function islandsGen(){if(!G||!G.landBox||G.islands)return;const O=OCEAN,T=G.terrain,B=G.bases||[];const C=[];
+  for(const t of [.25,.5,.75]){const p=Math.round(O+LAND*t);C.push([O/2-.5,p,0],[MW-O/2-.5,p,0],[p,O/2-.5,1],[p,MH-O/2-.5,1])}
+  const sc=C.map(c=>{const d=B.map(b=>Math.hypot(c[0]-b[0],c[1]-b[1]));return {c,bal:d.length>1?Math.abs(d[0]-d[1]):0,near:Math.min(...d)}}).filter(x=>x.near>=26).sort((a,b)=>a.bal-b.bal);
+  const picks=[];for(const x of sc){if(picks.every(p=>Math.hypot(p.c[0]-x.c[0],p.c[1]-x.c[1])>45))picks.push(x);if(picks.length===3)break}
+  const kinds=['sacred','gold','ruin'];G.islands=[];
+  picks.forEach((p,i)=>{const [cx,cy,wide]=p.c,rx=wide?5.6:3.4,ry=wide?3.4:5.6,tiles=[];let x0=1e9,y0=1e9,x1=-1,y1=-1;
+    for(let y=Math.floor(cy-ry-1);y<=Math.ceil(cy+ry+1);y++)for(let x=Math.floor(cx-rx-1);x<=Math.ceil(cx+rx+1);x++){if(!inB(x,y)||x<2||y<2||x>MW-3||y>MH-3)continue;
+      const L=G.landBox;if(x>=L[0]-3&&x<L[2]+3&&y>=L[1]-3&&y<L[3]+3)continue;const q=((x-cx)/rx)**2+((y-cy)/ry)**2;if(q>1+(Math.sin(x*1.7+y*.9+i)*.18))continue;
+      T[ti(x,y)]=0;tiles.push(ti(x,y));x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+    if(tiles.length<12)return;
+    for(const e of G.ents)if(e.type==='fish'&&!e.dead&&e.tx>=x0-1&&e.tx<=x1+1&&e.ty>=y0-1&&e.ty<=y1+1)e.dead=true;
+    const s=islSet({id:i,k:kinds[i],tiles,x0,y0,x1,y1,cx:Math.round(cx),cy:Math.round(cy),owner:-1,cap:[0,0]});G.islands.push(s);
+    /* dock: island edge tile facing the land */
+    const mx=MW/2,my=MH/2;let best=null,bv=-1e9;for(const t of tiles){const x=t%MW,y=(t/MW)|0;const dx=Math.sign(mx-x)*(wide?0:1),dy=Math.sign(my-y)*(wide?1:0);if(!wwalk(x+dx,y+dy))continue;const v=(wide?-Math.abs(x-cx):-Math.abs(y-cy))*2+(wide?(my>y?y:-y):(mx>x?x:-x));if(v>bv){bv=v;best=[x,y,dx,dy]}}
+    if(!best)best=[s.cx,s.cy,0,1];const [dx0,dy0]=best;
+    const dk=addEnt({kind:'poi',type:'idock',owner:-1,isl:i,tx:dx0,ty:dy0,size:1,x:(dx0+.5)*TILE,y:(dy0+.5)*TILE,wx:dx0+best[2],wy:dy0+best[3],v:Math.random()});s.dock=dk.id;
+    const free=(x,y)=>s.set[ti(x,y)]&&!G.occ[ti(x,y)]&&!(x===dx0&&y===dy0)&&Math.hypot(x-dx0,y-dy0)>1.5;
+    const spots=tiles.map(t=>[t%MW,(t/MW)|0]).filter(([x,y])=>free(x,y)).sort((a,b)=>Math.hypot(a[0]-s.cx,a[1]-s.cy)-Math.hypot(b[0]-s.cx,b[1]-s.cy));
+    if(s.k==='sacred'){const ss=G.ents.filter(e=>e.type==='sacred'&&!e.dead);const sv=ss[ss.length-1];const sp=spots[0];if(sv&&sp){sv.tx=sp[0];sv.ty=sp[1];sv.x=(sp[0]+.5)*TILE;sv.y=(sp[1]+.5)*TILE;sv.cap=[0,0];sv.owner=-1;s.sacred=sv.id}}
+    if(s.k==='gold'){let n=0;for(const [x,y] of spots){if(n>=9)break;if(G.occ[ti(x,y)])continue;mkRes('gold',x,y);n++}let m=0;for(const [x,y] of spots.slice().reverse()){if(m>=3)break;if(G.occ[ti(x,y)])continue;mkRes('stone',x,y);m++}}
+    if(s.k==='ruin'){const a=spots[0],b=spots[Math.min(spots.length-1,Math.floor(spots.length*.6))];for(const sp of [a,b])if(sp)addEnt({kind:'poi',type:'ruin',owner:-1,tx:sp[0],ty:sp[1],size:1,x:(sp[0]+.5)*TILE,y:(sp[1]+.5)*TILE,v:Math.random()})}
+    let tr=0;for(const [x,y] of spots.slice().reverse()){if(tr>=3)break;if(G.occ[ti(x,y)]||G.ents.some(e=>e.kind==='poi'&&Math.abs(e.tx-x)<2&&Math.abs(e.ty-y)<2))continue;mkRes('tree',x,y);tr++}
+  });
+  G.ents=G.ents.filter(e=>!e.dead);G.oceanPic=null}
+try{oceanFinish=(function(prev){return function(){const r=prev.apply(this,arguments);try{islandsGen()}catch(err){}return r}})(oceanFinish)}catch(err){}
+try{loadGame=(function(prev){return function(){const r=prev.apply(this,arguments);try{if(r&&G&&G.landBox&&!G.islands){islandsGen();renderGround()}if(r&&G&&G.islands)for(const s of G.islands){s.set=null;islSet(s)}}catch(err){}return r}})(loadGame)}catch(err){}
+try{saveGame=(function(prev){return function(){const keep=[];try{if(G&&G.islands)for(const s of G.islands){keep.push(s.set);s.set=undefined}}catch(err){}try{return prev.apply(this,arguments)}finally{try{if(G&&G.islands)G.islands.forEach((s,i)=>{s.set=keep[i];if(!s.set)islSet(s)})}catch(err){}}}})(saveGame)}catch(err){}
+/* island ground: a small canvas per island added to the ground chunks; green on the minimap */
+function islPaint(){if(!G||!G.islands||!G.ground)return;for(const s of G.islands){islSet(s);const pad=1,cx=(s.x0-pad)*TILE,cy=(s.y0-pad)*TILE,w=(s.x1-s.x0+1+2*pad)*TILE,h=(s.y1-s.y0+1+2*pad)*TILE;
+    const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.translate(-cx,-cy);const R=mulberry((G.seed||1)+s.id*31);
+    const pts=s.tiles.map(t=>[(t%MW+.5)*TILE,(((t/MW)|0)+.5)*TILE,t]);const inner=t=>{const x=t%MW,y=(t/MW)|0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]])if(!s.set[ti(x+dx,y+dy)])return false;return true};
+    g.fillStyle='rgba(120,105,62,.45)';for(const[x,y]of pts){g.beginPath();g.arc(x,y,28,0,7);g.fill()}
+    g.fillStyle='#c9b27a';for(const[x,y]of pts){g.beginPath();g.arc(x,y,23,0,7);g.fill()}
+    g.fillStyle='#d8c48e';for(const[x,y]of pts){g.beginPath();g.arc(x-3,y-3,14,0,7);g.fill()}
+    for(const[x,y,t]of pts)if(inner(t)){g.fillStyle='#6f8d3c';g.beginPath();g.arc(x,y,24,0,7);g.fill()}
+    for(const[x,y,t]of pts)if(inner(t))for(let k=0;k<14;k++){g.fillStyle=['#66853a','#7a9542','#5f7f36','#86a04a'][(R()*4)|0];g.fillRect(x+(R()-.5)*30,y+(R()-.5)*30,2+R()*3,2+R()*3)}
+    G.ground.chunks.push({x:cx,y:cy,c,isl:s.id})}
+  try{if(G.miniBase){const m=G.miniBase.getContext('2d');m.fillStyle='#7a9542';for(const s of G.islands)for(const t of s.tiles)m.fillRect(t%MW,(t/MW)|0,1,1)}}catch(err){}}
+try{renderGround=(function(prev){return function(){const r=prev.apply(this,arguments);try{islPaint()}catch(err){}return r}})(renderGround)}catch(err){}
+/* island dock picture (placeholder): a short pier into the water and a flag in the owner's colour */
+function drawIDock(c,e,now){const s=G.islands&&G.islands[e.isl];const dx=(e.wx-e.tx),dy=(e.wy-e.ty),x=e.x,y=e.y+6;c.save();
+  c.fillStyle='rgba(15,20,8,.25)';c.fillRect(x-12+dx*10,y-4+dy*10,24,10);
+  const L=26;for(let i=0;i<5;i++){const px=x+dx*i*6-(dy?12:0)*(dx?0:1),py=y+dy*i*6;c.fillStyle=i%2?'#7a5530':'#8b6438';if(dy)c.fillRect(x-11,y+dy*(i*6)-3,22,5);else c.fillRect(x+dx*(i*6)-3,y-11,5,22)}
+  c.fillStyle='#4a321b';for(const[a,b]of[[-10,0],[10,0]]){if(dy){c.fillRect(x+a-1.5,y+dy*22,3,8)}else{c.fillRect(x+dx*22,y+a-1.5,3,8)}}
+  const fx=x-dx*4,fy=y-dy*4-4,col=s&&s.owner>=0?PCOL[s.owner]:'#e8e2d0';c.strokeStyle='#3a2a18';c.lineWidth=2;c.beginPath();c.moveTo(fx,fy);c.lineTo(fx,fy-30);c.stroke();
+  const wv=Math.sin(now/260+e.v*6)*2;c.fillStyle=col;c.beginPath();c.moveTo(fx,fy-30);c.quadraticCurveTo(fx+9,fy-28+wv,fx+17,fy-25);c.lineTo(fx,fy-20);c.closePath();c.fill();c.strokeStyle='rgba(0,0,0,.4)';c.lineWidth=1;c.stroke();
+  if(s){const p=Math.max(s.cap[0],s.cap[1]);if(p>0&&p<ISL.cap){const o=s.cap[0]>=s.cap[1]?0:1;c.strokeStyle='rgba(0,0,0,.5)';c.lineWidth=4;c.beginPath();c.arc(fx,fy-44,8,0,7);c.stroke();c.strokeStyle=PCOL[o];c.lineWidth=3;c.beginPath();c.arc(fx,fy-44,8,-Math.PI/2,-Math.PI/2+p/ISL.cap*Math.PI*2);c.stroke()}}
+  c.restore()}
+function islName(e){const s=G.islands&&G.islands[e.isl];return s?ISL.names[s.k]+' dock':'Island dock'}
+function islSub(e){const s=G.islands&&G.islands[e.isl];if(!s)return '';return s.owner===0?'🚩 Yours':s.owner===1?'🚩 Enemy':'🏳️ Nobody holds it'}
+function islHint(e){const s=G.islands&&G.islands[e.isl];const what=s?(s.k==='sacred'?'⛩️ a sacred site':s.k==='gold'?'🪙 gold to mine':'🏛️ 2 ruins'):'';
+  return '⛵ Land here with a transport boat. '+what+'. Hold it '+ISL.cap+'s with nobody else there to take it: you get a free watchtower and can build on it.'}
+try{Object.defineProperty(THUMB,'idock',{configurable:true,enumerable:true,get(){return THUMB.dock},set(v){}})}catch(err){}
+try{let own=null;Object.defineProperty(THUMB,'transport',{configurable:true,enumerable:true,get(){return own||THUMB.fishboat},set(v){own=v}})}catch(err){}
+/* holding: once a second */
+function islTick(){if(!G.islands)return;for(const s of G.islands){islSet(s);const has=[0,0];
+    for(const e of G.ents){if(e.dead||(e.owner!==0&&e.owner!==1))continue;if(e.kind==='unit'){if(e.naval||e.air||(DEF[e.type]&&DEF[e.type].animal))continue;const tx=tl(e.x),ty=tl(e.y);if(tx<s.x0||tx>s.x1||ty<s.y0||ty>s.y1||!s.set[ti(tx,ty)])continue;has[e.owner]=1}
+      else if(e.kind==='bld'){if(e.tx<s.x0||e.tx>s.x1||e.ty<s.y0||e.ty>s.y1||!s.set[ti(e.tx,e.ty)])continue;has[e.owner]=1}}
+    for(const o of [0,1]){if(has[o]&&!has[1-o]&&s.owner!==o){s.cap[o]=Math.min(ISL.cap,s.cap[o]+1);s.cap[1-o]=0;if(s.cap[o]>=ISL.cap){s.owner=o;s.cap=[0,0];islTaken(s,o)}}
+      else if(!has[o])s.cap[o]=0}}}
+function islTaken(s,o){const dk=G.byId.get(s.dock);if(o===0){toast('🚩 '+ISL.names[s.k]+' is yours! A free watchtower guards its dock');try{sfx('done',dk?dk.x:0,dk?dk.y:0)}catch(e){}}else if(o===1&&G.exp[0]&&dk&&G.exp[0][ti(dk.tx,dk.ty)])toast('🚩 The enemy took '+ISL.names[s.k]);
+  if(G.ents.some(e=>e.type==='tower'&&e.owner===o&&!e.dead&&islAt(e.tx,e.ty)===s))return;const sz=DEF.tower.size;let spot=null,bd=1e9;
+  for(const t of s.tiles){const x=t%MW,y=(t/MW)|0;let ok=true;for(let yy=y;yy<y+sz&&ok;yy++)for(let xx=x;xx<x+sz;xx++)if(!s.set[ti(xx,yy)]||G.occ[ti(xx,yy)]||(dk&&xx===dk.tx&&yy===dk.ty)){ok=false;break}
+    if(!ok)continue;const d=dk?Math.hypot(x-dk.tx,y-dk.ty):0;if(d<bd&&d>=1.5){bd=d;spot=[x,y]}}
+  if(spot){const b=mkBld('tower',o,spot[0],spot[1],true);try{displaceUnits(b)}catch(e){}}}
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.islands){G._islT=(G._islT||0)+dt;if(G._islT>=1){G._islT-=1;islTick()}}}catch(err){}return r}})(tick)}catch(err){}
+/* only the island's holder may build on it */
+try{placeWhy=(function(prev){return function(type,tx,ty,o){const r=prev.apply(this,arguments);if(r)return r;try{const sz=(DEF[type]&&DEF[type].size)||1;for(let y=ty;y<ty+sz;y++)for(let x=tx;x<tx+sz;x++){const s=islAt(x,y);if(s&&s.owner!==o)return 'Hold this island first: land units by boat and keep it '+ISL.cap+'s'}}catch(err){}return r}})(placeWhy)}catch(err){}
+/* transport boats */
+function boatCargo(b){return b.cargo||(b.cargo=[])}
+try{popUsed=(function(prev){return function(o){let n=prev.apply(this,arguments);try{for(const b of G.ents)if(b.type==='transport'&&b.owner===o&&!b.dead&&b.cargo)n+=b.cargo.length}catch(err){}return n}})(popUsed)}catch(err){}
+function boatLandTile(b){let best=null,bd=1e9;const bx=tl(b.x),by=tl(b.y);for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const x=bx+dx,y=by+dy;if(!inB(x,y)||!walk(x,y))continue;const d=Math.hypot(dx,dy);if(d<bd){bd=d;best={x,y}}}return best}
+function dockWater(d){if(d.type==='idock'&&wwalk(d.wx,d.wy))return {x:d.wx,y:d.wy};let best=null,bd=1e9;const s=d.size||1;for(let y=d.ty-3;y<d.ty+s+3;y++)for(let x=d.tx-3;x<d.tx+s+3;x++){if(!wwalk(x,y))continue;const v=Math.hypot(x-(d.tx+s/2-.5),y-(d.ty+s/2-.5));if(v<bd){bd=v;best={x,y}}}return best}
+function boatUnload(b,d){const L=boatCargo(b);if(!L.length)return 0;const s=d.size||1,sp=spiralTiles(d.tx+(s>1?(s>>1):0),d.ty+(s>1?(s>>1):0),L.length,6,walk);let n=0;
+  L.forEach((u,i)=>{if(u.hp<=0)return;const t=sp[i%Math.max(1,sp.length)]||{x:d.tx,y:d.ty};u.dead=false;u.sheltered=false;u.x=u.px=(t.x+.5)*TILE+(Math.random()-.5)*10;u.y=u.py=(t.y+.5)*TILE+(Math.random()-.5)*10;u.order=null;u.path=null;u._board=0;if(!G.ents.includes(u))G.ents.push(u);G.byId.set(u.id,u);n++});
+  b.cargo=[];if(b.owner===0&&n)toast('⛵ '+n+' landed');return n}
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{
+  if(u._board){const b=G.byId.get(u._board);if(!b||b.dead||boatCargo(b).length>=ISL.carry||(u.order&&u.order!==u._bo)){u._board=0}
+    else if(Math.hypot(b.x-u.x,b.y-u.y)<=b.r+u.r+TILE*1.3){boatCargo(b).push(u);u.dead=true;u.sheltered=true;u.order=null;u.path=null;u._board=0;try{G.sel=G.sel.filter(id=>id!==u.id)}catch(e){}if(b.owner===0)panelKeyLast=''}
+    else if(!u.order){const t=boatLandTile(b);if(!t){u._board=0}else{u.order={type:'move',x:t.x,y:t.y};u._bo=u.order;u.path=null;if((u._bt=(u._bt||0)+1)>40)u._board=0}}}
+  if(u.type==='transport'&&u.dest){const d=G.byId.get(u.dest);if(!d||d.dead){u.dest=0}else{const w=dockWater(d);if(w&&Math.hypot((w.x+.5)*TILE-u.x,(w.y+.5)*TILE-u.y)<TILE*1.6){boatUnload(u,d);u.dest=0;u.order=null;u.path=null}
+    else if(!u.order&&w){u.order={type:'move',x:w.x,y:w.y};u.path=null;if((u._dt=(u._dt||0)+1)>30){u.dest=0;if(u.owner===0)toast('The boat can\'t reach that dock')}}}}
+}catch(err){}return r}})(updUnit)}catch(err){}
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const hit=pick(wx,wy),sel=selEnts();
+  const land=sel.filter(e=>e.kind==='unit'&&e.owner===0&&!e.naval&&!e.air&&!(DEF[e.type]&&DEF[e.type].animal)),boats=sel.filter(e=>e.type==='transport'&&e.owner===0&&!e.dead);
+  if(hit&&hit.type==='transport'&&hit.owner===0&&land.length){const room=ISL.carry-boatCargo(hit).length-G.ents.filter(u=>u._board===hit.id).length;if(room<=0){toast('⛵ The boat is full ('+ISL.carry+')');return}
+    const go=land.sort((a,b)=>Math.hypot(a.x-hit.x,a.y-hit.y)-Math.hypot(b.x-hit.x,b.y-hit.y)).slice(0,room);hit.order=null;hit.path=null;hit.dest=0;
+    for(const u of go){const t=boatLandTile(hit);if(!t){toast('Bring the boat next to the shore first');return}u._board=hit.id;u._bt=0;u.order={type:'move',x:t.x,y:t.y};u._bo=u.order;u.path=null}
+    mark(hit.x,hit.y,'#8fe36a');toast('⛵ '+go.length+' boarding'+(land.length>go.length?' ('+ISL.carry+' fit)':''));return}
+  if(boats.length&&hit&&((hit.type==='dock'&&hit.kind==='bld'&&hit.built&&!hit.dead)||hit.type==='idock')){for(const b of boats){const w=dockWater(hit);if(!w){toast('No water next to that dock');return}b.dest=hit.id;b._dt=0;b.order={type:'move',x:w.x,y:w.y};b.path=null}
+    mark(hit.x,hit.y,'#8fe36a');toast(boats.some(b=>boatCargo(b).length)?'⛵ Sailing to the dock to land':'⛵ Sailing to the dock');return}
+  if(boats.length&&boats.some(b=>boatCargo(b).length)&&!(hit&&hit.kind==='unit')){const tx=tl(wx),ty=tl(wy);if(inB(tx,ty)&&!wwalk(tx,ty))toast('Boats can only land at a dock: tap a dock')}
+}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
+/* transport picture (placeholder): the fishing boat, bigger, with a heads count */
+try{drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='transport'){let P=u._px;if(!P){P=Object.create(u);P.type='fishboat';Object.defineProperty(u,'_px',{value:P,enumerable:false,writable:true,configurable:true})}
+  c.save();c.translate(x,y);c.scale(1.4,1.4);c.translate(-x,-y);try{prev.call(this,c,P,x,y,now)}finally{c.restore()}const n=(u.cargo||[]).length;if(n){c.save();c.fillStyle='rgba(20,14,8,.8)';c.beginPath();c.arc(x+16,y-22,8,0,7);c.fill();c.fillStyle='#fff';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(n,x+16,y-18.5);c.restore()}return}
+  return prev.apply(this,arguments)}})(drawUnit)}catch(err){}
+try{cargoChips=(function(prev){return function(u){if(u&&u.type==='transport'&&u.owner===0){const n=(u.cargo||[]).length;return '<div class="hint chips"><span class="ch'+(n?'':' dim')+'">🧍<b>'+n+'<small>/'+ISL.carry+'</small></b></span><span class="ch"><small>'+(n?'Tap a dock to land':'Select units, tap the boat')+'</small></span></div>'}return prev.apply(this,arguments)}})(cargoChips)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10644,8 +10756,8 @@ function renderPanel(sel){
   }else if(one&&one.kind==='poi'){
     const own=one.owner===0?'Held by you. ':one.owner===1?'Held by the red tribe. ':'';
     if(one.type==='sacred'&&!sacFound(one,0)){info='<div style="min-width:0;flex:1"><div class="nm">A strange glow</div><div class="sub">Something is hidden here</div></div>';acts='<div class="hint">Stand any of your units on the glow for a few seconds to see what it is.</div>';}else{
-    info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site'+(one.spirit?' of the '+SPIRN[one.spirit]:''))+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec'+(one.spirit?'. '+SPB[one.spirit]:''))+'</div></div>';
-    acts='<div class="hint">'+(one.type==='tradepost'?'Donkey caravans (from the Iron Age) and trade carts (Renaissance) bring goods here and sell them for gold. The farther they come from your town, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';}
+    info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='idock'?islName(one):one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site'+(one.spirit?' of the '+SPIRN[one.spirit]:''))+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='idock'?islSub(one):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec'+(one.spirit?'. '+SPB[one.spirit]:''))+'</div></div>';
+    acts='<div class="hint">'+(one.type==='idock'?islHint(one):one.type==='tradepost'?'Donkey caravans (from the Iron Age) and trade carts (Renaissance) bring goods here and sell them for gold. The farther they come from your town, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';}
   }else if(one&&one.kind!=='unit'){
     const nm=one.kind==='res'?RES[one.type].name:(one.type==='pub'&&hasInn(one)?'Pub & Inn':one.type==='coop'&&one.yard?'Poultry yard':bname(one.type,one.owner))+(one.owner===1?' (enemy)':'');
     const ag=one.kind==='bld'?G.players[one.owner].age:0,tk=ag>=6&&THUMB[one.type+'x']?one.type+'x':ag>=5&&THUMB[one.type+'n']?one.type+'n':ag>=4&&THUMB[one.type+'r']?one.type+'r':ag>=3&&THUMB[one.type+'m']?one.type+'m':ag>=2&&THUMB[one.type+'i']?one.type+'i':ag>=1&&THUMB[one.type+'b']?one.type+'b':one.type;
