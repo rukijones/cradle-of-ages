@@ -10014,6 +10014,42 @@ let autoQuiet=0;try{toast=(function(prev){return function(){if(autoQuiet)return;
 try{applyTech=(function(prev){return function(o,k){const r=prev.apply(this,arguments);const L=AUTOTECH[k];if(L){const P=G.players[o],got=[];autoQuiet++;try{for(const t of L)if(TECH[t]&&!P.tech[t]){try{prev(o,t)}catch(err){}got.push(TECH[t].name)}}finally{autoQuiet--}
   if(o===0&&got.length)setTimeout(()=>{try{toast('Included: '+got.join(', '))}catch(err){}},k==='bronzework'?600:5200)}return r}})(applyTech)}catch(err){}
 try{enqueue=(function(prev){return function(b,k){if(AUTOSET.has(k))return false;return prev.apply(this,arguments)}})(enqueue)}catch(err){}
+/* Bakery chute hint (gameplay, Josh Oct 17: the windmill-to-bakery chute "didn't show up": it needs the bakery within 1 tile of the windmill).
+   While placing a bakery: each of your windmills gets a dashed gold box = where the bakery must touch for the flour chute (green when the ghost is in it),
+   and the info line says 🌾 chute ✓ or where to put it. */
+function chuteSpot(tx,ty){const s=DEF.bakery.size;for(const m of G.ents)if(m.type==='mill'&&m.owner===0&&m.built&&!m.dead&&bldGap(m,{tx,ty,size:s})<=1)return m;return null}
+function placeTip(t){if(t!=='bakery'||!G.place||G.place.tx===undefined)return '';const mills=G.ents.some(m=>m.type==='mill'&&m.owner===0&&m.built&&!m.dead);if(!mills)return '';
+  return chuteSpot(G.place.tx,G.place.ty)?'🌾 Flour chute from the windmill ✓':'🌾 Touch a gold box for a flour chute'}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{const p=G.place;if(p&&p.type==='bakery'&&!p.mg){const on=p.tx!==undefined?chuteSpot(p.tx,p.ty):null;
+  for(const m of G.ents){if(m.type!=='mill'||m.owner!==0||!m.built||m.dead)continue;const x0=(m.tx-1)*TILE,y0=(m.ty-1)*TILE,w=(m.size+2)*TILE,h=(m.size+2)*TILE,ok=on===m;
+    c.save();c.lineWidth=2.5/(cam.z||1)+1;c.setLineDash([7,5]);c.lineDashOffset=-now/60;c.strokeStyle=ok?'rgba(140,230,90,.95)':'rgba(255,205,80,.9)';c.fillStyle=ok?'rgba(140,230,90,.12)':'rgba(255,205,80,.08)';
+    c.fillRect(x0,y0,w,h);c.strokeRect(x0,y0,w,h);c.setLineDash([]);c.font='bold 16px system-ui,sans-serif';c.textAlign='center';c.fillText(ok?'🌾✓':'🌾',x0+w/2,y0-6);c.restore()}}}catch(err){}return r}})(drawBirds)}catch(err){}
+/* Fewer words, more pictures in the building panel (gameplay, Josh Oct 17: "less writing overall in the game and more visuals"). For the wordiest panels
+   (bakery, windmill, farm, pub, dairy, coop, forester lodge, pen, tower, rally text) a chip strip (emoji + number, refreshed twice a second) replaces the
+   explanation boxes. "Next step" boxes stay, since they say what to do. PANEL_CHIPS.off=true restores the old text. */
+const PANEL_CHIPS={off:false};
+function pcWork(b){const W=WORK[b.type];if(!W)return null;const n=b.gar?b.gar.length:0,c=G.ents.filter(e=>e.order&&e.order.type==='work'&&e.order.id===b.id).length;return [n+(c?'+'+c:''),W.max,n+c]}
+const PCH={
+  bakery:b=>{const w=pcWork(b),src=b.chute?['🔗','chute']:b.donk?['🫏','donkey']:['🚶','carried'];return [w&&['👷',w[0]+'<small>/'+w[1]+'</small>',w[2]?'':'lo'],['🥣',Math.floor(b.flour||0)+'<small> flour</small>'],[src[0],'<small>'+src[1]+'</small>']]},
+  mill:b=>{let fc=0,fm=0;try{fc=millCount(b);fm=millFarmers(b)}catch(e){}return [['🌾',Math.floor(b.grain||0)+'<small> grain</small>'],['🥣',Math.floor(b.flour||0)+'<small> flour</small>'],['🟫',fc+'<small>/18 farms</small>'],['👨‍🌾',fm,fm?'':'lo']]},
+  farm:b=>{const f=G.ents.some(u=>!u.dead&&u.order&&u.order.type==='gather'&&u.order.id===b.id),ox=G.ents.some(u=>!u.dead&&u.type==='ox'&&u.farm===b.id);return [['👨‍🌾',f?'✓':'✗',f?'':'lo'],ox?['🐂','✓']:null,['🍖',Math.floor(b.amt||0)+'<small> left</small>'],b.milled?['➡️','<small>🌾 mill</small>']:null]},
+  pub:b=>{const w=pcWork(b);return [w&&['👷',w[0]+'<small>/'+w[1]+'</small>',w[2]?'':'lo'],['🍺',Math.floor(b.beer||0)],(b.inn||(G.players[0].tech.roadinns))?['🛏️',b.innOn?'✓':'✗',b.innOn?'':'lo']:null]},
+  dairy:b=>{const w=pcWork(b);return [w&&['👷',w[0]+'<small>/'+w[1]+'</small>',w[2]?'':'lo'],['🐄',b.cowsA||b.flock||0],[b.use==='cheese'?'🧀':'🥛',Math.floor(b.cheese||b.milked||0)]]},
+  coop:b=>{const h=b.hens||1,ch=b.chicks||0;return [['🐔',h+'<small>/6</small>'],ch?['🐣',ch]:null,['🍗',Math.round(h*3)+'<small>/min</small>'],(b.birds||[]).length<6?['🥚',Math.ceil(45-(b.layT||0))+'<small>s</small>']:null]},
+  pen:b=>{const sh=G.ents.filter(e=>e.shep===(penLead(b)||b).id&&!e.dead).length;return [['🧑‍🌾',sh,sh?'':'lo'],['🐑',b.flock||G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&inPenArea(penLead(b)||b,e,0,'s')).length]]},
+  tower:b=>[['🏹',(DEF.tower.range+(G.players[0].tech.sentry?1:0))+'<small> tiles</small>'],['🧱','<small>walls ≤8</small>']]};
+function pcLodge(b){try{if(!isLodge(b))return null;const n=foresterN(b),g=groveTrees(b);return [['🪓',n+'<small>/'+FORESTERS+'</small>',n?'':'lo'],['🌲',g.ready],['🌱',g.young]]}catch(e){return null}}
+function pcHtml(L){return L.filter(Boolean).map(x=>'<span class="ch'+(x[2]?' '+x[2]:'')+'">'+x[0]+'<b>'+x[1]+'</b></span>').join('')}
+function pcApply(){if(PANEL_CHIPS.off||!G||!G.sel||G.sel.length!==1||G.place)return;const b=G.byId.get(G.sel[0]);if(!b||b.owner!==0||b.kind!=='bld'||!b.built)return;
+  const A=$('acts');if(!A)return;let L=PCH[b.type]?PCH[b.type](b):null;if(b.type==='storage'||b.type==='forester'){const l=pcLodge(b);if(l)L=l}
+  for(const h of A.querySelectorAll('.hint')){if(h.id==='pchips'||h.classList.contains('chips'))continue;const t=h.textContent;
+    if(/Tap the map to set where new units gather/.test(t)){h.innerHTML='📍 <small>Tap the map: gather point</small>';h.style.flexDirection='row';continue}
+    if(/^All upgrades researched/.test(t)){h.style.display='none';continue}
+    if(L&&!/Next step/.test(t)){h.style.display='none';continue}
+    if(L&&/Next step:/.test(t)&&!h.dataset.pc){const nx=t.split('Next step:').pop().trim();h.dataset.pc=1;h.innerHTML='<span><b style="color:#e8603a">➡️ Next:</b> '+nx.replace(/</g,'&lt;')+'</span>'}}
+  if(!L)return;let el=$('pchips');if(!el){el=document.createElement('div');el.id='pchips';el.className='hint chips';A.insertBefore(el,A.firstChild)}el.innerHTML=pcHtml(L)}
+try{renderPanel=(function(prev){return function(){const r=prev.apply(this,arguments);try{pcApply()}catch(err){}return r}})(renderPanel)}catch(err){}
+setInterval(()=>{try{if($('pchips'))pcApply()}catch(err){}},500);
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10528,7 +10564,7 @@ function renderPanel(sel){
       info='<img alt="" src="'+THUMB[t]+'"><div style="min-width:0"><div class="nm">'+(mg.k==='yard'?'Poultry yard':'Steam bakery')+'</div><div class="sub">'+(why||(mc.near?'Next to the old ones: half price and half the time':'Tap the map to move it. Double-tap to build'))+'</div></div>';
       acts=btn('place','Place',costHtml(mc.c),'',!!why||!canAfford(P,mc.c),0,'wide')+btn('unplace','Cancel','','',false);}
     else{
-    info='<img alt="" src="'+THUMB[t]+'"><div style="min-width:0"><div class="nm">'+bname(t,0)+'</div><div class="sub">'+(placeWhy(t,G.place.tx,G.place.ty,0,true,0)||'Tap the map to move it. Double-tap to build')+'</div></div>';
+    info='<img alt="" src="'+THUMB[t]+'"><div style="min-width:0"><div class="nm">'+bname(t,0)+'</div><div class="sub">'+(placeWhy(t,G.place.tx,G.place.ty,0,true,0)||(()=>{try{return placeTip(t)}catch(e){return ''}})()||'Tap the map to move it. Double-tap to build')+'</div></div>';
     acts=btn('place','Place',costHtml(DEF[t].cost),'',!placeValid()||!canAfford(P,DEF[t].cost),0,'wide')+btn('unplace','Cancel','','',false);}
   }else if(!sel.length){
     info='';
@@ -10841,3 +10877,4 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
+
