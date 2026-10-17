@@ -9292,6 +9292,22 @@ const RUINTREE={off:false};
   RUINTREE.clear=clear;
 }
 /* ===== END no trees on ruins ===== */
+/* ===== Sacred site capture says which one and what it does, gameplay chat 2 (Josh, Oct 16 2026: "When I capture a sacred site, how do I know which one it is and what it does?") =====
+   The capture message now names the site's spirit and its bonus, and how many of the 4 you hold, e.g. "Sacred site of the Sun is
+   yours! +0.5 gold a second and farms +10%. You hold 2 of 4: hold all 4 to charge a Miracle". It stays up for 6 s. Losing one names
+   it too. Tapping a site already shows its spirit and bonus. Wraps toast() for the two sacred-site messages only. ===== */
+{let owned=new Set();
+  const mineNow=()=>new Set(G.ents.filter(e=>e.kind==='poi'&&e.type==='sacred'&&!e.dead&&e.owner===0).map(e=>e.id));
+  const nm=e=>'Sacred site'+(e&&e.spirit&&SPIRN[e.spirit]?' of the '+SPIRN[e.spirit]:'');
+  const _t=toast;toast=function(msg){try{if(G&&(msg==='You captured a sacred site'||msg==='The red tribe took your sacred site')){const now=mineNow();
+      if(msg==='You captured a sacred site'){const id=[...now].find(i=>!owned.has(i)),e=id&&G.byId.get(id),n=now.size;owned=now;
+        const r=_t.call(this,nm(e)+' is yours! +0.5 gold a second'+(e&&e.spirit&&SPB[e.spirit]?' and '+SPB[e.spirit].charAt(0).toLowerCase()+SPB[e.spirit].slice(1):'')+'. You hold '+n+' of 4'+(n<4?': hold all 4 to charge a Miracle':': a Miracle is charging at your town center'));
+        try{clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('show'),6000);}catch(err){}return r;}
+      const id=[...owned].find(i=>!now.has(i)),e=id&&G.byId.get(id);owned=now;return _t.call(this,'The red tribe took your '+nm(e).toLowerCase().replace('sacred site','sacred site')+(e&&e.spirit?' (you lose: '+SPB[e.spirit].toLowerCase()+')':''));}}catch(err){}
+    return _t.apply(this,arguments);};
+  setInterval(()=>{try{if(G)owned=mineNow();}catch(err){}},1500);
+}
+/* ===== END sacred site capture message ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
