@@ -5473,6 +5473,10 @@ try{(function(){
       for(let i=BURST.length-1;i>=0;i--){const B=BURST[i],t=(now-B.t0)/700;if(t>=1){if((now-B.t0)>1400)BURST.splice(i,1);continue}
         c.save();c.globalCompositeOperation='lighter';c.globalAlpha=1-t;const rr=6+t*22,g2=c.createRadialGradient(B.x,B.y-4,1,B.x,B.y-4,rr);g2.addColorStop(0,'rgba(255,230,140,.9)');g2.addColorStop(.5,'rgba(255,130,30,.6)');g2.addColorStop(1,'rgba(200,60,10,0)');c.fillStyle=g2;ell(c,B.x,B.y-4,rr,rr*.7);c.fill();c.restore();
         c.save();c.globalAlpha=(1-t)*.5;c.fillStyle='#6d655c';for(let k=0;k<5;k++){const a=k*1.26;circ(c,B.x+Math.cos(a)*t*16,B.y-6-t*14+Math.sin(a)*t*6,3+t*7);c.fill()}c.restore()}}catch(err){}return r};
+    /* Trebuchet sharper (Oct 17 2026, art chat 1's note, Josh: go): every sheet re-rendered from the Tripo model at 1.45x the pixels
+       (204x290 cells, was 141x200; same framing, so the size in the game is unchanged), arm split from the frame and swung in 3D,
+       stone + trigger rope hidden once it has fired. Same files (tb3d_attack/_idle/_walk, tb3e_walk), +0 files; ARTV bumped so phones refetch. */
+    try{Object.assign(GFX_TB3D,{fw:204,fh:290,upx:200.1725,foot:239.83});GFX.ARTV=String(Math.max(+GFX.ARTV||0,21))}catch(err){}
     const SWING=.45,TQ={},TW=Object.assign({},GFX_TB3D,{file:'tb3e',seg:{walk:[0,8]},nc:8});
     GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='trebuchet'||GFX.mode!=='V23D'||typeof GFX_TB3D==='undefined')return prev(c,u,x,y,now);
       const S=GFX_TB3D,sg=S.seg,D=(DEF.trebuchet&&DEF.trebuchet.cd)||7,t=u.working&&u.cd>0?D-u.cd:-1;
@@ -5481,7 +5485,7 @@ try{(function(){
       if(seg==='walk'){L=GFX.seg3(TW,'walk');if(L)SS=TW;else{seg='idle';L=GFX.seg3(S,'idle')}}else L=GFX.seg3(S,seg);
       if(!L)return prev(c,u,x,y,now);GFX.seg3(S,'attack');GFX.seg3(TW,'walk');
       const n=SS.seg[seg][1];let f=0;if(seg==='walk')f=SS===TW?Math.floor(q.d)%n:Math.floor(now/180)%n;
-      else if(seg==='attack'){if(t>=0&&t<SWING){const k=t/SWING;f=Math.round((n-1)*(1-k*k))}else{const p=t<0?1:Math.min(1,(t-SWING)/(D-SWING));f=Math.min(n-1,Math.floor(p*n))}}
+      else if(seg==='attack'){if(t>=0&&t<SWING){const k=t/SWING;f=Math.round((n-1)*(1-k*k))}else if(t>=SWING&&t<SWING+.32){f=Math.sin((t-SWING)/.32*Math.PI)>.45?1:0}else{const p=t<0?1:Math.min(1,(t-SWING)/(D-SWING));f=Math.min(n-1,Math.floor(p*n))}}
       const d=((Math.round((u.face||0)/(Math.PI/4))%8)+8)%8,RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]][d],row=RM[0],mir=RM[1];
       const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return prev(c,u,x,y,now);
       const sc=(S.size||76)/S.upx,w=S.fw*sc,h=S.fh*sc;let ox=0,oy=0,tilt=0;
