@@ -9387,7 +9387,7 @@ try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){co
    a new selection plays Select; a new order on your units plays the "got it" for the biggest group in it.
    Off switch: UISFX.OFF=true. Levels: UISFX.VOL. Test hook: window.__uisfx. */
 const UISFX=(function(){
-  const U={OFF:false,TAP:false,VOL:{tap:.8,sel:.9,ack:.9},last:{}};   /* TAP off: Josh found the button click too loud/annoying (Oct 16) */
+  const U={OFF:false,TAP:true,CLICKONLY:true,VOL:{tap:.35,sel:.9,ack:.9},last:{}};   /* Josh (Oct 16): one soft wood click for every tap (buttons and map), nothing else; the earlier click was too loud, the two-note select disliked */
   let NB=null;
   const ctx=()=>AUD.ctx(),bus=()=>AUD.bus('ui');
   function nbuf(c){if(NB)return NB;const n=c.sampleRate;NB=c.createBuffer(1,n,c.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return NB;}
@@ -9395,7 +9395,7 @@ const UISFX=(function(){
   function osc(c,out,type,f,t,a,p,d,f2,gl,dest){const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+(gl||d));env(g,t,a,p,d);o.connect(g);g.connect(dest||out);o.start(t);o.stop(t+a+d+.05);}
   function nz(c,out,t,dur,ft,fr,q,p){const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=nbuf(c);f.type=ft;f.frequency.value=fr;f.Q.value=q||1;env(g,t,.002,p,dur);s.connect(f);f.connect(g);g.connect(out);s.start(t,Math.random()*.5);s.stop(t+dur+.05);}
   const S={
-    tap(c,o,t,j){nz(c,o,t,.035,'bandpass',1700*j,5,.5);osc(c,o,'sine',820*j,t,.002,.12,.04);},
+    tap(c,o,t,j){nz(c,o,t,.025,'bandpass',1300*j,6,.3);osc(c,o,'sine',700*j,t,.002,.08,.035);},
     sel(c,o,t,j){osc(c,o,'triangle',784*j,t,.004,.12,.12);osc(c,o,'triangle',1046*j,t+.06,.004,.12,.18);},
     vil(c,o,t,j){[[523,0],[659,.1]].forEach(([f,d])=>{osc(c,o,'sine',f*j,t+d,.002,.22,.22);osc(c,o,'sine',f*4*j,t+d,.002,.05,.04);});},
     sol(c,o,t,j){osc(c,o,'sine',130*j,t,.002,.45,.14,55,.12);nz(c,o,t,.02,'highpass',3000,1,.25);osc(c,o,'square',1720*j,t+.01,.002,.035,.18);osc(c,o,'triangle',2610*j,t+.01,.002,.05,.28);osc(c,o,'sine',3980*j,t+.01,.002,.02,.2);},
@@ -9411,7 +9411,7 @@ const UISFX=(function(){
   document.addEventListener('click',e=>{try{if(!U.TAP)return;const el=e.target&&e.target.closest&&e.target.closest('button,.b,.grp');if(!el||el.closest('#audRow'))return;U.play('tap');}catch(err){}},true);
   /* 2. taps on the map */
   function snap(){try{const ids=(G&&G.sel)||[],ord=new Map();for(const id of ids){const u=G.byId.get(id);if(u&&u.owner===0&&u.kind==='unit')ord.set(u,u.order);}return {key:ids.join(','),ord};}catch(err){return null;}}
-  function after(s){if(!s||!G)return;try{
+  function after(s,box){if(U.CLICKONLY){if(!box)U.play('tap');return;}if(!s||!G)return;try{
     const key=(G.sel||[]).join(',');
     if(key&&key!==s.key){const any=G.sel.some(id=>{const e=G.byId.get(id);return e&&e.owner===0;});if(any){U.play('sel');return;}}
     const cnt={vil:0,sol:0,mac:0};let n=0;
@@ -9420,7 +9420,7 @@ const UISFX=(function(){
   }catch(err){}}
   setTimeout(()=>{try{
     const _t=onTap;onTap=function(){const s=snap();const r=_t.apply(this,arguments);after(s);return r;};
-    const _b=boxSelect;boxSelect=function(){const s=snap();const r=_b.apply(this,arguments);after(s);return r;};
+    const _b=boxSelect;boxSelect=function(){const s=snap();const r=_b.apply(this,arguments);after(s,1);return r;};
   }catch(err){}},0);
   /* test helpers (used by the headless test only) */
   U._tapUnit=type=>{const u=G.ents.find(e=>e.owner===0&&e.type===type&&!e.dead);if(u)onTap(u.x,u.y);return !!u;};
@@ -10278,4 +10278,3 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
-
