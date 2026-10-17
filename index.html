@@ -9800,6 +9800,31 @@ try{const hands=r=>G.ents.some(u=>!u.dead&&u.owner===0&&u.shep===r.id);const nee
     {t:'Tap <b>Add worker</b>. The nearest villager walks over and starts milking.',dom:['[data-act="wadd"]'],done:()=>!needD()},
     {t:'Buildings with a number over them (like 0/2) need workers: tap the building, then <b>Add worker</b>.',last:1}]});
 }catch(err){}
+/* Pictures instead of words (gameplay, Josh Oct 17: "when the ranch is highlighted it needs to easily show how many ranch hands work there and how many
+   animals. Use the emojis. Less writing overall and more visuals. Same with the pack donkeys carrying stuff: a visual of what they carry, amount next to it").
+   - Selected caravan / trade cart / pack donkey: a strip of big emoji + amount for its load (replaces the "Carrying: ..." sentence).
+   - Selected ranch (or its dairy wing): a strip at the front of the panel: ranch hands n/3 (tap to add one), cows, sheep, work animals, young being raised. */
+try{const st=document.createElement('style');st.textContent='#acts .hint.chips,.hint.chips{flex-direction:row;align-items:center;gap:10px;padding:4px 10px;max-width:none}.chips .ch{display:flex;align-items:center;gap:3px;font-size:21px;line-height:1}.chips .ch b{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}.chips .ch.lo b{color:#ff8a6a}.chips .ch.dim{opacity:.45}.chips .ch small{font-size:11px;color:var(--muted)}.b.chb{min-width:44px;font-size:18px}';document.head.appendChild(st)}catch(err){}
+const CGEMO={flour:'🌾',beer:'🍺',bread:'🍞',wool:'🧶',cheese:'🧀',cloth:'🧵',textile:'🧵',cake:'🎂',pastry:'🥐',f:'🍖',w:'🪵',s:'🪨',g:'🪙',milk:'🥛'};
+const cgChip=(e,n,cls)=>'<span class="ch'+(cls?' '+cls:'')+'">'+e+'<b>'+n+'</b></span>';
+function cargoChips(u){if(!u||u.owner!==0)return '';let L=[];
+  if(u.type==='caravan'||u.type==='tradecart'){const ld=u.load||{};for(const k in ld)if(ld[k]>0)L.push([CGEMO[k]||'📦',Math.round(ld[k])]);
+    const to=u.cv&&u.cv.leg==='sell'?'➡️🏪':u.cv&&u.cv.leg==='load'?'⬅️📦':'';if(!L.length)return '<div class="hint chips">'+cgChip('📦','0','dim')+(to?'<span class="ch">'+to+'</span>':'')+'</div>';
+    return '<div class="hint chips">'+L.map(x=>cgChip(x[0],x[1])).join('')+(to?'<span class="ch">'+to+'</span>':'')+'</div>'}
+  if(u.type==='donkey'){if(u.flourC>0)L.push(['🌾',Math.round(u.flourC)]);if(u.beerC>0)L.push(['🍺',Math.round(u.beerC)]);if(u.breadC>0)L.push(['🍞',Math.round(u.breadC)]);
+    const v=u.buddy&&G.byId.get(u.buddy);if(!L.length&&v&&!v.dead&&v.carry&&v.carry.amt>0)L.push([CGEMO[v.carry.r]||'📦',Math.round(v.carry.amt)]);
+    if(!L.length)return (u.bake||u.pubD||u.innD||u.breadB||u.buddy)?'<div class="hint chips">'+cgChip('📦','0','dim')+'</div>':'';
+    return '<div class="hint chips">'+L.map(x=>cgChip(x[0],x[1])).join('')+'</div>'}
+  return ''}
+function ranchChips(one){const PL=penLead(one)||one,own=e=>e.owner===0&&!e.dead;const R=one.type==='ranch'?one:(one.ranch&&G.byId.get(one.ranch))||one;
+  const sh=G.ents.filter(e=>e.shep===PL.id&&!e.dead).length,sheep=G.ents.filter(e=>e.type==='sheep'&&own(e)&&!e.raise&&inPenArea(PL,e,0,'s')).length;
+  const cows=R.cFlock||G.ents.filter(e=>e.type==='cow'&&own(e)&&Math.hypot(e.x-R.x,e.y-R.y)<6*TILE).length;
+  const work=G.ents.filter(e=>own(e)&&CORRAL_AN.has(e.type)&&!e.raise&&(e.home===PL.id||e.home===R.id||inPenArea(PL,e,0,'a'))).length,young=raisingN(PL),ycap=(typeof RAISE_CAP==='number'?RAISE_CAP:4)*(typeof penN==='function'?penN(R):1);
+  const max=typeof RHAND_MAX==='number'?RHAND_MAX:3,iv=idleVills().length;
+  let h='<div class="hint chips">'+cgChip('🧑‍🌾',sh+'<small>/'+max+'</small>',sh?'':'lo')+cgChip('🐄',cows,cows?'':'dim')+cgChip('🐑',sheep,sheep?'':'dim')+cgChip('🫏',work,work?'':'dim')+cgChip('🐣',young+'<small>/'+ycap+'</small>',young?'':'dim')+'</div>';
+  if(sh<max)h+=btn('rhadd','🧑‍🌾+','<span class="cost">'+(iv?iv+' idle':'none idle')+'</span>','',!iv,0,'chb');
+  return h}
+try{ranchActs=(function(prev){return function(one,P){const h=prev.apply(this,arguments);try{if(one&&one.owner===0&&one.built)return ranchChips(one)+h.replace(/<div class="hint"><b>Raising \d+ of \d+ young<\/b>(<br>[^<]*)?<\/div>/,'')}catch(err){}return h}})(ranchActs)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10404,7 +10429,7 @@ function renderPanel(sel){
         const locked=BTABS.find(t=>t[0]===tab)[2].filter(b=>(DEF[b].age||0)<=P.age&&!bReqMet(0,b));if(locked.length)acts+=btn('locked','+'+locked.length+' locked','<span class="cost">Tap to see how</span>','',false,0,'g');}
       {const sickSel=units.filter(u=>u.sick&&u.owner===0);if(sickSel.length)acts=btn('medsel','Give medicine',costHtml({g:25*sickSel.length}),THUMB[sickSel[0].type],!canAfford(P,{g:25*sickSel.length}),sickSel.length>1?sickSel.length:0,'wide danger',PILL('up','Sick'))+acts;}
       {const u1=units.length===1?units[0]:null;let st='';if(u1&&u1.owner===0){if(u1.raise){st='Growing up: ready to work in '+Math.ceil((u1.raise.dur-u1.raise.t)/(G.byId.get(u1.home)&&ranchPen(G.byId.get(u1.home))?1.1:1))+'s';}else if(u1.type==='donkey'&&u1.bake){st=u1.flourC?'Carrying flour to the bakery':'Hauling flour from the windmill to the bakery';}else if(u1.type==='donkey'){const v=u1.buddy&&G.byId.get(u1.buddy);st=v&&!v.dead?'Helping a villager: they carry twice as much each trip':'Looking for a villager who is gathering';}else if(u1.type==='ox'){const f=u1.farm&&G.byId.get(u1.farm);st=f&&u1.plowing?'Plowing a farm: it yields 40% more food':f?'Walking to a farm':'Looking for a farm without an ox';}
-        else if(u1.type==='villager'){const d=u1.donkey&&G.byId.get(u1.donkey);if(d&&!d.dead&&Math.hypot(d.x-u1.x,d.y-u1.y)<3*TILE)st='Has a pack donkey: carries '+capOf(u1)+' per trip';if(u1.shep)st=(st?st+'. ':'')+(u1.carry&&u1.carry.meat&&u1.carry.amt>0?'Shepherd: carrying '+Math.round(u1.carry.amt)+' meat':'Shepherd: tending the flock');}}try{const cg=cargoTxt(u1);if(cg)st=cg+(st?'. '+st:'')}catch(err){}if(st)acts+='<div class="hint">'+st+'</div>';}
+        else if(u1.type==='villager'){const d=u1.donkey&&G.byId.get(u1.donkey);if(d&&!d.dead&&Math.hypot(d.x-u1.x,d.y-u1.y)<3*TILE)st='Has a pack donkey: carries '+capOf(u1)+' per trip';if(u1.shep)st=(st?st+'. ':'')+(u1.carry&&u1.carry.meat&&u1.carry.amt>0?'Shepherd: carrying '+Math.round(u1.carry.amt)+' meat':'Shepherd: tending the flock');}}try{const cg=cargoChips(u1);if(cg)acts+=cg}catch(err){}if(st)acts+='<div class="hint">'+st+'</div>';}
       if(G.players[0].tech.surveying&&units.some(u=>u.owner===0&&u.type==='villager'))acts=btn('prospect',G.prospect?'Tap the ground':'Dig test pit','<span class="cost">'+(G.prospect?'Tap here to cancel':'20 wood, look for veins')+'</span>','',false,0,'wide',G.prospect?PILL('up','Digging'):'')+acts;
       {const OLDU=new Set(['caravan','clubman','axeman','slinger','spearman','swordsman','legionary','longsword','pikeman','halberdier','bowman','compbow','crossbow','arquebus','rider','cavalry','knight','scout','ram','catapult','trebuchet','bombard','donkey','ox','tradecart']);if(G.players[0].age>=6&&units.some(u=>u.owner===0&&OLDU.has(u.type)))acts+=btn('retire','Retire old units','<span class="cost">Refund half their cost</span>','',false,0,'wide');}
       if(units.some(u=>u.owner===0&&u.type==='explorer'))acts=btn('expedition','Set out on expedition','<span class="cost">Sail beyond the map edge</span>',THUMB.explorer,false,0,'wide',PILL('new','Explore'))+'<div class="hint">Back in about 90 seconds with treasure, goods or new land. Some voyages are lost</div>'+acts;
