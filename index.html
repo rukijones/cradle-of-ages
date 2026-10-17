@@ -7920,7 +7920,7 @@ function draw(){
   for(const f of G.fx)if(f.type!=='puff'&&f.type!=='float'&&f.type!=='zap'&&f.type!=='treefall'&&E[ti(Math.max(0,Math.min(MW-1,tl(f.x!==undefined?f.x:f.x0+1))),Math.max(0,Math.min(MH-1,tl(f.y!==undefined?f.y:f.y0+1))))])drawFx(c,f,now);
   const list=[];
   for(const e of G.ents){
-    if(e.kind==='res'){if(inView(e.x,e.y,60)&&E[ti(e.tx,e.ty)])list.push([e.type==='carcass'?e.y-26:e.y+10,e]);}
+    if(e.kind==='res'){if(inView(e.x,e.y,60)&&E[ti(e.tx,e.ty)])list.push([e.type==='carcass'?e.y-26:e.stump?e.y-12:e.y+10,e]);}/* stumps sort at their top edge (Josh Oct 17: people walking over a stump were drawn under it) */
     else if(e.kind==='poi'){if(inView(e.x,e.y,90)&&E[ti(e.tx,e.ty)])list.push([e.y+8,e]);}
     else if(e.kind==='bld'){if(inView(e.x,e.y,160)&&(e.owner===0||E[ti(tl(e.x),tl(e.y))])&&innSeen(e,0))list.push([(DEF[e.type].walkable||(e.type==='farm'&&e.built&&typeof GFX!=='undefined'&&GFX.mode==='V23D'))?e.ty*TILE:(e.ty+e.size)*TILE-2,e]);}
     else{let x=e.px+(e.x-e.px)*alpha,y=e.py+(e.y-e.py)*alpha;if(e.kbx){x+=e.kbx;y+=e.kby;e.kbx*=.84;e.kby*=.84;if(Math.abs(e.kbx)<.05)e.kbx=e.kby=0;}if(!inView(x,y,40))continue;if(e.owner!==0&&!V[ti(tl(e.x),tl(e.y))])continue;list.push([e.plowing?y+140:Math.max(y+4,zOverOf(e)),e,x,y]);}
@@ -9697,6 +9697,18 @@ const FIGHT={off:false,spill:4,kiteR:1.6,kiteMax:1.4,kiteRest:3,slots:t=>t.r>=13
   window.__fight=FIGHT;
 }
 /* ===== END combat feel 3+4 ===== */
+/* People behind buildings (gameplay, Josh Oct 17: "people who are blocked behind buildings need to be visible somehow, like what we did with the wall").
+   Art chat 1's wall x-ray (GFX.SEE_TYPES: a unit mostly hidden behind a wall is redrawn on top of the stone, masked to the stone, 55% copy + team-coloured
+   edge) now covers every solid building. Flat/walk-in ones (farm, ranch, pens, corrals) are left out. Lone towers stay excluded by the art code. */
+try{if(GFX.SEE_TYPES)for(const t in DEF){const d=DEF[t];if(d.kind==='bld'&&!d.walkable&&t!=='farm')GFX.SEE_TYPES[t]=1}}catch(err){}
+/* Speed: the wall code composes a masked overlay per wall piece; for whole buildings in a crowded town that cut the frame rate to a third.
+   For the added types the ghost is drawn straight onto the scene right after the building: a 55% copy of the unit + team-coloured edge. Where the unit
+   is not covered the copy lands on the unit itself (no change but the outline), so no mask is needed. Each unit is ghosted once per frame.
+   Walls, gates and towers keep the art code's masked path. */
+try{const WALLS={wall:1,gate:1,tower:1};let fr=-1;const done=new Set();
+  GFX.seeOverlay=(function(prev){return function(c,e,L,now){if(WALLS[e.type])return prev.apply(this,arguments);if(fr!==now){fr=now;done.clear()}
+    for(const o of L){if(o.kind!=='u'||done.has(o.u.id))continue;done.add(o.u.id);const q=GFX.seeUnitImg(o.u,now,2);if(!q)continue;
+      const a=c.globalAlpha;c.globalAlpha=a*GFX.SEE_COPY;c.drawImage(q.img,q.x,q.y,q.w,q.h);c.globalAlpha=a;const p=1;c.drawImage(q.edge,q.x-p,q.y-p,q.w+2*p,q.h+2*p)}}})(GFX.seeOverlay)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
