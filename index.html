@@ -10454,8 +10454,8 @@ try{speedOf=(function(prev){return function(u){const v=prev.apply(this,arguments
    It never turns things back on during a game. PERF.lvl shows the step; PERF.off=true disables the governor. ===== */
 const PERF={lvl:0,ema:1/60,slow:0,last:0,settle:0,off:false,log:[]};
 function perfStep(){PERF.lvl++;PERF.slow=0;PERF.settle=3;PERF.log.push([Math.round(G?G.t:0),PERF.lvl,Math.round(1/PERF.ema)]);
-  try{if(PERF.lvl===1){if(GFX.SHORE)GFX.SHORE.detail=false;else PERF.lvl++}
-    if(PERF.lvl>=2){const cap=PERF.lvl===2?1.5:PERF.lvl===3?1.25:1;if(DPRCAP>cap&&(window.devicePixelRatio||1)>cap){DPRCAP=cap;resize()}else if(PERF.lvl<4){return perfStep()}}}catch(err){}}
+  try{if(PERF.lvl<=3){const cap=PERF.lvl===1?1.5:PERF.lvl===2?1.25:1;if(dpr>cap){DPRCAP=cap;resize()}else return perfStep()}
+    else if(PERF.lvl===4){if(GFX.SHORE)GFX.SHORE.detail=false}}catch(err){}}
 try{draw=(function(prev){return function(){const now=performance.now();try{if(!PERF.off&&G&&!G.paused&&!G.over&&PERF.lvl<4&&PERF.last){const dt=Math.min(.25,(now-PERF.last)/1000);
       PERF.ema+=(dt-PERF.ema)*.08;if(PERF.settle>0)PERF.settle-=dt;else{if(PERF.ema>1/40)PERF.slow+=dt;else PERF.slow=Math.max(0,PERF.slow-dt*.5);if(PERF.slow>3)perfStep()}}}catch(err){}
     PERF.last=now;return prev.apply(this,arguments)}})(draw)}catch(err){}
@@ -11447,7 +11447,7 @@ function dlayer(o,im,sc,wc,vx0,vy0,vx1,vy1,T){o.setTransform(1,0,0,1,0,0);o.glob
   o.fillStyle=pat(o,im,sc);o.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);o.globalCompositeOperation='destination-in';o.imageSmoothingEnabled=true;o.drawImage(wc,0,0,WW,WH)}
 /* speed (gameplay r110 note): the detail layer is rebuilt only when the camera moves or zooms, both textures are merged into one canvas,
    so a still camera costs one overlay draw per frame; it is skipped when the screen shows less than ~2.2 screen px per world px (no blur to fix). */
-function detail(c,inView){if(!S.detail||!GFX.groundOn||!GFX.groundOn())return;const m=M;if(!m)return;const T=c.getTransform();if(T.a<(S.minScale||2.2))return;
+function detail(c,inView){if(!S.detail||!GFX.groundOn||!GFX.groundOn())return;const m=M;if(!m)return;const T=c.getTransform();if(cam.z<(S.minZoom||1.1))return;/* speed (gameplay chat 1): by zoom, not by pixel density */
   const L=G.landBox,vx0=Math.max(L[0]*TILE,cam.x),vy0=Math.max(L[1]*TILE,cam.y),vx1=Math.min(L[2]*TILE,cam.x+W/cam.z),vy1=Math.min(L[3]*TILE,cam.y+H/cam.z);if(vx1<=vx0||vy1<=vy0)return;
   const cv=c.canvas,mk=()=>{const k=document.createElement('canvas');return k},D=S._d||(S._d=mk());if(D.width!==cv.width||D.height!==cv.height){D.width=cv.width;D.height=cv.height;S._dk=null}
   let sand=false;if(ok('ds')){const P=m.cp;for(let i=0;i<P.length;i+=6)if(inView(P[i],P[i+1],2*TILE)){sand=true;break}}
