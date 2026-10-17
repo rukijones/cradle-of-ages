@@ -1552,7 +1552,7 @@ function updUnit(u,dt){
     if(!f&&!u.penned){u.scan=(u.scan||0)-dt;if(u.scan<=0){u.scan=2;let best=null,bd=40*TILE;for(const e of G.ents)if(e.type==='farm'&&e.owner===u.owner&&e.built&&!e.dead&&!(e.ox&&G.byId.get(e.ox)&&!G.byId.get(e.ox).dead)){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;best=e;}}if(best){best.ox=u.id;u.farm=best.id;f=best;}}}
     if(f){const S=f.size*TILE,x0=f.tx*TILE+6,x1=f.tx*TILE+S-6,row=Math.floor(((G.t*.06+u.id*.37)%1)*4),yy=f.ty*TILE+10+row*(S-20)/3,dir=row%2,tx=dir?x1:x0;
       const inside=u.x>=f.tx*TILE-30&&u.x<=f.tx*TILE+S+30&&u.y>=f.ty*TILE-30&&u.y<=f.ty*TILE+S+30;
-      if(!inside){u.plowing=false;if(!u.order){orderMove([u],f.x,f.y);if(u.order)u.order.auto=true;}}
+      if(!inside){u.plowing=false;if(!u.order&&!(u.gp&&u.gp.length)){orderMove([u],f.x,f.y);if(u.order)u.order.auto=true;}}/* gameplay chat 1: wait while the ranch gate walk (u.gp) runs, or the two fight and the ox sticks at the ranch corner (Josh, Oct 16) */
       else{u.plowing=true;u.order=null;u.path=null;const dx=tx-u.x,dy=yy-u.y,d=Math.hypot(dx,dy),st=speedOf(u)*.6*dt;if(d>1){u.x+=dx/d*Math.min(st,d);u.y+=dy/d*Math.min(st,d);u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt;}}
       if(u.plowing)return;}
     if(u.order&&u.order.type==='move'){}else return;}
@@ -1698,7 +1698,8 @@ function updUnit(u,dt){
       if(alive(b)&&b.built&&u.type==='settler'&&b.type==='towncenter'){u.type='villager';u.hp=Math.min(u.hp,DEF.villager.hp);u.maxHp=DEF.villager.hp;}
       if(alive(b)&&(b.type==='farm'||b.type==='goldmine'||b.type==='stonemine')&&b.owner===u.owner&&b.built){orderGather(u,b);return;}
       if(alive(b)&&(b.type==='wall'||b.type==='gate')){let nx=null,nd=8*TILE;for(const e of G.ents)if((e.type==='wall'||e.type==='gate')&&e.owner===u.owner&&!e.built&&!e.dead){const dd=Math.hypot(e.x-u.x,e.y-u.y);if(dd<nd){nd=dd;nx=e;}}if(nx){orderBuild(u,nx);return;}wallDoneFor(u,b);return;}
-      if(alive(b)&&b.type==='storage'){let best=null,bd=6*TILE;for(const e of G.ents)if(e.kind==='res'&&!e.dead){const dd=Math.hypot(e.x-b.x,e.y-b.y);if(dd<bd){bd=dd;best=e;}}if(best)orderGather(u,best);}
+      if(alive(b)&&b.type==='storage'){let best=null,bd=6*TILE;for(const e of G.ents)if(e.kind==='res'&&!e.dead){const dd=Math.hypot(e.x-b.x,e.y-b.y);if(dd<bd){bd=dd;best=e;}}if(best){orderGather(u,best);return;}}
+      if(u._resume){const R=u._resume;u._resume=null;const t=G.byId.get(R.id);if(t&&!t.dead){if(R.type==='gather'){orderGather(u,t);if(u.order)return;}else if(R.type==='build'&&!t.built){orderBuild(u,t);return;}}}
       return;
     }
     const r=approachWork(u,b,TILE*.8);
@@ -7532,7 +7533,7 @@ function fire(c,x,y,now,s){for(let k=0;k<3;k++){const f=Math.sin(now/70+k*2.1+s)
 const SILS={m:new WeakMap(),get(k){return this.m.get(k)},set(k,v){this.m.set(k,v);return this},clear(){this.m=new WeakMap()}};
 function silOf(sp){let s=SILS.get(sp);if(s)return s;const c=document.createElement('canvas');c.width=sp.width;c.height=sp.height;const g=c.getContext('2d');const k=sp.width/sp.w;g.filter='blur('+(1.6*k)+'px)';g.drawImage(sp,0,0);g.filter='none';g.globalCompositeOperation='source-in';g.fillStyle='#0d1408';g.fillRect(0,0,c.width,c.height);SILS.set(sp,c);return c;}
 function castShadow(c,sp,x0,y0,baseLocal,alpha,sx){const sil=silOf(sp),k=sil.width/sp.w;c.save();c.globalAlpha=alpha;c.translate(x0,y0+baseLocal);c.transform(1,0,-(sx||.85),-.34,0,0);c.drawImage(sil,0,0,sil.width,Math.max(1,baseLocal*k),0,-baseLocal,sp.w,baseLocal);c.restore();}
-const SHL={c:document.createElement('canvas'),x:0,y:0,w:0,h:0,z:0,sig:''};const SPID=new WeakMap();let SPN=0;const spId=sp=>{let v=SPID.get(sp);if(!v){v=++SPN;SPID.set(sp,v);}return v;};
+const SHL={c:document.createElement('canvas'),x:0,y:0,w:0,h:0,z:0,sig:''};const SPID=new WeakMap();let SPN=0;const spId=sp=>{if(!sp||(typeof sp!=='object'&&typeof sp!=='function'))return 0;let v=SPID.get(sp);if(!v){v=++SPN;SPID.set(sp,v);}return v;};
 function shadowLayer(c){const z=cam.z,vw=W/z,vh=H/z,vx=cam.x,vy=cam.y;const inside=vx>=SHL.x&&vy>=SHL.y&&vx+vw<=SHL.x+SHL.w&&vy+vh<=SHL.y+SHL.h&&Math.abs(SHL.z-z)<.001;
   const bx=inside?SHL.x:vx-vw*.5,by=inside?SHL.y:vy-vh*.5,bw=inside?SHL.w:vw*2,bh=inside?SHL.h:vh*2;const st=[];let sig='';
   for(const e of G.ents){if(e.dead)continue;if(e.kind==='bld'){if(!e.built||e.type==='farm'||e.type==='wall'||e.type==='gate'||DEF[e.type].walkable)continue;if(e.owner!==0&&!G.exp[0][ti(e.tx,e.ty)])continue;}else if(e.kind==='res'){if(e.type!=='tree'||e.stump||e.sapling||e.copd)continue;}else continue;
@@ -9308,6 +9309,10 @@ const RUINTREE={off:false};
   setInterval(()=>{try{if(G)owned=mineNow();}catch(err){}},1500);
 }
 /* ===== END sacred site capture message ===== */
+/* ===== gameplay chat 1: villagers pulled off a job to help build go back to it (Josh, Oct 16: "i accidentally double clicked a villager and then all my villagers came to help with that one thing and didn't go back to what they were doing after"). orderBuild remembers the gather/build job a villager had (u._resume); when the building is finished they return to it. Any other order (move, gather, etc.) forgets it. ===== */
+try{orderBuild=(function(prev){return function(u,b){try{const o=u&&u.order;if(o&&(o.type==='gather'||(o.type==='build'&&o.id!==b.id))&&o.id)u._resume={type:o.type,id:o.id}}catch(err){}return prev.apply(this,arguments)}})(orderBuild)}catch(err){}
+try{orderGather=(function(prev){return function(u){try{if(u)u._resume=null}catch(err){}return prev.apply(this,arguments)}})(orderGather)}catch(err){}
+try{orderMove=(function(prev){return function(us){try{for(const u of us||[])if(u)u._resume=null}catch(err){}return prev.apply(this,arguments)}})(orderMove)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
