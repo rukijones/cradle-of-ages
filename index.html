@@ -9379,6 +9379,55 @@ function rqBusy(u){const o=u.order;if(!o||o.type!=='build')return false;const b=
 try{repairTick=(function(prev){return function(u,b,dt){const r=prev.apply(this,arguments);try{if(u&&!u.order&&u.bq&&u.bq.length){let nx=null;while(u.bq.length&&!nx){const c=G.byId.get(u.bq.shift());if(alive(c)&&c.owner===u.owner&&(!c.built||canRepair(c,u.owner)))nx=c}if(nx)orderBuild(u,nx)}}catch(err){}return r}})(repairTick)}catch(err){}
 try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const hit=pick(wx,wy);if(hit&&hit.kind==='bld'&&hit.owner===0&&(canRepair(hit,0)||!hit.built)){const vs=selEnts().filter(u=>u.owner===0&&u.type==='villager'&&!u.dead);const busy=vs.filter(u=>rqBusy(u)&&u.order.id!==hit.id);
   if(busy.length){for(const u of busy){u.bq=u.bq||[];if(!u.bq.includes(hit.id))u.bq.push(hit.id)}for(const u of vs)if(!rqBusy(u))orderBuild(u,hit);const n=Math.max(...busy.map(u=>u.bq.length))+1;mark(hit.x,hit.y,'#ffd25a');toast((canRepair(hit,0)?'Repair':'Build')+' added to the list ('+n+' jobs). They do them in order');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
+/* ===== AUDIO: UI sounds - button taps, selecting, "got it" on orders (Josh, Oct 16 2026) =====
+   Owned by the audio chat. Josh's picks from sound board 1: Tap A (wood click), Select C (two notes up),
+   Villagers A (marimba), Soldiers A (steel ring + thump), Machines C (servo whirr). All synthesized here, no files.
+   Hooks: a click listener on buttons; onTap and boxSelect are wrapped from a setTimeout so this wrapper sits outside
+   every other chat's wrapper. It compares the selection and each selected unit's order before/after the tap:
+   a new selection plays Select; a new order on your units plays the "got it" for the biggest group in it.
+   Off switch: UISFX.OFF=true. Levels: UISFX.VOL. Test hook: window.__uisfx. */
+const UISFX=(function(){
+  const U={OFF:false,VOL:{tap:.8,sel:.9,ack:.9},last:{}};
+  let NB=null;
+  const ctx=()=>AUD.ctx(),bus=()=>AUD.bus('ui');
+  function nbuf(c){if(NB)return NB;const n=c.sampleRate;NB=c.createBuffer(1,n,c.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return NB;}
+  function env(g,t,a,p,d){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(p,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+d);}
+  function osc(c,out,type,f,t,a,p,d,f2,gl,dest){const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+(gl||d));env(g,t,a,p,d);o.connect(g);g.connect(dest||out);o.start(t);o.stop(t+a+d+.05);}
+  function nz(c,out,t,dur,ft,fr,q,p){const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=nbuf(c);f.type=ft;f.frequency.value=fr;f.Q.value=q||1;env(g,t,.002,p,dur);s.connect(f);f.connect(g);g.connect(out);s.start(t,Math.random()*.5);s.stop(t+dur+.05);}
+  const S={
+    tap(c,o,t,j){nz(c,o,t,.035,'bandpass',1700*j,5,.5);osc(c,o,'sine',820*j,t,.002,.12,.04);},
+    sel(c,o,t,j){osc(c,o,'triangle',784*j,t,.004,.12,.12);osc(c,o,'triangle',1046*j,t+.06,.004,.12,.18);},
+    vil(c,o,t,j){[[523,0],[659,.1]].forEach(([f,d])=>{osc(c,o,'sine',f*j,t+d,.002,.22,.22);osc(c,o,'sine',f*4*j,t+d,.002,.05,.04);});},
+    sol(c,o,t,j){osc(c,o,'sine',130*j,t,.002,.45,.14,55,.12);nz(c,o,t,.02,'highpass',3000,1,.25);osc(c,o,'square',1720*j,t+.01,.002,.035,.18);osc(c,o,'triangle',2610*j,t+.01,.002,.05,.28);osc(c,o,'sine',3980*j,t+.01,.002,.02,.2);},
+    mac(c,o,t,j){const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1200;f.Q.value=2;f.connect(o);osc(c,o,'square',240*j,t,.01,.14,.22,620*j,.2,f);osc(c,o,'sine',480*j,t,.01,.04,.2,1240*j,.2);}
+  };
+  const GAP={tap:.06,sel:.12,vil:.18,sol:.18,mac:.18};
+  U.play=function(k){if(U.OFF)return;const c=ctx(),b=bus();if(!c||!b||c.state!=='running'||!S[k])return;const now=c.currentTime;if(now-(U.last[k]||-9)<GAP[k])return;U.last[k]=now;U.count=(U.count||0)+1;U.lastK=k;
+    try{const g=c.createGain();g.gain.value=U.VOL[k==='tap'?'tap':k==='sel'?'sel':'ack'];g.connect(b);S[k](c,g,now+.01,1+(Math.random()-.5)*.06);setTimeout(()=>{try{g.disconnect();}catch(e){}},1500);}catch(err){}};
+  /* which "got it" a unit gets */
+  const MACH=new Set(['tank','armoredcar','truck','heli','bomber']);
+  function group(u){if(MACH.has(u.type)||(typeof VEHICLES!=='undefined'&&VEHICLES.has(u.type))||u.air)return 'mac';if(NONMIL.has(u.type))return 'vil';return 'sol';}
+  /* 1. buttons (bottom bar, menus, group slots). Click only, so scrolling the bar stays silent */
+  document.addEventListener('click',e=>{try{const el=e.target&&e.target.closest&&e.target.closest('button,.b,.grp');if(!el||el.closest('#audRow'))return;U.play('tap');}catch(err){}},true);
+  /* 2. taps on the map */
+  function snap(){try{const ids=(G&&G.sel)||[],ord=new Map();for(const id of ids){const u=G.byId.get(id);if(u&&u.owner===0&&u.kind==='unit')ord.set(u,u.order);}return {key:ids.join(','),ord};}catch(err){return null;}}
+  function after(s){if(!s||!G)return;try{
+    const key=(G.sel||[]).join(',');
+    if(key&&key!==s.key){const any=G.sel.some(id=>{const e=G.byId.get(id);return e&&e.owner===0;});if(any){U.play('sel');return;}}
+    const cnt={vil:0,sol:0,mac:0};let n=0;
+    for(const [u,o] of s.ord){if(u.dead||u.order===o||!u.order)continue;cnt[group(u)]++;n++;}
+    if(n){const k=cnt.sol>=cnt.mac&&cnt.sol>=cnt.vil?'sol':cnt.mac>=cnt.vil?'mac':'vil';U.play(k);}
+  }catch(err){}}
+  setTimeout(()=>{try{
+    const _t=onTap;onTap=function(){const s=snap();const r=_t.apply(this,arguments);after(s);return r;};
+    const _b=boxSelect;boxSelect=function(){const s=snap();const r=_b.apply(this,arguments);after(s);return r;};
+  }catch(err){}},0);
+  /* test helpers (used by the headless test only) */
+  U._tapUnit=type=>{const u=G.ents.find(e=>e.owner===0&&e.type===type&&!e.dead);if(u)onTap(u.x,u.y);return !!u;};
+  U._tapGround=(dx,dy)=>{const u=G.byId.get(G.sel[0]);if(u)onTap(u.x+dx,u.y+dy);};
+  window.__uisfx=U;return U;
+})();
+/* ===== END AUDIO ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10200,4 +10249,3 @@ resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame)
 </script>
 </body>
 </html>
-
