@@ -4135,7 +4135,7 @@ GFX.tint=function(im,mk,o){const c=document.createElement('canvas');c.width=im.w
   x.putImageData(d,0,0);return c};
 GFX.spr=function(name,o,S,wf,down){const im=GFX.imgs[name],src=GFX.tint(im,GFX.imgs[name+'_m'],o),w=S*wf,h=w*im.height/im.width,k0=Math.min(SS,im.width/w),k=GFX.HDSPR===false?k0:Math.max(k0,Math.min(SS>2?5:4,im.width/w));
   const c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(src,0,0,c.width,c.height);
-  c.w=w;c.h=h;c.dx=(w-S)/2;c.ov=h-S-S*down;if(GFX.DOOR_ART&&GFX.DOOR_ART[name])c.door=GFX.DOOR_ART[name].slice();else if(k!==k0)try{const W0=Math.round(w*k0),H0=Math.round(h*k0),T=GFX.DOORTAB||{};c._w0=W0;c._h0=H0;for(const t in T){const r=T[t];if(r[6]===W0&&r[7]===H0){c.door=r.slice(0,6);break}}}catch(err){}const a=GFX_ART[name],q=w/im.width;
+  c.w=w;c.h=h;c.dx=(w-S)/2;c.ov=h-S-S*down;if(k!==k0)try{const W0=Math.round(w*k0),H0=Math.round(h*k0),T=GFX.DOORTAB||{};c._w0=W0;c._h0=H0;for(const t in T){const r=T[t];if(r[6]===W0&&r[7]===H0){c.door=r.slice(0,6);break}}}catch(err){}const a=GFX_ART[name],q=w/im.width;
   if(a.smoke)c.smoke=[a.smoke[0][0]*q,a.smoke[0][1]*q];if(a.fire)c.fire=[a.fire[0][0]*q,a.fire[0][1]*q];if(a.smoke&&a.smoke[1])c.smoke2=[a.smoke[1][0]*q,a.smoke[1][1]*q];c.smoke=c.smoke||null;return c};
 GFX.tree=function(name,hh,flip){const im=GFX.imgs[name],c=document.createElement('canvas'),k=SS;c.width=60*k;c.height=78*k;const g=c.getContext('2d');g.imageSmoothingQuality='high';
   const ww=hh*im.width/im.height;g.scale(k,k);g.translate(30,68);if(flip)g.scale(-1,1);g.drawImage(im,-ww/2,-hh,ww,hh);c.w=60;c.h=78;return c};
@@ -5791,7 +5791,7 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
     const s=document.createElement('canvas');s.width=sp.width;s.height=sp.height;s.getContext('2d').drawImage(sp,0,0);
     s.w=sp.w*k;s.h=sp.h*k;s.dx=(sp.dx||0)+sp.w*(k-1)/2;s.ov=sp.ov+sp.h*(k-1);
     for(const q of ['smoke','smoke2','fire','hub'])if(sp[q])s[q]=[sp[q][0]*k,sp[q][1]*k];
-    for(const q of ['fxF','fxM','fxL','fxS'])if(sp[q])s[q]=sp[q].map(p=>[p[0]*k,p[1]*k,p[2]]);if(sp.fxQ)s.fxQ=sp.fxQ*k;if(sp.fxW){s.fxW=sp.fxW;s.fxN=sp.fxN}if(sp.door)s.door=sp.door;
+    for(const q of ['fxF','fxM','fxL','fxS'])if(sp[q])s[q]=sp[q].map(p=>[p[0]*k,p[1]*k,p[2]]);if(sp.fxQ)s.fxQ=sp.fxQ*k;if(sp.fxW){s.fxW=sp.fxW;s.fxN=sp.fxN}
     return m[k]=s}})(bldSpr0)}catch(err){}
   // flames: layered tongues that lick and sway, a warm glow, the odd spark
   function flame(c,x,y,r,t,seed){
@@ -6586,11 +6586,7 @@ try{(function(){
     GFX.imgs[n]=im;GFX.imgs[n+'_m']=L[n+'_m']||em(n,im);try{if(!GFX_ART[n])GFX_ART[n]={age:2,culture:'both',smoke:null}}catch(err){}
     return cache[k]=GFX.spr(n,o,S,wf,dn)}
   GFX.a1spr=spr;
-  GFX.FX.a1_tw1={f:[[171,101,1.05]],w:[[0,14,72,92,'r']]};GFX.FX.a1_tw2={w:[[46,188,88,334,'t',.6]]};try{const F=GFX.FX.i_house||(GFX.FX.i_house={});F.w=(F.w||[]).concat([[18,300,162,388,'t',.3]])}catch(err){}/* Iron house awning valance ripples (Josh, Oct 17) *//* Sentry flag + Guard banner wave (Josh, Oct 17) */
-  // queue number on a unit card with an upgrade arrow (Josh, Oct 17: "the que number is blocked"): move it to the card's bottom-right corner
-  try{const st=document.createElement('style');st.textContent='#acts .ucard>.b .badge{top:auto;bottom:-5px;right:-4px;z-index:3}';document.head.appendChild(st)}catch(err){}
-  // doors for repainted pictures that lost their DOORTAB match (Josh, Oct 17: "check if any buildings are missing the door opening")
-  GFX.DOOR_ART=Object.assign(GFX.DOOR_ART||{},{b_tc:[0.255,0.48,0.12,0.225,'l','closed'],i_tc:[0.24,0.63,0.1,0.13,'l','open'],i_barracks:[0.295,0.418,0.1,0.258,'l','open']});GFX.FX.a1_pbi={s:[[358,150]]};GFX.FX.a1_pbd={s:[[358,150]]};
+  GFX.FX.a1_tw1={f:[[171,101,1.05]],w:[[0,14,72,92,'r']]};GFX.FX.a1_tw2={w:[[46,188,88,334,'t',.6]]};try{const F=GFX.FX.i_house||(GFX.FX.i_house={});F.w=(F.w||[]).concat([[18,300,162,388,'t',.3]])}catch(err){}/* Iron house awning valance ripples (Josh, Oct 17) *//* Sentry flag + Guard banner wave (Josh, Oct 17) */GFX.FX.a1_pbi={s:[[358,150]]};GFX.FX.a1_pbd={s:[[358,150]]};
   const ageOf=o=>{try{return G.players[o].age|0}catch(e){return 0}};
   const tierOf=o=>{try{const T=G.players[o].tech;return T.keeps?3:T.guardtower?2:T.sentry?1:0}catch(e){return 0}};
   function lone(e){try{if(GFX.wallTower)return !GFX.wallTower(e)}catch(err){}try{const s=e.size||2;for(const w of G.ents)if((w.type==='wall'||w.type==='gate')&&!w.dead&&w.owner===e.owner&&w.tx>=e.tx-1&&w.tx<=e.tx+s&&w.ty>=e.ty-1&&w.ty<=e.ty+s)return false}catch(err){}return true}
@@ -7920,7 +7916,7 @@ function draw(){
   for(const f of G.fx)if(f.type!=='puff'&&f.type!=='float'&&f.type!=='zap'&&f.type!=='treefall'&&E[ti(Math.max(0,Math.min(MW-1,tl(f.x!==undefined?f.x:f.x0+1))),Math.max(0,Math.min(MH-1,tl(f.y!==undefined?f.y:f.y0+1))))])drawFx(c,f,now);
   const list=[];
   for(const e of G.ents){
-    if(e.kind==='res'){if(inView(e.x,e.y,60)&&E[ti(e.tx,e.ty)])list.push([e.type==='carcass'?e.y-26:e.stump?e.y-12:e.y+10,e]);}/* stumps sort at their top edge (Josh Oct 17: people walking over a stump were drawn under it) */
+    if(e.kind==='res'){if(inView(e.x,e.y,60)&&E[ti(e.tx,e.ty)])list.push([e.type==='carcass'?e.y-26:e.y+10,e]);}
     else if(e.kind==='poi'){if(inView(e.x,e.y,90)&&E[ti(e.tx,e.ty)])list.push([e.y+8,e]);}
     else if(e.kind==='bld'){if(inView(e.x,e.y,160)&&(e.owner===0||E[ti(tl(e.x),tl(e.y))])&&innSeen(e,0))list.push([(DEF[e.type].walkable||(e.type==='farm'&&e.built&&typeof GFX!=='undefined'&&GFX.mode==='V23D'))?e.ty*TILE:(e.ty+e.size)*TILE-2,e]);}
     else{let x=e.px+(e.x-e.px)*alpha,y=e.py+(e.y-e.py)*alpha;if(e.kbx){x+=e.kbx;y+=e.kby;e.kbx*=.84;e.kby*=.84;if(Math.abs(e.kbx)<.05)e.kbx=e.kby=0;}if(!inView(x,y,40))continue;if(e.owner!==0&&!V[ti(tl(e.x),tl(e.y))])continue;list.push([e.plowing?y+140:Math.max(y+4,zOverOf(e)),e,x,y]);}
@@ -9697,43 +9693,6 @@ const FIGHT={off:false,spill:4,kiteR:1.6,kiteMax:1.4,kiteRest:3,slots:t=>t.r>=13
   window.__fight=FIGHT;
 }
 /* ===== END combat feel 3+4 ===== */
-/* People behind buildings (gameplay, Josh Oct 17: "people who are blocked behind buildings need to be visible somehow, like what we did with the wall").
-   Art chat 1's wall x-ray (GFX.SEE_TYPES: a unit mostly hidden behind a wall is redrawn on top of the stone, masked to the stone, 55% copy + team-coloured
-   edge) now covers every solid building. Flat/walk-in ones (farm, ranch, pens, corrals) are left out. Lone towers stay excluded by the art code. */
-try{if(GFX.SEE_TYPES)for(const t in DEF){const d=DEF[t];if(d.kind==='bld'&&!d.walkable&&t!=='farm')GFX.SEE_TYPES[t]=1}}catch(err){}
-/* Speed: the wall code composes a masked overlay per wall piece; for whole buildings in a crowded town that cut the frame rate to a third.
-   For the added types the ghost is drawn straight onto the scene right after the building: a 55% copy of the unit + team-coloured edge. Where the unit
-   is not covered the copy lands on the unit itself (no change but the outline), so no mask is needed. Each unit is ghosted once per frame.
-   Walls, gates and towers keep the art code's masked path. */
-try{const WALLS={wall:1,gate:1,tower:1};let fr=-1;const done=new Set();
-  GFX.seeOverlay=(function(prev){return function(c,e,L,now){if(WALLS[e.type])return prev.apply(this,arguments);if(fr!==now){fr=now;done.clear()}
-    for(const o of L){if(o.kind!=='u'||done.has(o.u.id))continue;done.add(o.u.id);const q=GFX.seeUnitImg(o.u,now,2);if(!q)continue;
-      const a=c.globalAlpha;c.globalAlpha=a*GFX.SEE_COPY;c.drawImage(q.img,q.x,q.y,q.w,q.h);c.globalAlpha=a;const p=1;c.drawImage(q.edge,q.x-p,q.y-p,q.w+2*p,q.h+2*p)}}})(GFX.seeOverlay)}catch(err){}
-/* Inn wing progress (gameplay, Josh Oct 17: "there was no progress on the upgrade of the pub to an inn"). The 30 s timer ran, but its only sign was a
-   small text box at the far right of the bar (off screen on a phone). Now: the timer box with a bar comes first in the pub's buttons, and a progress
-   ring with the inn icon shows over the pub, like the training rings. */
-try{drawBuilding=(function(prev){return function(c,e,now){const r=prev.apply(this,arguments);try{if(e&&e.type==='pub'&&e.owner===0&&e.innUpT>0){let sp=null;try{sp=bldSpr(e)}catch(err){}
-  const f=Math.max(0,Math.min(1,1-e.innUpT/30)),x=e.x+36,y=Math.max(e.ty*TILE-((sp&&sp.ov)||0)-16,e.ty*TILE-60),R=11;
-  c.save();c.fillStyle='rgba(20,14,8,.78)';c.beginPath();c.arc(x,y,R+2,0,7);c.fill();c.strokeStyle='rgba(255,255,255,.18)';c.lineWidth=2.5;c.beginPath();c.arc(x,y,R,0,7);c.stroke();
-  c.strokeStyle='#ffd34a';c.lineWidth=2.8;c.lineCap='round';c.beginPath();c.arc(x,y,R,-Math.PI/2,-Math.PI/2+f*Math.PI*2);c.stroke();
-  const im=hintImg(THUMB.inn||THUMB.pub);if(im)c.drawImage(im,x-8,y-8,16,16);c.restore()}}catch(err){}return r}})(drawBuilding)}catch(err){}
-/* Cargo line (gameplay, Josh Oct 17: "a donkey caravan should show what it is carrying if you click on it. And a pack donkey"). */
-function cargoTxt(u){if(!u||u.owner!==0)return '';const nm=k=>({beer:'beer',wool:'wool',cheese:'cheese',bread:'bread',cloth:'cloth',cake:'cake',pastry:'pastry',textile:'textiles'})[k]||k;
-  if(u.type==='caravan'||u.type==='tradecart'){const L=u.load||{},parts=Object.keys(L).filter(k=>L[k]>0).map(k=>Math.round(L[k])+' '+nm(k)),tg=u.cv&&G.byId.get(u.cv.id);
-    if(parts.length)return '<b>Carrying:</b> '+parts.join(', ')+(u.cv&&u.cv.leg==='sell'?', on the way to the trading post':'');
-    if(tg&&u.cv.leg==='load')return '<b>Empty:</b> going to pick up goods at the '+((DEF[tg.type]&&DEF[tg.type].name)||tg.type).toLowerCase();
-    return '<b>Empty:</b> waiting for goods to sell (wool, cheese, beer)'}
-  if(u.type==='donkey'){const p=[];if(u.flourC>0)p.push(Math.round(u.flourC)+' flour');if(u.beerC>0)p.push(Math.round(u.beerC)+' beer');if(u.breadC>0)p.push(Math.round(u.breadC)+' bread');
-    const v=u.buddy&&G.byId.get(u.buddy);if(!p.length&&v&&!v.dead&&v.carry&&v.carry.amt>0)return '<b>Helping carry:</b> '+Math.round(v.carry.amt)+' '+(RNAME[v.carry.r]||'');
-    return p.length?'<b>Load:</b> '+p.join(', '):(u.bake||u.pubD||u.innD||u.breadB?'<b>Empty:</b> on the way to load up':'')}
-  return ''}
-/* caravan picture in the info card was missing (no THUMB.caravan): fall back to the donkey */
-try{let own=null;Object.defineProperty(THUMB,'caravan',{configurable:true,enumerable:true,get(){return own||PFULL.caravan||PFULL.donkey||THUMB.donkey},set(v){own=v}})}catch(err){}
-/* Trading post look (gameplay, Josh Oct 17: "the donkey caravan used a trading post in the medieval age, but the trading post graphic wasn't there, just the
-   roped off area"). Art chat 2's picture opens from the Renaissance (trade carts), but caravans sell there from the Iron Age. Until art chat 2 moves
-   their age check, the open post is drawn from the Iron Age: their open() test reads player ages, so it is called with them raised to 4. */
-try{drawTradepost=(function(prev){return function(c,e,now){let sv=null;try{const P=G.players,mx=Math.max(P[0].age||0,P[1].age||0);if(mx>=2&&mx<4){sv=[P[0].age,P[1].age];P[0].age=Math.max(4,P[0].age);P[1].age=Math.max(4,P[1].age)}}catch(err){}
-  try{return prev.apply(this,arguments)}finally{if(sv){G.players[0].age=sv[0];G.players[1].age=sv[1]}}}})(drawTradepost)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10256,7 +10215,7 @@ function renderPanel(sel){
     const own=one.owner===0?'Held by you. ':one.owner===1?'Held by the red tribe. ':'';
     if(one.type==='sacred'&&!sacFound(one,0)){info='<div style="min-width:0;flex:1"><div class="nm">A strange glow</div><div class="sub">Something is hidden here</div></div>';acts='<div class="hint">Stand any of your units on the glow for a few seconds to see what it is.</div>';}else{
     info='<img alt="" src="'+THUMB[one.type]+'"><div style="min-width:0;flex:1"><div class="nm">'+(one.type==='ruin'?'Ancient ruins':one.type==='tradepost'?'Trading post':'Sacred site'+(one.spirit?' of the '+SPIRN[one.spirit]:''))+'</div><div class="sub">'+(one.type==='ruin'?(one.looted?'Already explored':'Unexplored'):one.type==='tradepost'?'Neutral. Trades with everyone':own+'+0.5 gold/sec'+(one.spirit?'. '+SPB[one.spirit]:''))+'</div></div>';
-    acts='<div class="hint">'+(one.type==='tradepost'?'Donkey caravans (from the Iron Age) and trade carts (Renaissance) bring goods here and sell them for gold. The farther they come from your town, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';}
+    acts='<div class="hint">'+(one.type==='tradepost'?'In the Renaissance Age, trade carts from your market travel here and bring back gold. The farther your market, the more each trip pays.':one.type==='ruin'?'The first unit to reach these ruins finds a random reward: resources, a free upgrade or a map of the area.':'Keep units here with no enemies nearby for 8 seconds to capture it. The owner earns gold until someone takes it.')+'</div>';}
   }else if(one&&one.kind!=='unit'){
     const nm=one.kind==='res'?RES[one.type].name:(one.type==='pub'&&hasInn(one)?'Pub & Inn':one.type==='coop'&&one.yard?'Poultry yard':bname(one.type,one.owner))+(one.owner===1?' (enemy)':'');
     const ag=one.kind==='bld'?G.players[one.owner].age:0,tk=ag>=6&&THUMB[one.type+'x']?one.type+'x':ag>=5&&THUMB[one.type+'n']?one.type+'n':ag>=4&&THUMB[one.type+'r']?one.type+'r':ag>=3&&THUMB[one.type+'m']?one.type+'m':ag>=2&&THUMB[one.type+'i']?one.type+'i':ag>=1&&THUMB[one.type+'b']?one.type+'b':one.type;
@@ -10312,7 +10271,7 @@ function renderPanel(sel){
       if(isPen(one)){const PL=penLead(one),n=G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&inPenArea(PL,e)).length,sh=G.ents.filter(e=>e.shep===PL.id).length;const lambs=G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&e.born&&G.t-e.born<60&&inPenArea(PL,e)).length;if(penN(one)>1)acts+='<div class="hint"><b>'+penN(one)+' pens joined:</b> room for '+10*penN(one)+' sheep</div>';acts+=btn('shepherds',sh?(sh>1?sh+' shepherds':'1 shepherd'):'No shepherd','<span class="cost">'+(sh?'Tap to select':'Not assigned')+'</span>',THUMB.villager,false,0,'wide',sh?PILL('res','Working'):'');acts+=btn('herd','Call sheep','<span class="cost">'+(sh?'':'Needs a shepherd. ')+(n-lambs)+' adult'+(n-lambs===1?'':'s')+(lambs?', '+lambs+' lamb'+(lambs>1?'s':''):'')+'</span>',THUMB.sheep,false,0,'wide')+'<div class="hint">A lamb every 50 seconds, uses some wood for hay. Treat sick sheep fast. '+(sh?'':'Select villagers, tap the pen, then tap Make shepherds.')+(PL.hayless?' Out of wood: breeding paused.':'')+'</div>';}
       if(one.type==='ranch'&&one.owner===0&&one.built){if(P.tech.dairyfarm)acts+=btn('cuse','Cows: '+(one.cuse==='cheese'?'Cheese':'Milk'),'<span class="cost">'+(one.milked||0)+' of '+(one.cowsA||0)+' milked. Tap to switch</span>',THUMB.cow,false,0,'wide')+btn('herdc','Call cows','<span class="cost">'+(one.cFlock||0)+' here</span>',THUMB.cow,false,0,'wide');
         acts+='<div class="hint">Donkeys, oxen and caravans live on the right, sheep top-left'+(P.tech.dairyfarm?', cows bottom-left. The shepherd also milks the cows':'')+'.</div>';}
-      if(one.type==='pub'&&one.owner===0&&one.built){if(hasInn(one))acts+='<div class="hint"><b>Inn:</b> '+(one.innOn?'guests renting rooms, about 18 gold a minute':'no beer left, so no guests')+'. Rooms use a little beer</div>';else if(one.innUpT>0)acts='<div class="hint" style="min-width:150px;border-color:var(--gold)"><b>Adding an inn: '+Math.ceil(one.innUpT)+'s left</b><div class="bar q"><i style="width:'+Math.round(100*(1-one.innUpT/30))+'%"></i></div><span style="font-size:10px">No workers needed</span></div>'+acts;else acts=btn('innup','Add an inn',costHtml(INNUP_COST),bldIcon('pub',THUMB.pub),!canAfford(P,INNUP_COST),0,'wide',PILL('up','Upgrade'))+'<div class="hint">Turns this pub into a <b>Pub & Inn</b>: travelers rent rooms for about 18 gold a minute</div>'+acts;}
+      if(one.type==='pub'&&one.owner===0&&one.built){if(hasInn(one))acts+='<div class="hint"><b>Inn:</b> '+(one.innOn?'guests renting rooms, about 18 gold a minute':'no beer left, so no guests')+'. Rooms use a little beer</div>';else if(one.innUpT>0)acts+='<div class="hint"><b>Adding an inn:</b> '+Math.ceil(one.innUpT)+'s left</div>';else acts=btn('innup','Add an inn',costHtml(INNUP_COST),bldIcon('pub',THUMB.pub),!canAfford(P,INNUP_COST),0,'wide',PILL('up','Upgrade'))+'<div class="hint">Turns this pub into a <b>Pub & Inn</b>: travelers rent rooms for about 18 gold a minute</div>'+acts;}
       if(isLodge(one)&&one.owner===0&&one.built)acts+='<div class="hint" style="min-width:170px"><b id="prodinfo"></b><br><span id="prodsub"></span></div>';
       if(one.type==='tower'){const rb=(G.rubble||[]).filter(r=>r.dead===one.id).length+towerHoles(0,one.id).length;if(rb)acts+=btn('wallfix','Restore wall',costHtml({s:rb*WALL_FIX}),THUMB.wall,P.s<WALL_FIX,rb,'wide');acts+='<div class="hint">Shoots enemy units in range. Walls run between towers up to '+WALL_SPAN+' tiles apart. If it falls, the '+WALL_FALL+' wall sections on each side fall with it.</div>';}
       if((one.type==='wall'||one.type==='gate')&&one.owner===0&&one.span){const hn=wallHoles(0,one.span).length;if(hn)acts+=btn('rebuildwall','Rebuild wall',costHtml({s:hn*WALL_FIX}),THUMB.wall,P.s<WALL_FIX,hn,'wide');}
@@ -10338,7 +10297,7 @@ function renderPanel(sel){
         const locked=BTABS.find(t=>t[0]===tab)[2].filter(b=>(DEF[b].age||0)<=P.age&&!bReqMet(0,b));if(locked.length)acts+=btn('locked','+'+locked.length+' locked','<span class="cost">Tap to see how</span>','',false,0,'g');}
       {const sickSel=units.filter(u=>u.sick&&u.owner===0);if(sickSel.length)acts=btn('medsel','Give medicine',costHtml({g:25*sickSel.length}),THUMB[sickSel[0].type],!canAfford(P,{g:25*sickSel.length}),sickSel.length>1?sickSel.length:0,'wide danger',PILL('up','Sick'))+acts;}
       {const u1=units.length===1?units[0]:null;let st='';if(u1&&u1.owner===0){if(u1.raise){st='Growing up: ready to work in '+Math.ceil((u1.raise.dur-u1.raise.t)/(G.byId.get(u1.home)&&ranchPen(G.byId.get(u1.home))?1.1:1))+'s';}else if(u1.type==='donkey'&&u1.bake){st=u1.flourC?'Carrying flour to the bakery':'Hauling flour from the windmill to the bakery';}else if(u1.type==='donkey'){const v=u1.buddy&&G.byId.get(u1.buddy);st=v&&!v.dead?'Helping a villager: they carry twice as much each trip':'Looking for a villager who is gathering';}else if(u1.type==='ox'){const f=u1.farm&&G.byId.get(u1.farm);st=f&&u1.plowing?'Plowing a farm: it yields 40% more food':f?'Walking to a farm':'Looking for a farm without an ox';}
-        else if(u1.type==='villager'){const d=u1.donkey&&G.byId.get(u1.donkey);if(d&&!d.dead&&Math.hypot(d.x-u1.x,d.y-u1.y)<3*TILE)st='Has a pack donkey: carries '+capOf(u1)+' per trip';if(u1.shep)st=(st?st+'. ':'')+(u1.carry&&u1.carry.meat&&u1.carry.amt>0?'Shepherd: carrying '+Math.round(u1.carry.amt)+' meat':'Shepherd: tending the flock');}}try{const cg=cargoTxt(u1);if(cg)st=cg+(st?'. '+st:'')}catch(err){}if(st)acts+='<div class="hint">'+st+'</div>';}
+        else if(u1.type==='villager'){const d=u1.donkey&&G.byId.get(u1.donkey);if(d&&!d.dead&&Math.hypot(d.x-u1.x,d.y-u1.y)<3*TILE)st='Has a pack donkey: carries '+capOf(u1)+' per trip';if(u1.shep)st=(st?st+'. ':'')+(u1.carry&&u1.carry.meat&&u1.carry.amt>0?'Shepherd: carrying '+Math.round(u1.carry.amt)+' meat':'Shepherd: tending the flock');}}if(st)acts+='<div class="hint">'+st+'</div>';}
       if(G.players[0].tech.surveying&&units.some(u=>u.owner===0&&u.type==='villager'))acts=btn('prospect',G.prospect?'Tap the ground':'Dig test pit','<span class="cost">'+(G.prospect?'Tap here to cancel':'20 wood, look for veins')+'</span>','',false,0,'wide',G.prospect?PILL('up','Digging'):'')+acts;
       {const OLDU=new Set(['caravan','clubman','axeman','slinger','spearman','swordsman','legionary','longsword','pikeman','halberdier','bowman','compbow','crossbow','arquebus','rider','cavalry','knight','scout','ram','catapult','trebuchet','bombard','donkey','ox','tradecart']);if(G.players[0].age>=6&&units.some(u=>u.owner===0&&OLDU.has(u.type)))acts+=btn('retire','Retire old units','<span class="cost">Refund half their cost</span>','',false,0,'wide');}
       if(units.some(u=>u.owner===0&&u.type==='explorer'))acts=btn('expedition','Set out on expedition','<span class="cost">Sail beyond the map edge</span>',THUMB.explorer,false,0,'wide',PILL('new','Explore'))+'<div class="hint">Back in about 90 seconds with treasure, goods or new land. Some voyages are lost</div>'+acts;
