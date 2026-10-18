@@ -11060,7 +11060,18 @@ try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);
    donkey caravan"; research like Crossbows looked like research, not an upgrade). One-time cards the first time you own each animal
    (tutorial box when the tutorial is on, a long toast when it's off); upgrade research buttons read "⬆️ Upgrade to <unit>". ===== */
 try{TITLE.donkey='Pack donkey';TITLE.caravan='Donkey caravan';
-  LESSONS.push({id:'donkey',when:()=>tMine('donkey').length>0,steps:[{t:'<b>🫏 Pack donkey = a helper.</b> Select it, then tap a <b>villager</b>: it follows them and carries their loads home, so they never stop working. Tap a <b>pub</b> or <b>bakery</b> instead and it hauls beer, grain or flour there.',ent:()=>tMine('donkey')[0],last:1}]});
+  const dkJob=d=>!!(d&&(d.asgV||d.pubD||d.bake||d.innD));
+  const dkMine=()=>{const L=tMine('donkey').filter(d=>!d.raise);return L.find(d=>!dkJob(d))||L[0]};
+  const dkVill=()=>{const d=dkMine(),V=tMine('villager').filter(v=>!v.donkey||v.donkey===(d&&d.id));const W=V.filter(v=>v.order&&v.order.type==='gather');const L=(W.length?W:V);if(!d)return L[0];return L.sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0]};
+  const dkBld=()=>{const d=dkMine();const L=G.ents.filter(e=>e.owner===0&&!e.dead&&e.built&&(e.type==='pub'||e.type==='bakery'));if(!d)return L[0];return L.sort((a,b)=>(a.type==='pub'?0:1)-(b.type==='pub'?0:1)||Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0]};
+  window.__dkPick=k=>{try{const d=dkMine(),t=k==='v'?dkVill():dkBld();if(!d||!t)return;G.sel=[d.id];onTap(t.x,t.kind==='bld'?t.y:t.y-6);G.sel=[d.id];panelKeyLast='';cam.x=t.x-W/cam.z/2;cam.y=t.y-H/cam.z/2}catch(e){}};
+  const dkLook=(e,k)=>{try{if(!e||(G._dkLk||{})[k])return e;(G._dkLk=G._dkLk||{})[k]=1;const sx=(e.x-cam.x)*cam.z,sy=(e.y-cam.y)*cam.z;if(sx<60||sy<60||sx>W-60||sy>H-200){cam.x=e.x-W/cam.z/2;cam.y=e.y-H/cam.z*.4}}catch(err){}return e};
+  const bN=()=>{const b=dkBld();return b?(b.type==='pub'?'pub':'bakery'):null};
+  LESSONS.push({id:'donkey',when:()=>tMine('donkey').some(d=>!d.raise),steps:[
+    {t:'<b>🫏 This is your pack donkey.</b> It helps others carry things. <b>Tap the donkey</b>.',ent:()=>dkLook(dkMine(),'d'),done:()=>tSel().some(e=>e.type==='donkey')},
+    {t:'<b>🧑‍🌾 Help a villager:</b> the donkey walks to the villager (circled), follows them and carries their loads home, so the villager never stops working.',ent:()=>dkLook(dkVill(),'v')},
+    {t:()=>'<b>🍺 Supply a building:</b> a donkey can also keep a <b>pub</b> stocked (beer or grain) or carry flour to a <b>bakery</b>.'+(bN()?' Your '+bN()+' is circled.':' Build a pub or bakery to use this.'),ent:()=>dkLook(dkBld(),'b')},
+    {t:()=>'<b>Choose a job for your donkey:</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="big" style="flex:1;min-width:120px" onclick="window.__dkPick(\'v\')">🧑‍🌾 Help a villager</button>'+(bN()?'<button class="big" style="flex:1;min-width:120px" onclick="window.__dkPick(\'b\')">'+(bN()==='pub'?'🍺 Supply the pub':'🥖 Supply the bakery')+'</button>':'')+'</div><div style="font-size:11px;opacity:.75;margin-top:4px">Later: tap a donkey, then tap a villager, pub or bakery.</div>',ent:()=>dkMine(),done:()=>dkJob(dkMine())||tMine('donkey').some(dkJob)}]});
   LESSONS.push({id:'caravan',when:()=>tMine('caravan').length>0,steps:[{t:'<b>🐪 Donkey caravan = a trader.</b> It carries <b>🧀 cheese and 🧶 wool crates</b> from your dairy and sheep pens to a trading post and sells them for 🪙 gold, by itself. Set your cows to cheese (ranch → Cows) to give it something to sell.',ent:()=>tMine('caravan')[0],last:1}]});
 }catch(err){}
 try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&!TUT.on){G._dkC=G._dkC||{};for(const k of ['donkey','caravan']){if(G._dkC[k]||!G.ents.some(e=>e.type===k&&e.owner===0&&!e.dead))continue;G._dkC[k]=1;
