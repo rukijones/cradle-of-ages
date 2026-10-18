@@ -11078,6 +11078,22 @@ try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);
   toast(k==='donkey'?'🫏 Pack donkey: select it, then tap a villager. It carries their loads so they keep working':'🐪 Donkey caravan: carries cheese and wool crates to a trading post and sells them for gold')}}}catch(err){}return r}})(tick)}catch(err){}
 setTimeout(()=>{try{for(const k in CONV){const t=CONV[k][1],D=DEF[t];if(D)UPSHORT[k]='⬆️ Upgrade to '+(D.plural||D.name).toLowerCase()}if(DEF.slinger)UPSHORT.vetsling='⬆️ Veteran slingers'}catch(err){}},0);
 
+/* ===== Later ages cost more food (Josh, Oct 18: "Can't we just make things later in the game take more food?"). Computer-vs-computer
+   tests banked 2,000-12,500 food by 37-60 min. The FOOD part of every soldier and every upgrade/research (not age-ups, villagers,
+   buildings) is multiplied by your current age: Medieval x1.5, Renaissance x2, Industrial x2.5, Modern x3. Button prices show it.
+   COSTP = whose age prices are read for (you by default; the computer during its turn / its queue). ===== */
+const FOODX=[1,1,1,1.5,2,2.5,3];let COSTP=0;
+function foodScale(base){Object.defineProperty(base,'_b',{value:Object.assign({},base),enumerable:false});return base}
+(function(){const AK=new Set(AGE_KEYS);const wrapCost=(o)=>{const base=Object.assign({},o.cost);if(!base.f)return;
+    Object.defineProperty(o,'cost',{configurable:true,enumerable:true,get(){let a=0;try{a=(G&&G.players&&G.players[COSTP]&&G.players[COSTP].age)||0}catch(e){}const m=FOODX[a]||1;if(m===1)return base;const c=Object.assign({},base);c.f=Math.round(base.f*m/5)*5;return c},set(v){}})};
+  for(const k in DEF){const d=DEF[k];if(d&&d.kind==='unit'&&!NONMIL.has(k)&&d.cost)wrapCost(d)}
+  for(const k in TECH){if(AK.has(k))continue;const t=TECH[k];if(t&&t.cost)wrapCost(t)}})();
+const withCP=(o,f)=>{const s=COSTP;COSTP=o;try{return f()}finally{COSTP=s}};
+try{enqueue=(function(prev){return function(b,k){return withCP(b.owner,()=>prev.apply(this,arguments))}})(enqueue)}catch(err){}
+try{cancelQ=(function(prev){return function(b){return withCP(b.owner,()=>prev.apply(this,arguments))}})(cancelQ)}catch(err){}
+try{aiTick=(function(prev){return function(o){return withCP(o,()=>prev.apply(this,arguments))}})(aiTick)}catch(err){}
+try{aiExtra=(function(prev){return function(o){return withCP(o,()=>prev.apply(this,arguments))}})(aiExtra)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
