@@ -10508,6 +10508,14 @@ function cornersFinish(){const N=MW,T=G.terrain,O=OCEAN,fold=v=>v<N/2?v:N-1-v,ph
     const ce=Math.max(cE(t),w+CORM.sideGap+CORM.sideT)+1.2*Math.sin(t*.37+ph)+.8*Math.sin(t*.9+ph*2);
     if(e>=w+CORM.sideGap&&e<ce&&!base10(x,y)){const id=G.occ[i];if(id){const q=G.byId.get(id);if(q&&q.kind==='res'){q.dead=true;G.occ[i]=0}else continue}if(nearPoi(x,y))continue;T[i]=3}}
   G.ents=G.ents.filter(e=>!e.dead);
+  /* cliff cleanup (Oct 18, Josh saw "the edge of a cliff in the water"): thin rock spurs (1 tile wide, water on both sides or
+     only one rock neighbour) become sea if they touch 2+ water tiles, else land; tiny rock bits (< 8 tiles) become land */
+  {const C=(x,y)=>inB(x,y)&&T[ti(x,y)]===3,Wt=(x,y)=>inB(x,y)&&T[ti(x,y)]===1;
+   for(let pass=0;pass<4;pass++){const ch=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(!C(x,y))continue;
+     const nc=C(x+1,y)+C(x-1,y)+C(x,y+1)+C(x,y-1),nw=Wt(x+1,y)+Wt(x-1,y)+Wt(x,y+1)+Wt(x,y-1),thin=(Wt(x+1,y)&&Wt(x-1,y))||(Wt(x,y+1)&&Wt(x,y-1))||(nw>0&&nc<=1);
+     if(thin)ch.push([ti(x,y),nw>=2?1:0])}if(!ch.length)break;for(const[i,v]of ch)T[i]=v}
+   const seen=new Uint8Array(MW*MH);for(let i=0;i<MW*MH;i++){if(T[i]!==3||seen[i])continue;const st=[i],c=[];seen[i]=1;while(st.length){const j=st.pop();c.push(j);const x=j%MW,y=(j/MW)|0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!inB(nx,ny))continue;const k=ti(nx,ny);if(T[k]===3&&!seen[k]){seen[k]=1;st.push(k)}}}
+     if(c.length<8)for(const j of c)T[j]=0}}
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const {e,t}=geo(x,y),i=ti(x,y);if(T[i]!==0||G.occ[i]||islAt(x,y)||base10(x,y)||nearPoi(x,y))continue;const ce=cE(t);if(ce<2||e<ce-1.5)continue;
     let nc=false;for(let dy=-2;dy<=2&&!nc;dy++)for(let dx=-2;dx<=2;dx++){const nx=x+dx,ny=y+dy;if(inB(nx,ny)&&T[ti(nx,ny)]===3){nc=true;break}}if(nc&&R()<.45)mkRes('tree',x,y)}
   /* fish along the new shores */
