@@ -10541,6 +10541,20 @@ setTimeout(()=>{profWrap('tick',()=>tick,f=>tick=f);profWrap('water',()=>drawWat
    Character sheets are now kept at half size (they are drawn at ~1/5 size anyway, so nothing visible changes) and the
    sheet memory budget is smaller, so pictures not on screen are let go sooner. ===== */
 try{GFX.texHalf=true;GFX.TEXB=Math.min(GFX.TEXB,160e6)}catch(err){}
+
+/* ===== Speed fix 2 (gameplay chat 1, Oct 17): the ground was kept as 2048x2048 pictures. Drawing even a corner of one
+   makes the graphics card hold all 16 MB of it, so a normal view needed ~64 MB of ground every frame. After the ground
+   is painted (and after every art step that paints it), it is cut into 512x512 tiles: same pixels, same look, but only the
+   tiles on screen (~12 MB) are needed per frame. Installed last (on the first map) so it runs after every other painter. ===== */
+const GTILE=512;
+function groundTile(){if(!G||!G.ground||!G.ground.chunks)return;const out=[];
+  for(const ch of G.ground.chunks){const W0=ch.c.width,H0=ch.c.height;if(ch.tile||(W0<=GTILE&&H0<=GTILE)){out.push(ch);continue}
+    for(let y=0;y<H0;y+=GTILE)for(let x=0;x<W0;x+=GTILE){const w=Math.min(GTILE,W0-x),h=Math.min(GTILE,H0-y),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(ch.c,x,y,w,h,0,0,w,h);
+      out.push({x:ch.x+x,y:ch.y+y,c,tile:1,isl:ch.isl})}
+    ch.c.width=0;ch.c.height=0}
+  G.ground.chunks=out}
+function groundTileHook(){if(renderGround._gt)return;const prev=renderGround;renderGround=function(){const r=prev.apply(this,arguments);try{groundTile()}catch(err){}return r};renderGround._gt=1}
+setTimeout(()=>{try{groundTileHook();if(G&&G.ground)groundTile()}catch(err){}},0);
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
