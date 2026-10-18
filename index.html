@@ -393,7 +393,7 @@ const CONV={axemen:['clubman','axeman'],legion:['swordsman','legionary'],pikes:[
 const WORK={pub:{max:2,rate:{},label:'brewers'},shaft:{max:3,rate:{},label:'miners'},factory:{max:4,rate:{g:.22},fuel:{w:.1,s:.05},label:'extra factory hands'},bakery:{max:3,rate:{f:2.1},fuel:{w:.12},label:'bakers'},dairy:{max:2,rate:{f:.7},label:'dairy workers'},weaver:{max:2,rate:{},label:'weavers'}};
 const NONMIL=new Set(['villager','settler','fishboat','transport','sheep','cow','deer','wolf','tradecart','donkey','ox','explorer','truck','caravan']);
 const USES={
-  dairy:[['milk','Milk','About 15 food a minute per milked cow'],['cheese','Cheese','Gold, or cheese crates for trade once you have a market']],
+  dairy:[['milk','🥛 Milk → 🍞 food','About 15 food a minute per milked cow, straight into your food'],['cheese','🧀 Cheese → 🪙 gold','Cheese crates: sold for gold (a donkey caravan or trade cart takes them to market for full price)']],
   pen:[['meat','Mutton','Shepherds slaughter extra sheep for meat'],['wool','Wool cloth','Shepherds shear: gold, or cloth crates for trade once you have a market']],
   coop:[['eggs','Eggs','About 3 food a minute per hen']],
   mill:[['wheat','Wheat for flour','Farms +25%. Their grain is ground into flour for bakeries'],['barley','Barley','Pubs brew 1.5x faster. Farms make 30% less food']]};
@@ -914,7 +914,7 @@ function ranchActs(one,P){
     }else{
       h+=line(cows+' cow'+(cows===1?'':'s')+' (room for '+COW_CAP+') · '+(one.milked||0)+' milked',(sh?'Ranch hands milk them':'Needs a ranch hand to milk them'));h+=handBtns(one,sh);
       if(sickC)h+=btn('medicine','Give medicine',costHtml({g:25}),THUMB.cow,!canAfford(P,{g:25}),0,'wide danger',PILL('up','Sick'));
-      h+=btn('cuse','Make: '+(one.cuse==='cheese'?'Cheese':'Milk'),'<span class="cost">'+(one.cuse==='cheese'?'Gold':'Food')+'. Tap to switch</span>',THUMB.cow,false,0,'wide');
+      h+=btn('cuse',one.cuse==='cheese'?'Cows make: 🧀 cheese → 🪙 gold':'Cows make: 🥛 milk → 🍞 food','<span class="cost">Tap to switch to '+(one.cuse==='cheese'?'🥛 milk (🍞 food)':'🧀 cheese (🪙 gold)')+'</span>',THUMB.cow,false,0,'wide');
     }
   }else{
     const n=raisingN(PL),cp=RAISE_CAP*penN(one);
@@ -11056,6 +11056,17 @@ function pubTrapTick(b){const en=1-b.owner;b.spotT=b.spotT||{};b.stolen=b.stolen
 try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.ents){G._ptT=(G._ptT||0)+dt;if(G._ptT>=1){G._ptT=0;
   for(const b of G.ents)if(b.type==='pub'&&!b.dead&&b.built&&b.owner<2){b._road=pubRoad(b);if(hasInn(b))pubTrapTick(b)}}}}catch(err){}return r}})(tick)}catch(err){}
 
+/* ===== Clearer donkeys + upgrade buttons, gameplay chat 1 (Josh, Oct 18: "confusing on instructions about how to use pack donkey and
+   donkey caravan"; research like Crossbows looked like research, not an upgrade). One-time cards the first time you own each animal
+   (tutorial box when the tutorial is on, a long toast when it's off); upgrade research buttons read "⬆️ Upgrade to <unit>". ===== */
+try{TITLE.donkey='Pack donkey';TITLE.caravan='Donkey caravan';
+  LESSONS.push({id:'donkey',when:()=>tMine('donkey').length>0,steps:[{t:'<b>🫏 Pack donkey = a helper.</b> Select it, then tap a <b>villager</b>: it follows them and carries their loads home, so they never stop working. Tap a <b>pub</b> or <b>bakery</b> instead and it hauls beer, grain or flour there.',ent:()=>tMine('donkey')[0],last:1}]});
+  LESSONS.push({id:'caravan',when:()=>tMine('caravan').length>0,steps:[{t:'<b>🐪 Donkey caravan = a trader.</b> It carries <b>🧀 cheese and 🧶 wool crates</b> from your dairy and sheep pens to a trading post and sells them for 🪙 gold, by itself. Set your cows to cheese (ranch → Cows) to give it something to sell.',ent:()=>tMine('caravan')[0],last:1}]});
+}catch(err){}
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&!TUT.on){G._dkC=G._dkC||{};for(const k of ['donkey','caravan']){if(G._dkC[k]||!G.ents.some(e=>e.type===k&&e.owner===0&&!e.dead))continue;G._dkC[k]=1;
+  toast(k==='donkey'?'🫏 Pack donkey: select it, then tap a villager. It carries their loads so they keep working':'🐪 Donkey caravan: carries cheese and wool crates to a trading post and sells them for gold')}}}catch(err){}return r}})(tick)}catch(err){}
+setTimeout(()=>{try{for(const k in CONV){const t=CONV[k][1],D=DEF[t];if(D)UPSHORT[k]='⬆️ Upgrade to '+(D.plural||D.name).toLowerCase()}if(DEF.slinger)UPSHORT.vetsling='⬆️ Veteran slingers'}catch(err){}},0);
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11743,7 +11754,7 @@ $('panel').addEventListener('click',e=>{
   else if(act==='medicine'&&one&&one.type==='ranch'){cureAt(one);}
   else if(act==='medicine'&&one){const at=one.type==='dairy'?'cow':'sheep',sk=G.ents.filter(e=>e.type===at&&e.owner===0&&e.sick&&Math.hypot(e.x-one.x,e.y-one.y)<(at==='cow'?5:3.2)*TILE);const c={g:25*sk.length};if(sk.length&&canAfford(P,c)){pay(P,c);for(const s of sk){s.sick=0;s.spread=0;}one.sickN=0;toast(at==='cow'?'Your herd is healthy again':'Your flock is healthy again');}else toast('Not enough gold for medicine');}
   else if(act==='innup'&&one&&one.type==='pub'&&!hasInn(one)&&!(one.innUpT>0)){if(!canAfford(P,INNUP_COST)){toast('Not enough to add an inn');return;}pay(P,INNUP_COST);one.innUpT=30;toast('Adding an inn to the pub: 30 seconds');panelKeyLast='';}
-  else if(act==='cuse'&&one&&one.type==='ranch'){one.cuse=one.cuse==='cheese'?'milk':'cheese';toast(one.cuse==='cheese'?'Cows now make cheese: gold, or cheese crates for trade':'Cows now give milk: food');panelKeyLast='';}
+  else if(act==='cuse'&&one&&one.type==='ranch'){one.cuse=one.cuse==='cheese'?'milk':'cheese';toast(one.cuse==='cheese'?'🧀 Cows now make cheese → 🪙 gold':'🥛 Cows now give milk → 🍞 food');panelKeyLast='';}
   else if(act==='herdc'&&one&&one.type==='ranch'){const cw=G.ents.filter(e=>e.type==='cow'&&e.owner===0&&!e.dead&&Math.hypot(e.x-one.x,e.y-one.y)<30*TILE);for(const c2 of cw)c2.dairyId=one.id;if(cw.length){const z=penSpot(one,'c');orderMove(cw,(z[0]+.5)*TILE,(z[1]+.5)*TILE);}toast(cw.length?cw.length+' cows heading to the ranch':'No cows nearby');}
   else if(act==='herd'&&one&&one.type==='dairy'){const cw=G.ents.filter(e=>e.type==='cow'&&e.owner===0&&!e.dead&&Math.hypot(e.x-one.x,e.y-one.y)<30*TILE);for(const c2 of cw)c2.dairyId=one.id;if(cw.length){const ex=exitTile(one,tl(one.x),tl(one.y)+3,0);orderMove(cw,(ex.x+.5)*TILE,(ex.y+.5)*TILE);}toast(cw.length?cw.length+' cows heading to the dairy':'No cows nearby');}
   else if(act==='herd'&&one){const o1=penLead(one);if(!G.ents.some(e=>e.shep===o1.id&&!e.dead)){toast('The pen needs a shepherd to call sheep: select a villager, tap the pen, then tap Make shepherds');return;}const sh=G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&Math.hypot(e.x-o1.x,e.y-o1.y)<45*TILE&&!(e.penId&&e.penId!==o1.id&&G.byId.get(e.penId)&&penLead(G.byId.get(e.penId))!==o1));for(const s of sh)s.penId=o1.id;if(sh.length){const ps=penSpot(o1);orderMove(sh,(ps[0]+.5)*TILE,(ps[1]+.5)*TILE);}toast(sh.length?'The shepherd calls: '+sh.length+' sheep heading to the pen':'No collared sheep within reach. Select them and tap the pen to bring them in');}
@@ -11851,7 +11862,7 @@ $('gmenu').addEventListener('click',e=>{const ob=e.target.closest('button[data-o
   const sg=e.target.closest('button[data-selg]');if(sg&&G){const ids=sg.dataset.selg.split(',').map(Number).filter(id=>G.byId.get(id));$('gmenu').hidden=true;$('gmenu').style.minWidth='';G.sel=ids;panelKeyLast='';const u=G.byId.get(ids[0]);if(u)centerOn(u.x,u.y);}});
 function showUseMenu(b){const m=$('gmenu'),cur=useOf(b);m.innerHTML='<div class="gmt">'+DEF[b.type].name+': choose one use</div>'+usesFor(b).map(([k,n,d])=>'<button data-use="'+k+'"'+(k===cur?' class="cur"':'')+'><b>'+n+(k===cur?' (current)':'')+'</b><br><span style="font-size:11px;color:var(--muted)">'+d+'</span></button>').join('')+'<div style="font-size:10px;color:var(--muted);padding:2px 4px">Switching takes 20 seconds'+(usesFor(b).length<USES[b.type].length?'. Research here to unlock more':'')+'</div>';
   const ar=app.getBoundingClientRect();m.style.left=Math.max(8,ar.width/2-130)+'px';m.style.top='40px';m.dataset.b=b.id;m.hidden=false;}
-$('gmenu').addEventListener('click',e=>{const ub=e.target.closest('button[data-use]');if(ub&&G){const b=G.byId.get(+$('gmenu').dataset.b);$('gmenu').hidden=true;if(b&&useOf(b)!==ub.dataset.use){b.use=ub.dataset.use;b.useT=20;toast(DEF[b.type].name+' switching to '+useName(b).toLowerCase());panelKeyLast='';}return;}});
+$('gmenu').addEventListener('click',e=>{const ub=e.target.closest('button[data-use]');if(ub&&G){const b=G.byId.get(+$('gmenu').dataset.b);$('gmenu').hidden=true;if(b&&useOf(b)!==ub.dataset.use){b.use=ub.dataset.use;b.useT=20;if(b.type==='dairy'&&b.ranch){const R=G.byId.get(b.ranch);if(R)R.cuse=b.use}toast(DEF[b.type].name+' switching to '+useName(b).toLowerCase());panelKeyLast='';}return;}});
 $('gmenu').addEventListener('click',e=>{const b=e.target.closest('button[data-gm]');if(!b||b.disabled||!G)return;const i=+$('gmenu').dataset.g,a=b.dataset.gm;$('gmenu').hidden=true;if(a==='add')addToGroup(i);else if(a==='rem')removeFromGroup(i);else if(a==='rep')assignGroup(i);else if(a==='del')clearGroup(i);});
 document.addEventListener('keydown',e=>{if(G&&/^[1-5]$/.test(e.key)&&!(document.activeElement&&document.activeElement.tagName==='INPUT')){const i=+e.key-1;if(e.shiftKey){e.preventDefault();addToGroup(i);}else if(e.ctrlKey||e.metaKey){e.preventDefault();assignGroup(i);}else selectGroup(i,false);return;}if(e.key!=='Escape'||!G)return;if(!$('pause').hidden){G.paused=false;$('pause').hidden=true;return;}if(document.activeElement&&document.activeElement.tagName==='INPUT')return;if(G.prospect)G.prospect=false;else if(G.aground)G.aground=false;else if(G.place)G.place=null;else G.sel=[];G.boxMode=false;G.demo=0;panelKeyLast='';});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.over){G.paused=true;$('pause').hidden=false;}});
