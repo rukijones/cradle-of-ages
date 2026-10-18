@@ -4254,8 +4254,8 @@ GFX.drawBeast=(function(prev){return function(c,u,x,y,now,k,gs){
   const Wd=(S.W||(k==='sheep'?22:k==='wolf'?27:24))*gs*1.25,H=Wd*S.fh/S.fw;const sc=H/S.fh;
   c.save();if(!GFX._noBSh){c.fillStyle='rgba(15,20,8,.28)';c.beginPath();c.ellipse(x,y+4,Wd*.32,Wd*.1,0,0,Math.PI*2);c.fill();}
   const dx=-Wd/2,dy=y+4-S.foot*sc;
-  if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,dx,dy,Wd,H)}else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x+dx,dy,Wd,H);
-  if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.4;if(mir)c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,dx,dy,Wd,H);else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x+dx,dy,Wd,H)}
+  if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),dx,dy,Wd,H)}else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x+dx,dy,Wd,H);
+  if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.4;if(mir)c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),dx,dy,Wd,H);else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x+dx,dy,Wd,H)}
   c.restore();return true}})(GFX.drawBeast);
 
 GFX.drawFarm=function(c,x0,y0,S,f){if(!GFX.resOn()||!GFX.tex||!GFX.texReady)return false;
@@ -4492,7 +4492,7 @@ GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='ram'||
   const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return prev(c,u,x,y,now);
   const sc=34/S.upx,w=S.fw*sc,h=S.fh*sc,hit=u.anim&&u.anim.hit?1:0;
   c.save();c.fillStyle='rgba(15,20,8,.28)';ell(c,x,y+4,17,6);c.fill();
-  const dy=y+5-S.foot*sc;if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h)}else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2+hit,dy,w,h);
+  const dy=y+5-S.foot*sc;if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h)}else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2+hit,dy,w,h);
   c.restore();return true}})(GFX.drawUnitSpr);
 
 /* ===== V23D see-through walls v3 (x-ray silhouettes): walls, gates and wall towers are always drawn SOLID. Nothing in the scene is ever drawn translucent.
@@ -4655,8 +4655,8 @@ GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='catapu
   const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return prev(c,u,x,y,now);
   const sc=(S.size||40)/S.upx,w=S.fw*sc,h=S.fh*sc;
   c.save();c.fillStyle='rgba(15,20,8,.3)';ell(c,x,y+4,15,5);c.fill();
-  const dy=y+5-S.foot*sc;if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h)}else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h);
-  if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;if(mir)c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h);else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h)}
+  const dy=y+5-S.foot*sc;if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h)}else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2,dy,w,h);
+  if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;if(mir)c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h);else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2,dy,w,h)}
   c.restore();return true}})(GFX.drawUnitSpr);
 /* ===== V23D relative sizes pass (Josh: siege and boats clearly bigger than a person, cow a real cow next to people and wolves).
    Scale is applied around the unit's feet, so selection, health bars and gameplay are unchanged. ===== */
@@ -4792,7 +4792,7 @@ GFX._bkKey={};try{bldSpr0=(function(prev){return function(e){const sp=prev(e);if
   const sz=e.size||3,ok=(GFX._bkKey[e.owner+'_'+sz]||(GFX._bkKey[e.owner+'_'+sz]={}));let C=GFX._bkSpr.get(ok);if(C)return C;const B=GFX.bkGeo(sz),K=3;const R=document.createElement('canvas');R.width=Math.round(B.W*K);R.height=Math.round(B.H*K);
   const g=R.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(im,0,0,R.width,R.height);R.w=B.W;R.h=B.H;R.dx=B.pad;R.ov=B.ov;C=GFX.padUnder(R,B.S,'bk'+sz+e.owner);GFX._bkSpr.set(ok,C);return C}})(bldSpr0)}catch(err){}
 GFX.bkMan=function(c,row,col,x,y){const S=GFX_BK3D.baker,im=GFX.bkImg('baker');if(!im)return null;const s=28/S.bodyH,w=S.fw*s,h=S.fh*s,X=x-(S.ax!=null?S.ax:S.fw/2)*s,Y=y-S.foot*s;
-  c.drawImage(im,col*S.fw,row*S.fh,S.fw,S.fh,X,Y,w,h);const hp=S.hp[row]&&S.hp[row][col];return hp?{r:[X+hp[0]*s,Y+hp[1]*s],l:[X+hp[2]*s,Y+hp[3]*s],tip:hp.length>5?[X+hp[4]*s,Y+hp[5]*s]:null,top:Y+(S.foot-S.bodyH)*s}:null};
+  c.drawImage(im,col*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),X,Y,w,h);const hp=S.hp[row]&&S.hp[row][col];return hp?{r:[X+hp[0]*s,Y+hp[1]*s],l:[X+hp[2]*s,Y+hp[3]*s],tip:hp.length>5?[X+hp[4]*s,Y+hp[5]*s]:null,top:Y+(S.foot-S.bodyH)*s}:null};
 GFX.bkProp=function(c,k,x,y,wd){const S=GFX_BK3D[k],im=GFX.bkImg(k);if(!im)return;const h=wd*S.h/S.w;c.drawImage(im,x-wd/2,y-h*.6,wd,h)};
 GFX._bkU={};GFX.bkURL=function(u){if(!u)return null;let im=GFX._bkU[u];if(!im){im=new Image();im.src=u;GFX._bkU[u]=im}return im.complete&&im.naturalWidth?im:null};
 /* "I need ..." bubble over an idle baker: wheat when the bakery has no flour, logs when there's no wood for the oven */
@@ -5054,8 +5054,8 @@ GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='trebuc
   const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return prev(c,u,x,y,now);
   const sc=(S.size||76)/S.upx,w=S.fw*sc,h=S.fh*sc;
   c.save();c.fillStyle='rgba(15,20,8,.3)';ell(c,x,y+4,34,9);c.fill();
-  const dy=y+5-S.foot*sc;if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h)}else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h);
-  if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;if(mir)c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h);else c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h)}
+  const dy=y+5-S.foot*sc;if(mir){c.translate(x,0);c.scale(-1,1);c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h)}else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2,dy,w,h);
+  if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;if(mir)c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h);else c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2,dy,w,h)}
   c.restore();return true}})(GFX.drawUnitSpr);
 
 /* ===== V23D Medieval dairy (Josh, Oct 14): painted square yard with a slate milking shed, round stone cool-house and cheese shelf
@@ -5414,8 +5414,8 @@ try{(function(){
   function track(u,x,y){let q=ST.get(u);if(!q){q={d:0};ST.set(u,q)}if(q.px!=null){const dd=Math.hypot(x-q.px,y-q.py);if(dd<14)q.d+=dd}q.px=x;q.py=y;return q}
   function seg(S,s){let L=GFX.seg3(S,s);if(!L&&s!=='idle'){L=GFX.seg3(S,'idle');if(L)s='idle'}return L?[L,s]:null}
   function blit(c,S,L,f,row,mir,x,y,u){const im=L.T[u.owner]||L.T[0];if(!im||!im.width)return false;const sc=S.size/S.upx,w=S.fw*sc,h=S.fh*sc,dy=y-S.foot*sc;
-    c.save();if(mir){c.translate(x,0);c.scale(-1,1);x=0}c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h);
-    if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,x-w/2,dy,w,h)}c.restore();return true}
+    c.save();if(mir){c.translate(x,0);c.scale(-1,1);x=0}c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2,dy,w,h);
+    if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),x-w/2,dy,w,h)}c.restore();return true}
   function bombard(c,u,x,y,now){const S=BM,q=track(u,x,y),D=(DEF.bombard&&DEF.bombard.cd)||6.5,t=D-(u.cd||0);
     let s=u.moving?'walk':(u.cd>0&&t<.9?'attack':'idle');const r=seg(S,s);if(!r)return false;const [L,s2]=r;s=s2;GFX.seg3(S,'attack');GFX.seg3(S,'walk');
     const n=S.seg[s][1];let f=0;if(s==='walk')f+=Math.floor(q.d/6)%n;else if(s==='attack')f+=Math.min(n-1,Math.floor(t/.9*n));
@@ -5494,8 +5494,8 @@ try{(function(){
       c.save();c.fillStyle='rgba(15,20,8,.3)';ell(c,x,y+4,34,9);c.fill();
       if(t>=SWING*.6&&t<SWING+.8){const k=(t-SWING*.6)/(.8+SWING*.4);c.fillStyle='rgba(196,176,132,'+(.45*(1-k)).toFixed(2)+')';for(let i=0;i<5;i++){circ(c,x+(i-2)*12+Math.sin(i*2)*3,y+3-k*6,4+k*9);c.fill()}}
       c.translate(x+ox,y+5+oy);c.rotate(tilt);if(mir)c.scale(-1,1);const dy=-S.foot*sc;
-      c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h);
-      if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*S.fw,row*S.fh,S.fw,S.fh,-w/2,dy,w,h)}
+      c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h);
+      if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*S.fw*(im._k||1),row*S.fh*(im._k||1),S.fw*(im._k||1),S.fh*(im._k||1),-w/2,dy,w,h)}
       c.restore();return true}})(GFX.drawUnitSpr);
   }catch(err){}},0);
   GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){
@@ -6514,9 +6514,9 @@ try{(function(){
     c.save();c.translate(x,y);c.scale(k2,k2);
     c.fillStyle='rgba(15,20,8,.3)';ell(c,ox*.6,4,15,5);c.fill();
     c.translate(ox,4+oy);c.rotate(tilt);
-    const dy=1-S.foot*sc,sx=f*S.fw,sy=row*S.fh;if(mir)c.scale(-1,1);
-    c.drawImage(im,sx,sy,S.fw,S.fh,-w/2,dy,w,h);
-    if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,sx,sy,S.fw,S.fh,-w/2,dy,w,h)}
+    const K=im._k||1,dy=1-S.foot*sc,sx=f*S.fw*K,sy=row*S.fh*K;if(mir)c.scale(-1,1);
+    c.drawImage(im,sx,sy,S.fw*K,S.fh*K,-w/2,dy,w,h);
+    if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,sx,sy,S.fw*K,S.fh*K,-w/2,dy,w,h)}
     c.restore();return true};
   // bigger stone in flight for catapult shots
   const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);if(src&&src.type==='catapult'&&G.projs.length>n)G.projs[G.projs.length-1].big=1;return r};
