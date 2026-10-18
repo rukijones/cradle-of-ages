@@ -12124,7 +12124,7 @@ GFX.drawRes=function(c,e){if(e&&e.type==='carcass'&&GFX.resOn&&GFX.resOn()&&GFX.
    along the edge are drawn at full size every frame (only those on screen) so the forest meets the land with real, ragged treetops.
    GFX.CLIFF.on=false / GFX.FOREST.on=false = gameplay's placeholders. */
 try{(function(){
-const CL=GFX.CLIFF={skip:window.CLSKIP||'',on:true,H:30,S:9,HT:[20,48,92],E:10},FO=GFX.FOREST={on:true};Object.assign(CL,{});
+const CL=GFX.CLIFF={skip:window.CLSKIP||'',on:true,H:30,S:9,HT:[20,48,92],E:10,EDGE:.75,NF:18},FO=GFX.FOREST={on:true};Object.assign(CL,{});
 const hr=(x,y,k)=>{let h=(x*73856093^y*19349663^k*83492791^((G&&G.seed)||1))>>>0;h=Math.imul(h^(h>>>15),2246822519)>>>0;h=Math.imul(h^(h>>>13),3266489917)>>>0;return((h^(h>>>16))>>>0)/4294967296};
 let colTex=null;
 function columns(){if(colTex)return colTex;const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');let x=0,i=0;
@@ -12195,7 +12195,7 @@ function cliffChunks(){if(!G||!G.ground||G.mapType!=='corners'||!GFX.groundOn||!
     const C=mk(WP,HP),c=C.getContext('2d'),B=mk(WP,HP),b=B.getContext('2d');
     const hasLow=tiles.some(t=>t[2]<3);for(let k=hasLow?1:3;k<=3;k++){const A=(k===1||!hasLow)?A3:shape(k),H=HT[k-1],S=Math.min(CL.SM||20,Math.round((CL.SS||15)*H/34));
       /* top = footprint where the point H px lower (and S px to each side) is still rock */
-      b.globalCompositeOperation='copy';b.drawImage(A,0,0);b.globalCompositeOperation='destination-in';b.drawImage(A,0,-H);b.drawImage(A,-S,0);b.drawImage(A,S,0);b.globalCompositeOperation='source-over';
+      b.globalCompositeOperation='copy';b.drawImage(A,0,0);b.globalCompositeOperation='destination-in';b.drawImage(A,0,-H);b.drawImage(A,-S,0);b.drawImage(A,S,0);if(CL.NF&&k===3)b.drawImage(A,0,CL.NF);b.globalCompositeOperation='source-over';
       /* face: tall faceted rock, darker and wetter towards the foot */
       c.globalCompositeOperation='copy';c.drawImage(A,0,0);c.globalCompositeOperation='source-in';c.setTransform(1,0,0,1,-X0,-Y0);
       if(FACE.complete&&FACE.naturalWidth){const fp=c.createPattern(FACE,'repeat');if(fp.setTransform)fp.setTransform(new DOMMatrix().scale(.75));c.fillStyle=fp}else c.fillStyle=c.createPattern(columns(),'repeat');c.fillRect(X0,Y0,WP,HP);
@@ -12207,15 +12207,18 @@ function cliffChunks(){if(!G||!G.ground||G.mapType!=='corners'||!GFX.groundOn||!
       if(rockOK){const p=c.createPattern(ROCK,'repeat');if(p.setTransform)p.setTransform(new DOMMatrix().scale(.6));c.fillStyle=p}else c.fillStyle='#8a7f6b';c.fillRect(X0,Y0,WP,HP);
       c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='source-over';
       {const G2=mk(WP,HP),q=G2.getContext('2d');q.drawImage(B,0,0);q.globalCompositeOperation='destination-in';q.setTransform(1,0,0,1,-X0,-Y0);const np=q.createPattern(noiseTex(),'repeat');if(np.setTransform)np.setTransform(new DOMMatrix().scale(2.4));q.fillStyle=np;q.fillRect(X0,Y0,WP,HP);
-        q.globalCompositeOperation='source-in';q.fillStyle=GFX.pat(q,'grass');q.fillRect(X0,Y0,WP,HP);q.globalCompositeOperation='source-atop';q.fillStyle='rgba(40,60,10,.18)';q.fillRect(X0,Y0,WP,HP);
+        q.globalCompositeOperation='source-in';q.fillStyle=GFX.pat(q,'grass');q.fillRect(X0,Y0,WP,HP);q.globalCompositeOperation='source-atop';q.fillStyle='rgba(40,60,10,.18)';q.fillRect(X0,Y0,WP,HP);if(CL.EDGE){q.setTransform(1,0,0,1,0,0);q.globalCompositeOperation='destination-in';const e=CL.RB||16;for(const[dx,dy]of[[e,0],[-e,0],[0,e],[0,-e]])q.drawImage(B,dx,dy);q.setTransform(1,0,0,1,-X0,-Y0)}
         c.globalAlpha=k===3?1:.7;if(!(CL.skip||'').includes('g'))c.drawImage(G2,0,0);c.globalAlpha=1;G2.width=0}
       if(CL.TOPT){c.globalCompositeOperation='source-atop';c.fillStyle=CL.TOPT;c.fillRect(0,0,WP,HP);c.globalCompositeOperation='source-over'}
       if(k<3&&!(CL.skip||'').includes('t')){c.globalCompositeOperation='source-atop';c.fillStyle=k===1?'rgba(214,190,140,.42)':'rgba(200,180,140,.2)';c.fillRect(0,0,WP,HP);c.globalCompositeOperation='source-over'}
       g.drawImage(C,X0,Y0);
       /* east side shade, lit rim all round, dark lip on the south edge */
-            c.globalCompositeOperation='copy';c.drawImage(B,0,0);c.globalCompositeOperation='destination-out';c.drawImage(B,0,3);c.globalCompositeOperation='source-in';c.fillStyle='rgba(240,228,196,.7)';c.fillRect(0,0,WP,HP);if(!(CL.skip||'').includes('r'))g.drawImage(C,X0,Y0);
-      c.globalCompositeOperation='copy';c.drawImage(B,0,0);c.globalCompositeOperation='destination-out';c.drawImage(B,0,-3);c.globalCompositeOperation='source-in';c.fillStyle='rgba(50,40,28,.55)';c.fillRect(0,0,WP,HP);g.drawImage(C,X0,Y0);
+            c.globalCompositeOperation='copy';c.drawImage(B,0,0);c.globalCompositeOperation='destination-out';c.drawImage(B,0,CL.EDGE?5:3);c.globalCompositeOperation='source-in';c.fillStyle=CL.EDGE?'rgba(250,240,210,.95)':'rgba(240,228,196,.7)';c.fillRect(0,0,WP,HP);if(!(CL.skip||'').includes('r'))g.drawImage(C,X0,Y0);
+      c.globalCompositeOperation='copy';c.drawImage(B,0,0);c.globalCompositeOperation='destination-out';c.drawImage(B,0,CL.EDGE?-5:-3);c.globalCompositeOperation='source-in';c.fillStyle=CL.EDGE?'rgba(28,22,16,.85)':'rgba(50,40,28,.55)';c.fillRect(0,0,WP,HP);g.drawImage(C,X0,Y0);
       if(A!==A3)A.width=0}
+    if(CL.EDGE){/* bold outline round the whole cliff so the edge reads at any zoom */
+      c.globalCompositeOperation='copy';c.drawImage(A3,0,0);c.globalCompositeOperation='source-over';for(const[dx,dy]of[[3,0],[-3,0],[0,3],[0,-3],[2,2],[-2,2],[2,-2],[-2,-2]])c.drawImage(A3,dx,dy);
+      c.globalCompositeOperation='destination-out';c.drawImage(A3,0,0);c.globalCompositeOperation='source-in';c.fillStyle='rgba(22,18,14,'+CL.EDGE+')';c.fillRect(0,0,WP,HP);c.globalCompositeOperation='source-over';g.drawImage(C,X0,Y0)}
     g.restore();if(LM)LM.width=0;if(LM0)LM0.width=0;A3.width=0;C.width=0;B.width=0}
   {const tx0=Math.max(0,Math.floor(ch.x/TILE)-3),ty0=Math.max(0,Math.floor(ch.y/TILE)-3),tx1=Math.min(MW,Math.ceil((ch.x+CW)/TILE)+3),ty1=Math.min(MH,Math.ceil((ch.y+CHh)/TILE)+3);
     const tiles=[];for(let y=ty0;y<ty1;y++)for(let x=tx0;x<tx1;x++)if(cl(x,y))tiles.push([x,y,LV[ti(x,y)]]);
