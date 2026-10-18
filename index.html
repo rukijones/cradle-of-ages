@@ -1215,7 +1215,7 @@ function corralRaiseTick(b,dt){if(!isCor(b)||!b.queue||!b.queue.length||!RAISE[b
   if(raisingN(hl)>=cap){b.trainT=0;b.rfull=1;return;}b.rfull=0;const t=b.queue.shift();b.trainT=0;const u=spawnFrom(b,t);if(!u)return;
   u.raise={t:0,dur:RAISE[t]};u.home=hl.id;u.penned=1;if(b.owner===0)panelKeyLast='';}
 function raiseTick(u,dt){const R=u.raise,hm=G.byId.get(u.home);R.t+=dt*(hm&&ranchPen(hm)?1.1:1);
-  if(u.order&&!u.order.wander){u.order=null;u.path=null;}
+  if(u.order&&!u.order.wander&&(u.order.auto||u.order.type!=='move')){u.order=null;u.path=null;}
   if(R.t>=R.dur){delete u.raise;u.penned=0;if(u.owner===0&&G.t-(G.lastGrownMsg||-99)>20){G.lastGrownMsg=G.t;toast('A young '+DEF[u.type].name.toLowerCase()+' has grown up and is ready to work');}}}
 function raiseK(u){return (u&&u.type==='cow'?.85:u&&u.type==='ox'?.8:1)*(u&&u.raise?.5+.5*Math.min(1,u.raise.t/u.raise.dur):1);}
 function drawUnitR(c,e,x,y,now){const k=raiseK(e);if(k===1)return drawUnit(c,e,x,y,now);c.save();c.translate(x,y);c.scale(k,k);c.translate(-x,-y);try{drawUnit(c,e,x,y,now);}finally{c.restore();}}
@@ -11099,6 +11099,26 @@ try{aiExtra=(function(prev){return function(o){return withCP(o,()=>prev.apply(th
 try{coopCount=(function(prev){return function(o){let n=0;const ys=new Set();for(const e of G.ents){if(e.type!=='coop'||e.owner!==o||e.dead||e.ysite)continue;if(e.yard)ys.add(e.yard.anchor);else n++}return n+ys.size*6}})(coopCount)}catch(err){}
 try{swOff=(function(prev){return function(R){const L=prev.apply(this,arguments);try{if(!(GFX.ranch8&&GFX.ranch8()))return L;const S=(R&&R.size)||5,have=new Set(L.map(q=>q[0]+','+q[1]));
   for(let d=-2;d<=S-1;d++){for(const q of [[S,d]].concat(d>S/2-2?[[d,-3],[d,S]]:[]))if(!have.has(q[0]+','+q[1])){have.add(q[0]+','+q[1]);L.push(q)}}}catch(err){}return L}})(swOff)}catch(err){}
+
+/* ===== Ranch animals + trade carts (Josh, Oct 18: "Animals are having a tough time leaving the ranch"; "Can the market build the trade
+   cart and the ranch make the donkey and then they connect?"). Young animals (still growing) used to drop every order silently for
+   60-75 s; now they walk where you send them (they still can't work until grown) and say so if you give them a job.
+   Trade carts: only the market builds them, and each one needs a grown pack donkey from your ranch to pull it. Ordering a cart calls
+   your nearest free donkey to the market; when the cart is ready the donkey is hitched to it (it becomes the cart). No free donkey =
+   no cart (the market says so). The computer is not limited this way. ===== */
+try{DEF.ranch.trains=DEF.ranch.trains.filter(k=>k!=='tradecart')}catch(err){}
+const cartFree=d=>d&&d.type==='donkey'&&!d.dead&&!d.raise&&!d.cartFor&&!d.asgV&&!d.pubD&&!d.bake&&!d.innD&&!d.breadB;
+try{enqueue=(function(prev){return function(b,k){if(k!=='tradecart'||!b||b.type!=='market'||!MPHU(b.owner))return prev.apply(this,arguments);
+  const ds=G.ents.filter(d=>d.owner===b.owner&&cartFree(d)).sort((a,c)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(c.x-b.x,c.y-b.y));
+  if(!ds.length){if(MPTW(b.owner))toast('🫏 A trade cart needs a pack donkey to pull it. Train one at a ranch first');return false}
+  const r=prev.apply(this,arguments);if(!r)return r;const d=ds[0];try{donkFree(d)}catch(e){}d.cartFor=b.id;d.home=0;d.penned=0;d.order={type:'move',x:b.tx+1,y:b.ty+b.size,cart:1};d.path=null;
+  if(MPTW(b.owner))toast('🫏 A pack donkey is on its way to pull the new trade cart');return r}})(enqueue)}catch(err){}
+try{cancelQ=(function(prev){return function(b){const last=b&&b.queue&&b.queue[b.queue.length-1];const r=prev.apply(this,arguments);try{if(last==='tradecart'&&b.type==='market'){const d=G.ents.find(e=>e.cartFor===b.id&&!e.dead);if(d){d.cartFor=0;d.order=null}}}catch(e){}return r}})(cancelQ)}catch(err){}
+try{spawnFrom=(function(prev){return function(b,type){if(type==='tradecart'&&b&&b.type==='market'){const d=G.ents.find(e=>e.cartFor===b.id&&!e.dead&&e.owner===b.owner);if(d){d.dead=true;d.cartFor=0;try{G.sel=G.sel.filter(i=>i!==d.id)}catch(e){}}}return prev.apply(this,arguments)}})(spawnFrom)}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u.cartFor&&!u.dead){const m=G.byId.get(u.cartFor);
+  if(!m||m.dead||!(m.queue||[]).includes('tradecart')){u.cartFor=0}else if(!u.order||u.order.auto){if(Math.hypot(u.x-m.x,u.y-m.y)>m.size*TILE*.9){u.order={type:'move',x:m.tx+1,y:m.ty+m.size,cart:1};u.path=null}else u.order=null}}}catch(err){}return r}})(updUnit)}catch(err){}
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if(sel.length&&sel.every(u=>u.type==='donkey'&&u.owner===0&&u.raise)){const hit=pick(wx,wy);
+  if(hit&&hit.owner===0&&(hit.type==='villager'||hit.kind==='bld')){const R=sel[0].raise;toast('🐣 This donkey is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
