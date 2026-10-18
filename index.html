@@ -10255,7 +10255,7 @@ try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){co
     mark(hit.x,hit.y,'#8fe36a');toast('⛵ '+go.length+' boarding'+(land.length>go.length?' ('+ISL.carry+' fit)':''));return}
   if(boats.length&&hit&&((hit.type==='dock'&&hit.kind==='bld'&&hit.built&&!hit.dead)||hit.type==='idock')){for(const b of boats){const w=dockWater(hit);if(!w){toast('No water next to that dock');return}b.dest=hit.id;b._dt=0;b.order={type:'move',x:w.x,y:w.y};b.path=null}
     mark(hit.x,hit.y,'#8fe36a');toast(boats.some(b=>boatCargo(b).length)?'⛵ Sailing to the dock to land':'⛵ Sailing to the dock');return}
-  if(boats.length&&boats.some(b=>boatCargo(b).length)&&!(hit&&hit.kind==='unit')){const tx=tl(wx),ty=tl(wy);if(inB(tx,ty)&&!wwalk(tx,ty))toast('Boats can only land at a dock: tap a dock')}
+  if(boats.length&&boats.some(b=>boatCargo(b).length)&&!(hit&&hit.kind==='unit')){const tx=tl(wx),ty=tl(wy);if(inB(tx,ty)&&!wwalk(tx,ty))toast('Boats land at a dock or on a beach: tap sand next to the water')}
 }}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 /* transport picture (placeholder): the fishing boat, bigger, with a heads count */
 try{drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='transport'){let P=u._px;if(!P){P=Object.create(u);P.type='fishboat';Object.defineProperty(u,'_px',{value:P,enumerable:false,writable:true,configurable:true})}
@@ -10846,6 +10846,45 @@ setTimeout(()=>{try{const T=(k,get,set)=>{const f=get();if(typeof f!=='function'
 /* a ground piece with nothing but open sea (2+ tiles from any land, no island) is see-through: don't keep or draw it */
 function tileAllSea(px,py,w,h){const x0=Math.floor(px/TILE)-2,y0=Math.floor(py/TILE)-2,x1=Math.ceil((px+w)/TILE)+2,y1=Math.ceil((py+h)/TILE)+2;
   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){if(!inB(x,y))continue;if(G.terrain[ti(x,y)]!==1)return false}return true}
+/* ===== Beach landings + beach defense, gameplay chat 1 (Josh, Oct 17: picked "Wet landing" + "Beach alarm") =====
+   - Transports carrying troops can now land on a BEACH (any open land tile right next to sea water; cliffs can't be landed on),
+     as well as at a dock: select the boat, tap the sand.
+   - Wet landing: troops landed on a beach are wet for WET.dur s: they move at WET.slow speed, can't attack, and take WET.hurt x damage.
+     Landing at a dock is dry. Defenders who reach the beach in time win fair fights.
+   - Beach alarm: an enemy boat carrying troops within WET.alarmR tiles of a beach you have explored -> warning + minimap ping
+     (once per boat per WET.alarmGap s). Beaches you never found give no warning. */
+const WET={dur:4,slow:.6,hurt:1.5,alarmR:10,alarmGap:25};
+function beachWater(tx,ty){if(!inB(tx,ty)||G.terrain[ti(tx,ty)]!==0||!walk(tx,ty))return null;let best=null,bd=1e9;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=tx+dx,y=ty+dy;if(!inB(x,y)||G.terrain[ti(x,y)]!==1||!wwalk(x,y))continue;const d=Math.hypot(dx,dy);if(d<bd){bd=d;best={x,y}}}return best}
+function beachUnload(b,L0){const L=boatCargo(b);if(!L.length)return 0;const sp=spiralTiles(L0.x,L0.y,L.length,6,walk);let n=0;
+  L.forEach((u,i)=>{if(u.hp<=0)return;const t=sp[i%Math.max(1,sp.length)]||{x:L0.x,y:L0.y};u.dead=false;u.sheltered=false;u.x=u.px=(t.x+.5)*TILE+(Math.random()-.5)*10;u.y=u.py=(t.y+.5)*TILE+(Math.random()-.5)*10;u.order=null;u.path=null;u._board=0;u.wetT=G.t+WET.dur;if(!G.ents.includes(u))G.ents.push(u);G.byId.set(u.id,u);n++});
+  b.cargo=[];if((MPHU(b.owner)&&n)&&MPTW(b.owner))toast('🏖️ '+n+' landed on the beach (wet for '+WET.dur+'s)');return n}
+const isWet=u=>u&&u.wetT&&u.wetT>G.t;
+try{speedOf=(function(prev){return function(u){const r=prev.apply(this,arguments);return isWet(u)?r*WET.slow:r}})(speedOf)}catch(err){}
+try{damage=(function(prev){return function(t,amt,src,ranged){if(src&&src.kind==='unit'&&isWet(src))return;if(t&&t.kind==='unit'&&isWet(t))amt*=WET.hurt;return prev.call(this,t,amt,src,ranged)}})(damage)}catch(err){}
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const hit=pick(wx,wy);
+  const boats=selEnts().filter(e=>e.type==='transport'&&e.owner===0&&!e.dead&&boatCargo(e).length);
+  if(boats.length&&!(hit&&(hit.kind==='unit'||hit.kind==='bld'||hit.type==='idock'))){const tx=tl(wx),ty=tl(wy);
+    if(inB(tx,ty)&&G.terrain[ti(tx,ty)]!==1&&G.terrain[ti(tx,ty)]!==2){const w=beachWater(tx,ty);
+      if(!w){toast(G.terrain[ti(tx,ty)]===3?'⛰️ Cliffs: boats can\'t land here. Find a beach':'Boats land at a dock or on a beach: tap sand right next to the water');return}
+      for(const b of boats){b.dest=0;b.land={x:tx,y:ty,wx:w.x,wy:w.y};b._lt=0;b.order={type:'move',x:w.x,y:w.y};b.path=null}
+      mark(wx,wy,'#8fe36a');toast('⛵ Sailing to land on the beach');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{
+  if(u.type==='transport'&&u.land&&!u.dead){const L=u.land;if(!boatCargo(u).length||u.dest){u.land=null}
+    else if(Math.hypot((L.wx+.5)*TILE-u.x,(L.wy+.5)*TILE-u.y)<TILE*1.7){beachUnload(u,L);u.land=null;u.order=null;u.path=null}
+    else if(!u.order){u.order={type:'move',x:L.wx,y:L.wy};u.path=null;if((u._lt=(u._lt||0)+1)>30){u.land=null;if((MPHU(u.owner))&&MPTW(u.owner))toast('The boat can\'t reach that beach')}}
+    else if(u.order.type!=='move'||u.order.x!==L.wx||u.order.y!==L.wy)u.land=null}
+}catch(err){}return r}})(updUnit)}catch(err){}
+/* wet troops: little water drops over their heads */
+try{drawUnit=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);try{if(isWet(u)){const k=(u.wetT-G.t)/WET.dur;c.save();c.globalAlpha=.5+.5*k;c.fillStyle='#7cc4ec';for(let i=0;i<3;i++){const px=x-7+i*7,py=y-24-((now/120+i*3)%6);c.beginPath();c.moveTo(px,py-3.5);c.quadraticCurveTo(px+2.6,py+.5,px,py+1.8);c.quadraticCurveTo(px-2.6,py+.5,px,py-3.5);c.fill()}c.restore()}}catch(e){}return r}})(drawUnit)}catch(err){}
+/* beach alarm */
+function beachAlarm(){for(const b of G.ents){if(b.type!=='transport'||b.dead||!b.cargo||!b.cargo.length)continue;const d=1-b.owner;if(d<0||d>1||!MPHU(d))continue;
+    b._al=b._al||{};if(G.t-(b._al[d]||-99)<WET.alarmGap)continue;const E=G.exp&&G.exp[d];if(!E)continue;const bx=tl(b.x),by=tl(b.y),R=WET.alarmR;let hit=null;
+    for(let dy=-R;dy<=R&&!hit;dy++)for(let dx=-R;dx<=R;dx++){const x=bx+dx,y=by+dy;if(dx*dx+dy*dy>R*R||!inB(x,y))continue;const i=ti(x,y);if(G.terrain[i]!==0||!E[i])continue;
+      if((inB(x+1,y)&&G.terrain[ti(x+1,y)]===1)||(inB(x-1,y)&&G.terrain[ti(x-1,y)]===1)||(inB(x,y+1)&&G.terrain[ti(x,y+1)]===1)||(inB(x,y-1)&&G.terrain[ti(x,y-1)]===1)){hit={x,y};break}}
+    if(!hit)continue;b._al[d]=G.t;if(MPTW(d)){toast('⚠️ Enemy boat with '+b.cargo.length+(b.cargo.length===1?' soldier':' soldiers')+' near your beach!');if(d===0)G.ping={x:(hit.x+.5)*TILE,y:(hit.y+.5)*TILE,t:5};try{sfx('alarm',b.x,b.y)}catch(e){}}}}
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G){G._baT=(G._baT||0)+dt;if(G._baT>=1){G._baT-=1;beachAlarm()}}}catch(err){}return r}})(tick)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
