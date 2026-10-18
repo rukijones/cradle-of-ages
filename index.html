@@ -303,7 +303,7 @@ const DEF={
   slinger:{kind:'unit',name:'Slinger',plural:'Slingers',hp:25,atk:3,range:4.5,cd:1.6,speed:82,sight:7,r:8,cost:{f:30,w:30},time:16},
   towncenter:{kind:'bld',name:'Town center',hp:700,size:3,sight:7,pop:5,drop:1,atk:4,range:6,cd:1.6,trains:['villager','settler'],techs:['bronze','iron','medieval','renaissance','industrial','modern'],cost:{w:275},time:60},
   house:{kind:'bld',name:'House',hp:150,size:2,sight:3,pop:5,cost:{w:30},time:15},
-  storage:{kind:'bld',name:'Storage pit',hp:250,size:2,sight:4,drop:1,techs:['axes','picks','plow','wheel','coppicing','forestry'],cost:{w:100},time:20},
+  storage:{kind:'bld',name:'Storage pit',hp:250,size:2,sight:4,drop:1,techs:['axes','plow','wheel','coppicing','forestry'],cost:{w:100},time:20},
   barracks:{kind:'bld',name:'Barracks',hp:350,size:3,sight:5,trains:['clubman','axeman','slinger','spearman','pikeman','halberdier','swordsman','legionary','longsword','arquebus','rifleman','infantry','bazooka'],techs:['axemen','vetsling','pikes','legion','halberds','longswords'],cost:{w:125},time:30},
   swordsman:{kind:'unit',needTech:'bronzework',name:'Swordsman',plural:'Swordsmen',hp:60,atk:7,arm:1,range:0,cd:1.3,speed:82,sight:5,r:9,cost:{f:50,g:30},time:18,age:1},
   bowman:{kind:'unit',name:'Bowman',plural:'Bowmen',hp:32,atk:4,range:6,cd:1.5,speed:80,sight:8,r:8,cost:{f:35,w:40},time:18,age:1},
@@ -693,7 +693,7 @@ const MAX_AGE=6;
 const AGE_KEYS=['bronze','iron','medieval','renaissance','industrial','modern'];
 function startKit(tc,age){
   const o=tc.owner,P=G.players[o];
-  P.age=age;for(let i=0;i<age;i++)P.tech[AGE_KEYS[i]]=1;
+  P.age=age;for(let i=0;i<age;i++)P.tech[AGE_KEYS[i]]=1;if(age>=1)P.tech.picks=1;
   for(const k in TECH)if(!AGE_KEYS.includes(k)&&(TECH[k].age||0)<age)P.tech[k]=1;
   Object.assign(P,age>=6?{f:4000,w:4000,s:3000,g:3500}:age>=5?{f:3000,w:3000,s:2000,g:2500}:age>=4?{f:2500,w:2500,s:1500,g:1800}:age>=3?{f:1800,w:1800,s:1200,g:1000}:age>=2?{f:1200,w:1200,s:600,g:600}:{f:800,w:800,s:400,g:400});
   const cx=tl(tc.x),cy=tl(tc.y);
@@ -1263,7 +1263,7 @@ function applyTech(o,k){
   const p=G.players[o];p.tech[k]=1;
   if(o===0&&['bronze','iron','medieval','renaissance','industrial','modern'].includes(k))setTimeout(()=>ageCard({bronze:1,iron:2,medieval:3,renaissance:4,industrial:5,modern:6}[k]),4500);
   if(k==='modern'&&o===0)setTimeout(()=>toast('Modernized: watchtowers are now bunkers with machine guns, walls are concrete barriers, castles are command fortresses, coops are poultry farms (3x food), the corral is a motor pool and the stable a vehicle depot'),3500);
-  if(k==='bronze'||k==='iron'||k==='medieval'||k==='renaissance'||k==='industrial'||k==='modern'){if(o===0)setTimeout(freeSprCaches,4000);{const tc=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&!e.dead);for(const e of G.ents)if(e.owner===o&&e.kind==='bld'&&e.built&&!e.dead&&e.type!=='farm'&&e.type!=='wall'){const d=tc?Math.hypot(e.x-tc.x,e.y-tc.y)/TILE:0;e.morph={from:bldSpr(e),t0:G.t+.6+d*.12,dur:1.4};}}p.age=k==='bronze'?1:k==='iron'?2:k==='medieval'?3:k==='renaissance'?4:k==='industrial'?5:6;if(o===0)celebrate(p.age);else if(G.aiPlayers.length<2)toast('The red tribe has entered the '+AGES[p.age]);panelKeyLast='';return;}
+  if(k==='bronze'||k==='iron'||k==='medieval'||k==='renaissance'||k==='industrial'||k==='modern'){if(o===0)setTimeout(freeSprCaches,4000);{const tc=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&!e.dead);for(const e of G.ents)if(e.owner===o&&e.kind==='bld'&&e.built&&!e.dead&&e.type!=='farm'&&e.type!=='wall'){const d=tc?Math.hypot(e.x-tc.x,e.y-tc.y)/TILE:0;e.morph={from:bldSpr(e),t0:G.t+.6+d*.12,dur:1.4};}}p.age=k==='bronze'?1:k==='iron'?2:k==='medieval'?3:k==='renaissance'?4:k==='industrial'?5:6;if(p.age>=1)p.tech.picks=1;/* Josh Oct 18: bronze tools come with the age */if(o===0)celebrate(p.age);else if(G.aiPlayers.length<2)toast('The red tribe has entered the '+AGES[p.age]);panelKeyLast='';return;}
   if(k==='sentry')for(const e of G.ents)if(e.owner===o&&e.type==='tower'){e.maxHp+=100;e.hp+=100;}
   if(CONV[k]){const[a,b]=CONV[k];for(const e of G.ents)if(e.owner===o){if(e.type===a){const rk=1+.1*(e.rank||0);e.hp=e.hp/e.maxHp*DEF[b].hp*rk;e.maxHp=Math.round(DEF[b].hp*rk);e.type=b;}if(e.kind==='bld')e.queue=e.queue.map(q=>q===a?b:q);}}
   if(k==='guardtower')for(const e of G.ents)if(e.owner===o&&e.type==='tower'){e.maxHp+=150;e.hp+=150;}
@@ -1963,8 +1963,8 @@ function computeVis(){
       if(e.owner!==o||e.dead)continue;
       if(e.kind==='poi')continue;
       const s=e.kind==='bld'?(e.built?DEF[e.type].sight:2)+(e.size>>1):DEF[e.type].sight;
-      const cx=tl(e.x),cy=tl(e.y),r2=s*s+s;const IM=islMap(),hi=IM&&!seaEnt(e),own=hi?IM[ti(cx,cy)]:0;
-      for(let dy=-s;dy<=s;dy++)for(let dx=-s;dx<=s;dx++){if(dx*dx+dy*dy>r2)continue;const x=cx+dx,y=cy+dy;if(!inB(x,y))continue;const i=ti(x,y);if(hi){const q=IM[i];if(q&&q!==own)continue;}V[i]=1;E[i]=1;}
+      const cx=tl(e.x),cy=tl(e.y),r2=s*s+s;const IM=islMap(),hi=IM&&!seaEnt(e),own=hi?IM[ti(cx,cy)]:0;const cl=!e.air&&cliffNear(cx,cy,s);
+      for(let dy=-s;dy<=s;dy++)for(let dx=-s;dx<=s;dx++){if(dx*dx+dy*dy>r2)continue;const x=cx+dx,y=cy+dy;if(!inB(x,y))continue;const i=ti(x,y);if(hi){const q=IM[i];if(q&&q!==own)continue;}if(cl&&losBlocked(cx,cy,x,y))continue;V[i]=1;E[i]=1;}
     }
   }
   if(G.cheat.reveal){G.vis[0].fill(1);G.exp[0].fill(1);}
@@ -8203,7 +8203,7 @@ function celebrate(age){
     if(Math.random()<.65&&blds.length){const b=Math.random()<.4&&tc?tc:blds[(Math.random()*blds.length)|0];x=b.x+(Math.random()-.5)*90;y=b.y+(Math.random()-.5)*50;}
     else{x=cam.x+(.1+Math.random()*.8)*W/cam.z;y=cam.y+(.45+Math.random()*.45)*H/cam.z;}
     CELE.events.push({t:.45+i*.2+Math.random()*.25,x,y,kind:kinds[i%kinds.length],big:i%6===0});}
-  const el=$('ageUp');$('aupTitle').textContent=AGES[age];el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+  const el=$('ageUp');$('aupTitle').textContent=AGES[age];try{const ln=el.querySelector('.aup-line');if(ln)ln.textContent=age===1?'You now have bronze tools and can mine gold':'New buildings, units and upgrades unlocked'}catch(e){}el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
   const fl=$('ageFlash');fl.classList.remove('show');void fl.offsetWidth;fl.classList.add('show');
   fanfare();
 }
@@ -8364,7 +8364,7 @@ function cmdToBuilding(mine,hit){
       if((hit.type==='house'||hit.type==='coop')&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
       if((hit.built&&isLodge(hit)&&MPHU(hit.owner)&&v.length)&&MPTW(hit.owner)){let n=foresterN(hit),k=0;for(const u of v){if(n>=FORESTERS)break;if(u.forester===hit.id)continue;u.forester=hit.id;u.order=null;u.path=null;u.shep=0;n++;k++;}toast(k?k+' forester'+(k>1?'s':'')+' at work':'The lodge already has '+FORESTERS+' foresters');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&WORK[hit.type]&&v.length){const n=assignWorkers(hit,v);toast(n?n+' assigned to the '+DEF[hit.type].name.toLowerCase():'The '+DEF[hit.type].name.toLowerCase()+' is full');mark(hit.x,hit.y,'#ffd25a');return true;}
-      if(hit.built&&(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')&&v.length){if(hit.type==='goldmine'&&!G.players[0].tech.picks){toast('Research Copper picks to mine gold');return true;}v.forEach(u=>orderGather(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
+      if(hit.built&&(hit.type==='farm'||hit.type==='goldmine'||hit.type==='stonemine')&&v.length){if(hit.type==='goldmine'&&!G.players[0].tech.picks){toast('Gold mining starts in the Bronze Age');return true;}v.forEach(u=>orderGather(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&DEF[hit.type].drop&&v.length&&v.every(u=>u.carry.amt>0)){v.forEach(u=>{u.order={type:'gather',phase:'drop',drop:hit.id,id:0,rtype:{f:'berry',w:'tree',s:'stone',g:'gold'}[u.carry.r],lx:u.x,ly:u.y,bad:0};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
   return false;}
 /* flour chute v2 (gameplay, Josh Oct 15): the slide from the windmill to the bakery is drawn in code so it always reaches the bakery: leaves a framed hatch on the tower side facing the bakery,
@@ -10893,6 +10893,26 @@ function beachAlarm(){for(const b of G.ents){if(b.type!=='transport'||b.dead||!b
     if(!hit)continue;b._al[d]=G.t;if(MPTW(d)){toast('⚠️ Enemy boat with '+b.cargo.length+(b.cargo.length===1?' soldier':' soldiers')+' near your beach!');if(d===0)G.ping={x:(hit.x+.5)*TILE,y:(hit.y+.5)*TILE,t:5};try{sfx('alarm',b.x,b.y)}catch(e){}}}}
 try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G){G._baT=(G._baT||0)+dt;if(G._baT>=1){G._baT-=1;beachAlarm()}}}catch(err){}return r}})(tick)}catch(err){}
 
+/* ===== Tall cliffs block sight, gameplay chat 1 (Josh, Oct 18: "really tall, like mountain cliffs so you can't even see the coast";
+   picked "Block sight"). Nothing on the ground sees past a cliff tile (terrain 3): the sea behind the cliffs stays hidden until you find a
+   beach or sail out. Cheap: only viewers with a cliff inside their sight square do the line check (summed-area table of cliff tiles). ===== */
+function cliffNear(cx,cy,s){if(!G||!G.terrain)return false;const k=G.seed+':'+G.mapType+':'+(G._clV||0);
+  if(G._clK!==k){const T=G.terrain,S=new Int32Array((MW+1)*(MH+1));let any=0;for(let y=0;y<MH;y++){let row=0;for(let x=0;x<MW;x++){const c=T[ti(x,y)]===3?1:0;row+=c;any+=c;S[(y+1)*(MW+1)+x+1]=S[y*(MW+1)+x+1]+row}}
+    Object.defineProperty(G,'_clS',{value:any?S:null,writable:true,configurable:true,enumerable:false});G._clK=k}
+  const S=G._clS;if(!S)return false;const x0=Math.max(0,cx-s),y0=Math.max(0,cy-s),x1=Math.min(MW,cx+s+1),y1=Math.min(MH,cy+s+1),W=MW+1;
+  return S[y1*W+x1]-S[y0*W+x1]-S[y1*W+x0]+S[y0*W+x0]>0}
+function losBlocked(x0,y0,x1,y1){const dx=x1-x0,dy=y1-y0,n=Math.max(Math.abs(dx),Math.abs(dy));const T=G.terrain;
+  for(let k=1;k<n;k++){const x=Math.round(x0+dx*k/n),y=Math.round(y0+dy*k/n);if(T[ti(x,y)]===3)return true}return false}
+const GOLDSH={w:62,h:34,dx:1,dy:8,f:0};let IM_GSH=null;
+/* gold ore sat on the grass with no contact shadow and looked like it floated (Josh, Oct 18): a soft dark dirt shadow under every
+   gold pile, all drawn before the first pile each frame so the piles sit in one patch of earth */
+try{draw=(function(prev){return function(){GOLDSH.f=0;return prev.apply(this,arguments)}})(draw)}catch(err){}
+try{drawRes=(function(prev){return function(c,e){try{if(e&&e.type==='gold'&&!GOLDSH.f&&!(window.FXOFF&&FXOFF.shadows)){GOLDSH.f=1;const k=GOLDSH;
+  let g=IM_GSH;if(!g){g=document.createElement('canvas');g.width=g.height=64;const x=g.getContext('2d'),r=x.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(40,28,14,.7)');r.addColorStop(.6,'rgba(56,42,22,.42)');r.addColorStop(1,'rgba(56,42,22,0)');x.fillStyle=r;x.fillRect(0,0,64,64);IM_GSH=g}
+  for(const q of G.ents)if(q.type==='gold'&&!q.dead)c.drawImage(g,q.x-k.w/2+k.dx,q.y-k.h/2+k.dy,k.w,k.h)}}catch(err){}return prev.apply(this,arguments)}})(drawRes)}catch(err){}
+/* old saves: anyone already past the Stone Age gets the bronze tools */
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.players&&!G._pkF){G._pkF=1;for(const p of G.players)if(p&&p.age>=1&&p.tech)p.tech.picks=1}}catch(err){}return r}})(tick)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -10956,7 +10976,7 @@ function onTap(wx,wy){
     if(hit&&hit.kind==='res'){
       const gath=u=>u.type==='villager'||(u.type==='fishboat'&&hit.type==='fish'),v=mine.filter(gath),o=mine.filter(u=>!gath(u));
       const near=G.ents.filter(e=>e.kind==='res'&&e.type===hit.type&&!e.dead&&Math.hypot(e.x-hit.x,e.y-hit.y)<3*TILE).sort((a,b)=>Math.hypot(a.x-hit.x,a.y-hit.y)-Math.hypot(b.x-hit.x,b.y-hit.y));
-      if(hit.type==='gold'&&v.length&&!G.players[0].tech.picks){toast(G.players[0].age<1?'Gold needs Copper picks, available in the Bronze Age':'Research Copper picks at the storage pit to mine gold');return;}
+      if(hit.type==='gold'&&v.length&&!G.players[0].tech.picks){toast('Gold mining starts in the Bronze Age');return;}
       v.forEach((u,i)=>orderGather(u,near[i%near.length]||hit));if(o.length)orderMove(o,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');if(v.length&&!o.length)jobSet();return;
     }
     if(hit&&hit.owner===0&&hit.kind==='bld'){if((mine.some(u=>u.type==='sheep'||u.type==='cow')||(hit.type==='forester'&&hit.built&&mine.some(u=>u.type==='villager'))||(typeof villDirect==='function'&&villDirect(mine,hit)))&&cmdToBuilding(mine,hit))return;G.prevSel=mine.filter(u=>u.type==='villager').map(u=>u.id);G.prevSelFor=hit.id;setSel([hit]);panelKeyLast='';return;}
@@ -11028,7 +11048,7 @@ function placeWhy(type,tx,ty,o,needExp,m){const s=DEF[type].size;
   if((type==='mine'||type==='goldmine'||type==='stonemine')&&!inTerritory(o,tx,ty,s)&&!(G.gentle&&o===0&&nearTerr(o,tx,ty,s,10)))return bAvail(o,'outpost')?'Too far from your territory. Build an outpost near this deposit first':'Too far from your territory. Train a scout to unlock outposts, then build one near this deposit';
   if(type==='shaft'){const cx=(tx+1)*TILE,cy=(ty+1)*TILE;if(!G.ents.some(e=>e.type==='vein'&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<2.6*TILE))return 'Must be on a vein you have found';}
   if(!inTerritory(o,tx,ty,s)&&type!=='mine'&&type!=='goldmine'&&type!=='stonemine'&&type!=='depot'&&type!=='shaft'&&type!=='inn')return 'Too far from your buildings. Build inside the lit area';
-  if(type==='mine'){const cx=(tx+1)*TILE,cy=(ty+1)*TILE,near=w=>G.ents.some(e=>e.type===w&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<3.6*TILE);if(!near('stone')&&!(near('gold')&&G.players[o].tech.picks))return near('gold')?'Gold needs Copper picks first':'Must be next to a gold or stone deposit';}
+  if(type==='mine'){const cx=(tx+1)*TILE,cy=(ty+1)*TILE,near=w=>G.ents.some(e=>e.type===w&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<3.6*TILE);if(!near('stone')&&!(near('gold')&&G.players[o].tech.picks))return near('gold')?'Gold mining starts in the Bronze Age':'Must be next to a gold or stone deposit';}
   if(type==='goldmine'||type==='stonemine'){const want=type==='goldmine'?'gold':'stone',cx=(tx+1)*TILE,cy=(ty+1)*TILE;if(!G.ents.some(e=>e.type===want&&!e.dead&&Math.hypot(e.x-cx,e.y-cy)<3.6*TILE))return 'Must be next to a '+want+' deposit';}
   if(type==='dock'){let w=false;for(let y=ty-1;y<=ty+s&&!w;y++)for(let x=tx-1;x<=tx+s;x++)if(inB(x,y)&&G.terrain[ti(x,y)]===1){w=true;break;}if(!w)return 'Must touch the water';}
   return '';}
