@@ -11132,6 +11132,12 @@ try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){co
 /* a unit standing on a blocked tile (an ox that was plowing ends up on the farm plot) could not path anywhere: step it to the nearest open tile first */
 try{updUnit=(function(prev){return function(u,dt){try{if(u&&u.kind==='unit'&&!u.naval&&!u.air&&u.order&&u.order.type==='move'&&!u.path&&!u.raise){const x=tl(u.x),y=tl(u.y);if(inB(x,y)&&!walk(x,y)){const sp=spiralTiles(x,y,1,4,walk)[0];if(sp){u.x=u.px=(sp.x+.5)*TILE;u.y=u.py=(sp.y+.5)*TILE}}}}catch(err){}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 
+/* Upgrade pop-up kept the look it had when it opened (Josh, Oct 18: "it looked like it wasn't ready to click, but it actually was"):
+   the Upgrade button's ready/not-ready look and its cost line now refresh twice a second while the pop-up is open. */
+setInterval(()=>{try{const el=document.getElementById('upop');if(!el||!G)return;const k=el.dataset.k;if(!k||!TECH[k])return;const b=el.querySelector('button[data-act="train:'+k+'"]');if(!b)return;
+  const it=TECH[k],P=G.players[0],miss=reqMissing(0,k),dis=!!miss||!canAfford(P,it.cost);b.classList.toggle('dis',dis);if(dis)b.setAttribute('aria-disabled','true');else b.removeAttribute('aria-disabled');
+  const sub=b.querySelector('.cost');const nh=miss?reqIcons(it.req,miss):costHtml(it.cost);if(sub&&sub.outerHTML!==nh){const t=document.createElement('div');t.innerHTML=nh;if(t.firstChild)sub.replaceWith(t.firstChild)}}catch(err){}},500);
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
