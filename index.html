@@ -10572,6 +10572,12 @@ setTimeout(()=>{try{for(const k of ['surf','glint','ripples','ocean','fog'])CHEA
   CHEATS.ghosts=()=>{GFX.SEE_ON=!GFX.SEE_ON;return 'see-through '+(GFX.SEE_ON?'on':'OFF')};
   const wv=GFX.wvOn;if(wv)GFX.wvOn=function(){if(FXOFF.flags)return false;return wv.apply(this,arguments)};
   const cf=drawCloudFog;drawCloudFog=function(){if(FXOFF.fog)return;return cf.apply(this,arguments)}}catch(err){}},60);
+
+/* ===== Raster check for the fps readout: does this browser draw the game canvas on the graphics card or on the CPU?
+   (50 full-screen fills: ~0 ms when the GPU records them, several ms each when the CPU paints them) ===== */
+function rasterCheck(){try{const c=ctx,a=performance.now();c.save();c.setTransform(1,0,0,1,0,0);c.globalAlpha=.01;c.fillStyle='#000';for(let i=0;i<50;i++)c.fillRect(0,0,cv.width,cv.height);c.restore();const d=performance.now()-a;PERF.raster=d<8?'GPU':'CPU';PERF.rasterMs=d;return d}catch(err){return -1}}
+setTimeout(()=>{try{const f=CHEATS.fps;CHEATS.fps=function(){const r=f.apply(this,arguments);rasterCheck();setInterval(()=>{if(PERF.show)rasterCheck()},5000);return r}}catch(err){}},80);
+setTimeout(()=>{try{const d0=draw;draw=function(){const r=d0.apply(this,arguments);if(PERF.show&&PERF.raster){const b=document.getElementById('fpsBox');if(b&&b.innerHTML.indexOf('raster')<0)b.innerHTML+='<br>raster: '+PERF.raster+' ('+PERF.rasterMs.toFixed(1)+' ms test)'}return r}}catch(err){}},90);
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11467,7 +11473,13 @@ oceanPaint=function(){if(!S.on)return _op.apply(this,arguments);const m=need();i
   G.oceanPic=c};
 /* ---- moving glints on the water (screen resolution) ---- */
 const _do=drawOcean;
-drawOcean=function(c,vx0,vy0,vx1,vy1){if(window.FXOFF&&FXOFF.ocean)return;_do.apply(this,arguments);if(!S.on||!G||!G.landBox||!ok('gl')||(window.FXOFF&&FXOFF.glint))return;
+drawOcean=function(c,vx0,vy0,vx1,vy1){if(window.FXOFF&&FXOFF.ocean)return;
+  /* speed (gameplay chat 1, Oct 17): only draw the sea picture + glints over the part of the screen that has sea; none at all inland */
+  {const m=S.on&&G&&G.landBox?need():null;if(m&&m.oc){const tx0=Math.max(0,Math.floor(vx0/TILE)),ty0=Math.max(0,Math.floor(vy0/TILE)),tx1=Math.min(MW-1,Math.floor(vx1/TILE)),ty1=Math.min(MH-1,Math.floor(vy1/TILE));let a0=1e9,b0=1e9,a1=-1,b1=-1;
+    for(let y=ty0;y<=ty1;y++){const r=y*MW;for(let x=tx0;x<=tx1;x++)if(m.oc[r+x]){if(x<a0)a0=x;if(x>a1)a1=x;if(y<b0)b0=y;if(y>b1)b1=y}}
+    let anyOut=false;const L=G.landBox;if(L&&(vx0<L[0]*TILE||vy0<L[1]*TILE||vx1>L[2]*TILE||vy1>L[3]*TILE))anyOut=true;
+    if(a1<0&&!anyOut)return;if(!anyOut){vx0=Math.max(vx0,(a0-1)*TILE);vy0=Math.max(vy0,(b0-1)*TILE);vx1=Math.min(vx1,(a1+2)*TILE);vy1=Math.min(vy1,(b1+2)*TILE)}}}
+  _do.call(this,c,vx0,vy0,vx1,vy1);if(!S.on||!G||!G.landBox||!ok('gl')||(window.FXOFF&&FXOFF.glint))return;
   const t=performance.now()/1000;c.save();c.beginPath();c.rect(vx0,vy0,vx1-vx0,vy1-vy0);c.clip();
   const L=[[1,9,3.5,S.glint,0],[.7,-6,4.5,S.glint*.8,170]];
   for(const[s,vx,vy,a,o]of L){const p=c.createPattern(IM.gl,'repeat');if(p.setTransform)p.setTransform(new DOMMatrix().translate(o+t*vx,o+t*vy).scale(s));c.globalAlpha=a*(.75+.25*Math.sin(t*.9+o));c.fillStyle=p;c.fillRect(vx0,vy0,vx1-vx0,vy1-vy0)}
