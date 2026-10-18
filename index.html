@@ -11454,7 +11454,8 @@ function drawRankStars(g,u){const rk=u.rank||0,k=u.kills||0,nx=RANKS[rk],pv=rk?R
 // world overlays drawn after the unit health bars
 function drawHints(c,now){if(!G)return;const z=cam.z,inV=(x,y)=>x>cam.x-40&&y>cam.y-40&&x<cam.x+W/z+40&&y<cam.y+H/z+40;
   // 0) counter rings: with own soldiers selected, enemies they beat get a green ring, enemies they are weak to a red one
-  try{if(G.sel.length&&G.sel.length<=60){const cnt={};for(const id of G.sel){const u=G.byId.get(id);if(u&&!u.dead&&u.owner===0&&u.kind==='unit'&&!NONMIL.has(u.type))cnt[u.type]=(cnt[u.type]||0)+1;}
+  /* Josh, Oct 18: "I don't like the green circles on the soldiers... get rid of those" - off; window.CRINGS=true brings them back */
+  try{if(window.CRINGS&&G.sel.length&&G.sel.length<=60){const cnt={};for(const id of G.sel){const u=G.byId.get(id);if(u&&!u.dead&&u.owner===0&&u.kind==='unit'&&!NONMIL.has(u.type))cnt[u.type]=(cnt[u.type]||0)+1;}
     const ks=Object.keys(cnt);if(ks.length){const t=ks.sort((a,b)=>cnt[b]-cnt[a])[0],bt=new Set(beatsTypes(t)),wk=new Set(weakTypes(t));if(bt.size||wk.size){const pu=.55+.25*Math.sin(now/260);c.save();c.lineWidth=2;
       for(const e of G.ents){if(e.owner!==1||e.dead||e.kind!=='unit'||!inV(e.x,e.y))continue;const g=bt.has(e.type),w=wk.has(e.type);if(!g&&!w)continue;if(!G.vis[0][ti(tl(e.x),tl(e.y))])continue;
         const R=(DEF[e.type].r||9)+6;c.setLineDash([]);c.globalAlpha=pu*.35;c.fillStyle=g?'#8fe060':'#ffa21a';c.beginPath();c.ellipse(e.x,e.y+2,R,R*.5,0,0,7);c.fill();c.globalAlpha=Math.min(1,pu+.2);c.lineWidth=2.6;c.strokeStyle=g?'#a6f070':'#ffb02e';if(!g)c.setLineDash([5,3]);c.stroke();}
