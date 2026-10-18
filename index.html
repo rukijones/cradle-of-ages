@@ -4523,7 +4523,7 @@ GFX.seeUnitImg=function(u,now,s){const k=GFX._seeUI||(GFX._seeUI=new Map());if(G
 GFX.seeBldImg=function(b){let sp=null;try{sp=bldSpr(b)}catch(err){}if(!sp)return null;const M=GFX._seeBI||(GFX._seeBI=new WeakMap());let e=M.get(sp);
   if(!e){e=GFX.edgeOf(sp,b.owner===0?'#ffffff':'#ff8a7a');M.set(sp,e)}const k=sp.width/sp.w;return {img:sp,edge:e,x:b.tx*TILE-(sp.dx||0),y:b.ty*TILE-sp.ov,w:sp.w,h:sp.h,k}};
 GFX.seeOverlay=function(c,e,L,now){const r=GFX.seeRect(e);if(!r)return;const sp=r.sp,s=sp.width/sp.w;
-  const C=GFX._seeC||(GFX._seeC=document.createElement('canvas'));if(C.width<sp.width||C.height<sp.height){C.width=Math.max(C.width,sp.width);C.height=Math.max(C.height,sp.height)}
+  const SM=GFX._seeM||(GFX._seeM=new Map());if(SM.size>300)SM.clear();let SE=SM.get(e.id);if(!SE){SE={C:document.createElement('canvas'),tq:-1};SM.set(e.id,SE)}const stq=Math.floor(now/66+(e.id%4)/4);if(SE.tq===stq&&SE.w===sp.width&&SE.n===L.length){c.drawImage(SE.C,0,0,sp.width,sp.height,r.sx,r.sy,sp.w,sp.h);return}SE.tq=stq;SE.w=sp.width;SE.n=L.length;const C=SE.C;/* speed (gameplay chat 1, Oct 17): each building keeps its see-through picture, rebuilt ~15x/s */if(C.width<sp.width||C.height<sp.height){C.width=Math.max(C.width,sp.width);C.height=Math.max(C.height,sp.height)}
   const g=C.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,C.width,C.height);
   g.setTransform(s,0,0,s,-r.sx*s,-r.sy*s);
   for(const o of L){const q=o.kind==='u'?GFX.seeUnitImg(o.u,now,s):GFX.seeBldImg(o.u);if(!q)continue;g.globalAlpha=GFX.SEE_COPY;g.drawImage(q.img,q.x,q.y,q.w,q.h);
@@ -5896,7 +5896,9 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
   try{const pl=litOf;litOf=function(sp){const c=pl.apply(this,arguments);if(GFX._wv&&c&&c.fxW){const R=prep(c);if(R)return R.holed}return c}}catch(err){}
   GFX.wvOn=function(e){return !!(e&&e.built&&GFX.mode==='V23D'&&!(e.morph&&G.t<e.morph.t0+e.morph.dur)&&cam.z>=.55&&GFX.wave!==false)};
   try{const _p=drawBuilding;drawBuilding=function(c,e,now){if(!GFX.wvOn(e))return _p(c,e,now);GFX._wv=1;try{_p(c,e,now)}finally{GFX._wv=0}}}catch(err){}
-  function piece(c,p,X,Y,kc,t,seed){const A=p.amp,S=p.s,g=S.getContext('2d'),o=Math.ceil(A)+2,w=p.w,h=p.h;g.clearRect(0,0,S.width,S.height);
+  function piece(c,p,X,Y,kc,t,seed){/* speed (gameplay chat 1, Oct 17): per-flag picture, redrawn ~12x/s */const PM=p._pm||(p._pm=new Map());let PC=PM.get(seed);if(!PC){PC={cv:document.createElement('canvas'),tq:-1};PC.cv.width=p.s.width;PC.cv.height=p.s.height;PM.set(seed,PC)}
+    const tq=Math.floor(t*12+((seed*7.13)%1+1)%1);if(PC.tq===tq){const o0=Math.ceil(p.amp)+2;c.drawImage(PC.cv,X+(p.x-o0)/kc,Y+(p.y-o0)/kc,PC.cv.width/kc,PC.cv.height/kc);return}PC.tq=tq;t=tq/12;
+    const A=p.amp,S=PC.cv,g=S.getContext('2d'),o=Math.ceil(A)+2,w=p.w,h=p.h;g.clearRect(0,0,S.width,S.height);
     const side=p.side,flag=side!=='t',L=flag?w:h,n=Math.max(4,Math.min(24,Math.round(L/(1.6*kc)))),st=L/n,sp=flag?6.2:3.4,kk=flag?7.5:4.2;
     const sh=[];for(let i=0;i<n;i++){const u=(i+.5)/n,dd=flag?(side==='r'?1-u:u):u,env=flag?Math.pow(dd,1.15):Math.pow(dd,1.35)*.9+.1*dd,
         ph=t*sp-dd*kk+seed,off=A*env*(Math.sin(ph)+.28*Math.sin(ph*2.1+1.3)),sl=Math.cos(ph)*env;sh.push(sl);
@@ -8069,6 +8071,7 @@ function fogImages(){
   fogKX.putImageData(k,0,0);fogEX.putImageData(e,0,0);
 }
 function drawCloudFog(now){
+  {const k=cam.x+','+cam.y+','+cam.z+','+fogL.width+','+Math.floor(now/66);if(drawCloudFog._k===k){ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=true;ctx.drawImage(fogL,0,0,cv.width,cv.height);return}drawCloudFog._k=k}/* speed (gameplay chat 1, Oct 17) */
   const lx=fogLX,s=fogL.width/W,z=cam.z;
   lx.setTransform(1,0,0,1,0,0);lx.globalCompositeOperation='source-over';lx.fillStyle='#000';lx.fillRect(0,0,fogL.width,fogL.height);
   lx.setTransform(s*z,0,0,s*z,-cam.x*s*z,-cam.y*s*z);lx.imageSmoothingEnabled=true;
