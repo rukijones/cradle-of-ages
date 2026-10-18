@@ -10552,6 +10552,10 @@ function groundTile(){if(!G||!G.ground||!G.ground.chunks)return;const out=[];
     for(let y=0;y<H0;y+=GTILE)for(let x=0;x<W0;x+=GTILE){const w=Math.min(GTILE,W0-x),h=Math.min(GTILE,H0-y),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(ch.c,x,y,w,h,0,0,w,h);
       out.push({x:ch.x+x,y:ch.y+y,c,tile:1,isl:ch.isl})}
     ch.c.width=0;ch.c.height=0}
+  /* the ground-lost check reads the middle pixel of the first piece: put a piece whose middle is land first,
+     or it saw see-through sea and re-painted the whole ground every 15 s (the 1-2 s freezes) */
+  const landMid=ch=>{if(ch.isl!=null)return false;const tx=Math.floor((ch.x+ch.c.width/2)/TILE),ty=Math.floor((ch.y+ch.c.height/2)/TILE);if(!inB(tx,ty)||G.terrain[ti(tx,ty)]!==0)return false;try{const m=GFX.SHORE&&G.mapType;}catch(e){}return true};
+  const k=out.findIndex(landMid);if(k>0){const t=out[k];out.splice(k,1);out.unshift(t)}
   G.ground.chunks=out}
 function groundTileHook(){if(renderGround._gt)return;const prev=renderGround;renderGround=function(){const r=prev.apply(this,arguments);try{groundTile()}catch(err){}return r};renderGround._gt=1}
 setTimeout(()=>{try{groundTileHook();if(G&&G.ground)groundTile()}catch(err){}},0);
