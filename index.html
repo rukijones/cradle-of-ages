@@ -8126,7 +8126,7 @@ function drawParts(c){
     else c.fillRect(p.x-p.size/2,p.y-p.z-p.size/2,p.size,p.size);
     c.globalAlpha=1;}
 }
-function drawWater(c,now,inView){/* speed (gameplay chat 1, Oct 17, measured on Josh's Mac): one path per brightness step instead of one per water tile */
+function drawWater(c,now,inView){if(window.FXOFF&&FXOFF.ripples)return;/* speed (gameplay chat 1, Oct 17, measured on Josh's Mac): one path per brightness step instead of one per water tile */
   const t=now/1000,NB=6,R=[],Q=[];for(let b=0;b<NB;b++){R.push(null);Q.push(null)}let D=null;
   for(const w of G.water){const[x,y,d,h]=w;if(!inView(x,y,30))continue;
     const ph=t*.9+h*6.28,a=.16+.14*Math.sin(ph),b=Math.max(0,Math.min(NB-1,Math.floor((a-.02)/.28*NB)));const ox=Math.sin(ph*.5)*4;
@@ -10562,6 +10562,16 @@ function groundTile(){if(!G||!G.ground||!G.ground.chunks)return;const out=[];
   G.ground.chunks=out}
 function groundTileHook(){if(renderGround._gt)return;const prev=renderGround;renderGround=function(){const r=prev.apply(this,arguments);try{groundTile()}catch(err){}return r};renderGround._gt=1}
 setTimeout(()=>{try{groundTileHook();if(G&&G.ground)groundTile()}catch(err){}},0);
+
+/* ===== Test switches (cheat codes, gameplay chat 1 Oct 17, to find what slows Josh's Mac near water):
+   "surf", "glint", "ripples", "ocean", "detail", "flags", "ghosts", "fog" each switch that effect off/on. ===== */
+window.FXOFF={};
+setTimeout(()=>{try{for(const k of ['surf','glint','ripples','ocean','fog'])CHEATS[k]=()=>{FXOFF[k]=!FXOFF[k];return k+(FXOFF[k]?' OFF':' on')};
+  CHEATS.detail=()=>{GFX.SHORE.detail=!GFX.SHORE.detail;return 'ground texture '+(GFX.SHORE.detail?'on':'OFF')};
+  CHEATS.flags=()=>{FXOFF.flags=!FXOFF.flags;return 'moving flags '+(FXOFF.flags?'OFF':'on')};
+  CHEATS.ghosts=()=>{GFX.SEE_ON=!GFX.SEE_ON;return 'see-through '+(GFX.SEE_ON?'on':'OFF')};
+  const wv=GFX.wvOn;if(wv)GFX.wvOn=function(){if(FXOFF.flags)return false;return wv.apply(this,arguments)};
+  const cf=drawCloudFog;drawCloudFog=function(){if(FXOFF.fog)return;return cf.apply(this,arguments)}}catch(err){}},60);
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11457,7 +11467,7 @@ oceanPaint=function(){if(!S.on)return _op.apply(this,arguments);const m=need();i
   G.oceanPic=c};
 /* ---- moving glints on the water (screen resolution) ---- */
 const _do=drawOcean;
-drawOcean=function(c,vx0,vy0,vx1,vy1){_do.apply(this,arguments);if(!S.on||!G||!G.landBox||!ok('gl'))return;
+drawOcean=function(c,vx0,vy0,vx1,vy1){if(window.FXOFF&&FXOFF.ocean)return;_do.apply(this,arguments);if(!S.on||!G||!G.landBox||!ok('gl')||(window.FXOFF&&FXOFF.glint))return;
   const t=performance.now()/1000;c.save();c.beginPath();c.rect(vx0,vy0,vx1-vx0,vy1-vy0);c.clip();
   const L=[[1,9,3.5,S.glint,0],[.7,-6,4.5,S.glint*.8,170]];
   for(const[s,vx,vy,a,o]of L){const p=c.createPattern(IM.gl,'repeat');if(p.setTransform)p.setTransform(new DOMMatrix().translate(o+t*vx,o+t*vy).scale(s));c.globalAlpha=a*(.75+.25*Math.sin(t*.9+o));c.fillStyle=p;c.fillRect(vx0,vy0,vx1-vx0,vy1-vy0)}
@@ -11526,7 +11536,7 @@ function detail(c,inView){if(!S.detail||!GFX.groundOn||!GFX.groundOn())return;co
     S._dk=key}
   if(S._dk!==key)return;
   S._fa=Math.min(1,(S._fa==null?1:S._fa)+.12);c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation=S.blend||'source-over';c.globalAlpha=S.det*S._fa;c.drawImage(D,0,0);c.restore()}
-function surf(c,now,inView){const m=M;if(!m)return;const t=now/1000,P=m.cp,L=TILE*.3;/* speed (gameplay chat 1, Oct 17): batched into a few paths */
+function surf(c,now,inView){const m=M;if(!m||window.FXOFF&&FXOFF.surf)return;const t=now/1000,P=m.cp,L=TILE*.3;/* speed (gameplay chat 1, Oct 17): batched into a few paths */
   const NB=5,F=[],S=[];
   for(let i=0;i<P.length;i+=6){const x=P[i],y=P[i+1];if(!inView(x,y,40))continue;const nx=P[i+2],ny=P[i+3],h=P[i+4],ph=P[i+5],tx=-ny,ty=nx;
     const a0=.16+.1*Math.sin(t*1.1+h*19),fb=Math.max(0,Math.min(NB-1,Math.floor((a0-.06)/.2*NB)));const ex=x+nx*(2+h*2),ey=y+ny*(2+h*2),rx=L*1.25,ry=2.2+h*2.2,rot=Math.atan2(ty,tx);
