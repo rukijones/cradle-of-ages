@@ -10146,7 +10146,7 @@ function oceanPaint(){if(!G||!G.landBox){G&&(G.oceanPic=null);return}const T=G.t
   for(let d=8;d>=1;d--){g.fillStyle=cols[d];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(dist[ti(x,y)]!==d)continue;g.beginPath();g.arc((x+.5)*OCS,(y+.5)*OCS,OCS*(.95+R()*.25),0,7);g.fill()}}
   g.globalAlpha=.07;for(let i=0;i<MW*MH/6;i++){const x=R()*c.width,y=R()*c.height;g.fillStyle=R()<.5?'#ffffff':'#0b2a40';g.fillRect(x,y,2+R()*6,1)}g.globalAlpha=1;
   G.oceanPic=c}
-function drawOcean(c,vx0,vy0,vx1,vy1){if(!G||!G.landBox)return;if(!G.oceanPic||G.oceanPic._s!==G.seed){oceanPaint();if(G.oceanPic)G.oceanPic._s=G.seed}const P=G.oceanPic;if(!P)return;
+function drawOcean(c,vx0,vy0,vx1,vy1){if(!G||!G.landBox)return;if(!G.oceanPic||G.oceanPic._s!==G.seed){oceanPaint();if(G.oceanPic){G.oceanPic._s=G.seed;toBitmap(G.oceanPic,bm=>{bm._s=G.seed;return G.oceanPic&&G.oceanPic._s===bm._s&&!G.oceanPic._bm?(G.oceanPic=bm,true):false})}}const P=G.oceanPic;if(!P)return;
   const x0=Math.max(0,vx0),y0=Math.max(0,vy0),x1=Math.min(WW,vx1),y1=Math.min(WH,vy1);if(x1<=x0||y1<=y0)return;const k=OCS/TILE;
   c.drawImage(P,x0*k,y0*k,(x1-x0)*k,(y1-y0)*k,x0,y0,x1-x0,y1-y0)}
 try{renderGround=(function(prev){return function(){if(G)G.oceanPic=null;const r=prev.apply(this,arguments);try{const L=G.landBox;if(L&&G.water)for(const w of G.water){const tx=tl(w[0]),ty=tl(w[1]);if((tx<L[0]||ty<L[1]||tx>=L[2]||ty>=L[3])&&w[2]<1)w[2]=1}}catch(err){}return r}})(renderGround)}catch(err){}
@@ -10438,7 +10438,7 @@ function forestPaint(){const c=document.createElement('canvas');c.width=MW*FRS;c
     g.fillStyle='rgba(8,18,8,.35)';g.beginPath();g.arc(cx+3,cy+4,r,0,7);g.fill();g.fillStyle=cols[(R()*cols.length)|0];g.beginPath();g.arc(cx,cy,r,0,7);g.fill();
     if(p===2){g.fillStyle='rgba(150,190,110,.18)';g.beginPath();g.arc(cx-r*.3,cy-r*.35,r*.45,0,7);g.fill()}}}
   G.forestPic=c}
-function rvDrawForest(c,vx0,vy0,vx1,vy1){if(!G.forestPic||G.forestPic._s!==G.seed){forestPaint();G.forestPic._s=G.seed}const P=G.forestPic,L=G.landBox;
+function rvDrawForest(c,vx0,vy0,vx1,vy1){if(!G.forestPic||G.forestPic._s!==G.seed){forestPaint();G.forestPic._s=G.seed;toBitmap(G.forestPic,bm=>{bm._s=G.seed;return G.forestPic&&G.forestPic._s===bm._s&&!G.forestPic._bm?(G.forestPic=bm,true):false})}const P=G.forestPic,L=G.landBox;
   const x0=Math.max(0,vx0),y0=Math.max(0,vy0),x1=Math.min(WW,vx1),y1=Math.min(WH,vy1);if(x1<=x0||y1<=y0)return;
   if(x0>=L[0]*TILE&&y0>=L[1]*TILE&&x1<=L[2]*TILE&&y1<=L[3]*TILE)return;const k=FRS/TILE;c.drawImage(P,x0*k,y0*k,(x1-x0)*k,(y1-y0)*k,x0,y0,x1-x0,y1-y0)}
 /* installed late (first map), so it sits outside every other drawOcean wrapper: on the river map only the forest is drawn there */
@@ -10553,7 +10553,7 @@ const GTILE=512;
 function groundTile(){if(!G||!G.ground||!G.ground.chunks)return;const out=[];
   for(const ch of G.ground.chunks){const W0=ch.c.width,H0=ch.c.height;if(ch.tile||(W0<=GTILE&&H0<=GTILE)){out.push(ch);continue}
     for(let y=0;y<H0;y+=GTILE)for(let x=0;x<W0;x+=GTILE){const w=Math.min(GTILE,W0-x),h=Math.min(GTILE,H0-y),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(ch.c,x,y,w,h,0,0,w,h);
-      out.push({x:ch.x+x,y:ch.y+y,c,tile:1,isl:ch.isl})}
+      const tile={x:ch.x+x,y:ch.y+y,c,tile:1,isl:ch.isl};out.push(tile);toBitmap(c,bm=>{if(tile.c!==c)return false;bm.w0=c.width;tile.c=bm;return true})}
     ch.c.width=0;ch.c.height=0}
   /* the ground-lost check reads the middle pixel of the first piece: put a piece whose middle is land first,
      or it saw see-through sea and re-painted the whole ground every 15 s (the 1-2 s freezes) */
@@ -10775,6 +10775,11 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
 }
 /* ===== END multiplayer ===== */
 
+
+/* ===== Speed (gameplay chat 1, Oct 17: Josh's Mac runs the lake map at 120 fps and the ocean map at 22): big pictures that never
+   change after they are painted (ground tiles, sea picture, forest picture) are turned into ImageBitmaps - fixed graphics-card
+   textures - so the browser never has to send them to the GPU again. ===== */
+function toBitmap(cv,swap){try{if(!window.createImageBitmap||!cv||!cv.width)return;createImageBitmap(cv).then(bm=>{bm._bm=1;let ok=false;try{ok=swap(bm)}catch(e){}if(ok){try{cv.width=0;cv.height=0}catch(e){}}else{try{bm.close()}catch(e){}}}).catch(()=>{})}catch(err){}}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11679,7 +11684,7 @@ drawOcean=function(c,vx0,vy0,vx1,vy1){if(window.FXOFF&&FXOFF.ocean)return;
   _do.call(this,c,vx0,vy0,vx1,vy1);if(!S.on||!G||!G.landBox||!ok('gl')||(window.FXOFF&&FXOFF.glint))return;
   const t=performance.now()/1000;c.save();c.beginPath();c.rect(vx0,vy0,vx1-vx0,vy1-vy0);c.clip();
   const L=[[1,9,3.5,S.glint,0],[.7,-6,4.5,S.glint*.8,170]];
-  for(const[s,vx,vy,a,o]of L){const p=c.createPattern(IM.gl,'repeat');if(p.setTransform)p.setTransform(new DOMMatrix().translate(o+t*vx,o+t*vy).scale(s));c.globalAlpha=a*(.75+.25*Math.sin(t*.9+o));c.fillStyle=p;c.fillRect(vx0,vy0,vx1-vx0,vy1-vy0)}
+  for(const[s,vx,vy,a,o]of L){const p=IM['_gp'+o]||(IM['_gp'+o]=c.createPattern(IM.gl,'repeat'));/* speed: one pattern, reused */if(p.setTransform)p.setTransform(new DOMMatrix().translate(o+t*vx,o+t*vy).scale(s));c.globalAlpha=a*(.75+.25*Math.sin(t*.9+o));c.fillStyle=p;c.fillRect(vx0,vy0,vx1-vx0,vy1-vy0)}
   c.restore()};
 /* ---- beach + bays cut into the ground canvases ---- */
 function paintChunks(){const m=need();if(!m||!G.ground||!G.ground.chunks)return;let tmp=null;
