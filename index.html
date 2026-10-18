@@ -10370,7 +10370,8 @@ try{updUnit=(function(prev){return function(u,dt){try{const o=u.order;if(o&&o.ty
      two empty corners look just like the enemy's.
    - G.mapType = 'river' (new games). Old saves keep the ring sea. ===== */
 const RIVM={sea:21.5,lake:5.2,river:1.35,stream:.95,ford:.1,fordSlow:.55,isl:.64};
-function pickMapType(){return window.MAPTYPE||(Math.random()<.5?'river':'corners')}
+/* Oct 17: Josh wants Forest Corners (cliff coast) only for now; River & Lake kept for later (window.MAPTYPE='river' still forces it) */
+function pickMapType(){return window.MAPTYPE||'corners'}
 try{genMap=(function(prev){return function(){if(G&&!G.mapType)G.mapType=pickMapType();return prev.apply(this,arguments)}})(genMap)}catch(err){}
 try{oceanFinish=(function(prev){return function(){if(G&&G.mapType==='river')return riverFinish();return prev.apply(this,arguments)}})(oceanFinish)}catch(err){}
 function rvSamples(P,n){const out=[];for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push([u*u*u*P[0][0]+3*u*u*t*P[1][0]+3*u*t*t*P[2][0]+t*t*t*P[3][0],u*u*u*P[0][1]+3*u*u*t*P[1][1]+3*u*t*t*P[2][1]+t*t*t*P[3][1],t])}return out}
@@ -10476,7 +10477,7 @@ try{draw=(function(prev){return function(){const now=performance.now();try{if(!P
      so the nearest sea is ~20 tiles from town but only reachable by chopping through or by walking round along the coast.
    - Mirrored in all 4 corners. Islands only where the sea is wide (middle of the edges). New games pick River & Lake or
      Forest Corners at random (window.MAPTYPE forces one). ===== */
-const CORM={narrow:3,t0:18,t1:66,cliffE:17,cliffT:50};
+const CORM={narrow:3,t0:18,t1:66,cliffE:17,cliffT:50,sideT:4,sideGap:0,bNear0:20,bNear1:30,bMid0:50,bMid1:62,bW:6};
 try{oceanFinish=(function(prev){return function(){if(!(G&&G.mapType==='corners'))return prev.apply(this,arguments);G.islands=[];let r;try{r=prev.apply(this,arguments)}finally{G.islands=null}try{cornersFinish()}catch(err){console.warn(err)}return r}})(oceanFinish)}catch(err){}
 function cornersFinish(){const N=MW,T=G.terrain,O=OCEAN,fold=v=>v<N/2?v:N-1-v,ph=Math.random()*7,R=Math.random;
   const sm=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
@@ -10496,8 +10497,16 @@ function cornersFinish(){const N=MW,T=G.terrain,O=OCEAN,fold=v=>v<N/2?v:N-1-v,ph
      with a thin fringe of trees on the town side */
   const pois=G.ents.filter(p=>p.kind==='poi');const nearPoi=(x,y)=>pois.some(p=>Math.abs(p.tx-x)<2&&Math.abs(p.ty-y)<2);
   const cE=t=>CORM.cliffE*(1-sm((t-CORM.cliffT+16)/16));
-  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const {e,t}=geo(x,y),i=ti(x,y);if(T[i]!==0||islAt(x,y))continue;const w=wAt(t,x,y),ce=cE(t)+1.2*Math.sin(t*.37+ph)+.8*Math.sin(t*.9+ph*2);
-    if(e>=w+1&&e<ce&&!base10(x,y)){const id=G.occ[i];if(id){const q=G.byId.get(id);if(q&&q.kind==='res'){q.dead=true;G.occ[i]=0}else continue}if(nearPoi(x,y))continue;T[i]=3}}
+  /* cliff coast (Oct 17): rock runs along the whole shore; only a few beaches break it. Beach spots are picked per game
+     along the edge (t) and mirrored to every corner/edge, so each base gets the same layout. */
+  const BE=[];{const bw=CORM.bW+R()*3,a=CORM.bNear0+R()*(CORM.bNear1-CORM.bNear0);BE.push([a,a+bw]);
+    /* the long beach: middle of each side, mirrored across the middle so it is 2x as long as the others */
+    BE.push([N/2-bw,N/2+1]);
+    if(R()<.5){const b=CORM.bMid0+R()*(CORM.bMid1-CORM.bMid0);if(b+bw<N/2-bw-4)BE.push([b,b+bw])}}
+  G.corners.beaches=BE;const isBeach=t=>BE.some(([a,b])=>t>=a&&t<=b);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const {e,t}=geo(x,y),i=ti(x,y);if(T[i]!==0||islAt(x,y))continue;const w=wAt(t,x,y);if(isBeach(t))continue;
+    const ce=Math.max(cE(t),w+CORM.sideGap+CORM.sideT)+1.2*Math.sin(t*.37+ph)+.8*Math.sin(t*.9+ph*2);
+    if(e>=w+CORM.sideGap&&e<ce&&!base10(x,y)){const id=G.occ[i];if(id){const q=G.byId.get(id);if(q&&q.kind==='res'){q.dead=true;G.occ[i]=0}else continue}if(nearPoi(x,y))continue;T[i]=3}}
   G.ents=G.ents.filter(e=>!e.dead);
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const {e,t}=geo(x,y),i=ti(x,y);if(T[i]!==0||G.occ[i]||islAt(x,y)||base10(x,y)||nearPoi(x,y))continue;const ce=cE(t);if(ce<2||e<ce-1.5)continue;
     let nc=false;for(let dy=-2;dy<=2&&!nc;dy++)for(let dx=-2;dx<=2;dx++){const nx=x+dx,ny=y+dy;if(inB(nx,ny)&&T[ti(nx,ny)]===3){nc=true;break}}if(nc&&R()<.45)mkRes('tree',x,y)}
