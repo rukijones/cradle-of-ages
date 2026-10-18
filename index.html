@@ -8360,7 +8360,7 @@ function cmdToBuilding(mine,hit){
       if(!hit.built&&v.length){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(canRepair(hit,0)&&v.length&&!WORK[hit.type]&&!isPen(hit)&&!(hit.type==='house'&&hit.upT>0)){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.type==='ranch'&&hit.built&&isDairy(hit)){const cw=mine.filter(u=>u.type==='cow');if(cw.length){for(const q of cw)q.dairyId=hit.id;const z=penSpot(hit,'c');orderMove(cw,(z[0]+.5)*TILE,(z[1]+.5)*TILE);mark(hit.x,hit.y,'#ffd25a');toast(cw.length>1?cw.length+' cows heading into the ranch':'Cow heading into the ranch');return true;}}
-      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){vv.forEach(u=>{u.order=null;u.path=null;u.shep=penLead(hit).id;});mark(hit.x,hit.y,'#ffd25a');toast(penLead(hit).type==='ranch'?(vv.length>1?vv.length+' ranch hands assigned':'Ranch hand assigned'):(vv.length>1?vv.length+' shepherds assigned':'Shepherd assigned'));return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<4?'Sheep join the ranch in the Renaissance Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
+      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){const LD=penLead(hit);let use=vv;if(LD.type==='ranch'){const have=G.ents.filter(e=>e.shep===LD.id&&!e.dead&&!vv.includes(e)).length,room=Math.max(0,RHAND_MAX-have);if(!room){toast('The ranch has '+RHAND_MAX+' ranch hands already');return true}use=vv.slice(0,room)}use.forEach(u=>{u.order=null;u.path=null;u.shep=LD.id;});mark(hit.x,hit.y,'#ffd25a');toast(LD.type==='ranch'?(use.length>1?use.length+' ranch hands assigned':'Ranch hand assigned')+(use.length<vv.length?' (a ranch takes '+RHAND_MAX+')':''):(use.length>1?use.length+' shepherds assigned':'Shepherd assigned'));return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<4?'Sheep join the ranch in the Renaissance Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
       if((hit.type==='house'||hit.type==='coop')&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
       if((hit.built&&isLodge(hit)&&MPHU(hit.owner)&&v.length)&&MPTW(hit.owner)){let n=foresterN(hit),k=0;for(const u of v){if(n>=FORESTERS)break;if(u.forester===hit.id)continue;u.forester=hit.id;u.order=null;u.path=null;u.shep=0;n++;k++;}toast(k?k+' forester'+(k>1?'s':'')+' at work':'The lodge already has '+FORESTERS+' foresters');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&WORK[hit.type]&&v.length){const n=assignWorkers(hit,v);toast(n?n+' assigned to the '+DEF[hit.type].name.toLowerCase():'The '+DEF[hit.type].name.toLowerCase()+' is full');mark(hit.x,hit.y,'#ffd25a');return true;}
@@ -9844,12 +9844,10 @@ try{const prevRO=GFX._ranchOutline;if(prevRO)GFX._ranchOutline=function(c,e){try
 try{const hands=r=>G.ents.some(u=>!u.dead&&u.owner===0&&u.shep===r.id);const needR=()=>tMine('ranch').find(r=>r.built&&!hands(r));
   const dw=d=>(d.gar&&d.gar.length)||G.ents.some(e=>e.order&&e.order.type==='work'&&e.order.id===d.id);const needD=()=>tMine('dairy').find(d=>d.built&&!dw(d));
   LESSONS.push({id:'ranch',when:()=>!!needR(),steps:[
-    {t:'<b>Your ranch needs a ranch hand</b> to look after the animals. Tap a <b>villager</b>, then tap the <b>ranch</b>.',ent:()=>{const r=needR()||tMine('ranch')[0];return tSel().some(e=>e.type==='villager')?r:(tMine('villager')[0]||r)},done:()=>!needR()},
-    {t:'The number over a ranch or pen (like 0/1) shows how many hands it has and needs.',last:1}]});
+    {t:'<b>Your ranch needs a ranch hand</b> to look after the animals. Tap a <b>villager</b>, then tap the <b>ranch</b>. The number over the ranch (like 1/3) shows how many it has.',ent:()=>{const r=needR()||tMine('ranch')[0];return tSel().some(e=>e.type==='villager')?r:(tMine('villager')[0]||r)},done:()=>!needR()}]});
   LESSONS.push({id:'dairy',when:()=>!!needD(),steps:[
     {t:'<b>Your dairy needs workers</b> to milk the cows. Tap the <b>dairy</b>.',ent:()=>needD()||tMine('dairy')[0],done:()=>tSel().some(e=>e.type==='dairy')||!needD()},
-    {t:'Tap <b>Add worker</b>. The nearest villager walks over and starts milking.',dom:['[data-act="wadd"]'],done:()=>!needD()},
-    {t:'Buildings with a number over them (like 0/2) need workers: tap the building, then <b>Add worker</b>.',last:1}]});
+    {t:'Tap <b>Add worker</b>. The nearest villager walks over and starts milking. Buildings with a number over them (like 0/2) need workers.',dom:['[data-act="wadd"]'],done:()=>!needD()}]});
 }catch(err){}
 /* Pictures instead of words (gameplay, Josh Oct 17: "when the ranch is highlighted it needs to easily show how many ranch hands work there and how many
    animals. Use the emojis. Less writing overall and more visuals. Same with the pack donkeys carrying stuff: a visual of what they carry, amount next to it").
@@ -10910,8 +10908,127 @@ try{draw=(function(prev){return function(){GOLDSH.f=0;return prev.apply(this,arg
 try{drawRes=(function(prev){return function(c,e){try{if(e&&e.type==='gold'&&!GOLDSH.f&&!(window.FXOFF&&FXOFF.shadows)){GOLDSH.f=1;const k=GOLDSH;
   let g=IM_GSH;if(!g){g=document.createElement('canvas');g.width=g.height=64;const x=g.getContext('2d'),r=x.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(40,28,14,.7)');r.addColorStop(.6,'rgba(56,42,22,.42)');r.addColorStop(1,'rgba(56,42,22,0)');x.fillStyle=r;x.fillRect(0,0,64,64);IM_GSH=g}
   for(const q of G.ents)if(q.type==='gold'&&!q.dead)c.drawImage(g,q.x-k.w/2+k.dx,q.y-k.h/2+k.dy,k.w,k.h)}}catch(err){}return prev.apply(this,arguments)}})(drawRes)}catch(err){}
+/* ranch hands over the limit (Josh had 10/3 before the cap) go back to being idle villagers */
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.ents){G._rhT=(G._rhT||0)+dt;if(G._rhT>=2){G._rhT=0;const n={};for(const u of G.ents){if(u.dead||!u.shep||u.type!=='villager')continue;const R=G.byId.get(u.shep);if(!R||R.type!=='ranch')continue;n[u.shep]=(n[u.shep]||0)+1;if(n[u.shep]>RHAND_MAX){u.shep=0;u.order=null;u.path=null}}}}}catch(err){}return r}})(tick)}catch(err){}
 /* old saves: anyone already past the Stone Age gets the bronze tools */
 try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.players&&!G._pkF){G._pkF=1;for(const p of G.players)if(p&&p.age>=1&&p.tech)p.tech.picks=1}}catch(err){}return r}})(tick)}catch(err){}
+
+/* ===== Ancient ruins puzzles, gameplay chat 1 (Josh, Oct 18: "too many and too simple. When you find ancient ruins, it drops you
+   into a room with a simple Zelda like puzzle"). Picked: 4 ruins per map (one per quarter, mirrored so it's fair), the game keeps
+   running while you solve, 4 puzzle kinds (each map has all 4):
+   - targets: 3 targets with 1-2-3 dots carved beside them; tap them in order and your bowman (any ranged unit) shoots. Needs a ranged unit.
+   - plates:  3 pressure plates; tap one of your people, then a plate. All 3 held at once opens the door. Needs 3 units.
+   - torches: the mural lights the braziers in an order; light them the same way (tap). Any unit.
+   - block:   push the stone block (it slides until it hits something) onto the switch. Any unit.
+   Solving shows a chest; tapping it gives the ruin's treasure at DOUBLE the old amounts. The party = your units within 3 tiles of the
+   ruin; if they all walk off, the room closes. The computer (and the friend in online games) still claims ruins the old way.
+   PZ.off=true turns puzzles off. ===== */
+const PZ={off:false,kinds:['targets','plates','torches','block'],open:null,cool:8};
+function ruinsFour(){if(!G||G._r4)return;G._r4=1;if(G.t>5)return;
+  const isl=(x,y)=>typeof islAt==='function'&&islAt(x,y);const main=G.ents.filter(e=>e.type==='ruin'&&!e.dead&&!isl(e.tx,e.ty));
+  const okT=(x,y)=>inB(x,y)&&walk(x,y)&&!G.occ[ti(x,y)]&&!isl(x,y)&&!G.ents.some(e=>e.kind==='poi'&&!e.dead&&!main.includes(e)&&Math.abs(e.tx-x)<3&&Math.abs(e.ty-y)<3);
+  const B=(G.bases||[]).map(([x,y])=>[x<MW/2?x:MW-1-x,y<MH/2?y:MH-1-y]);
+  const good=(x,y)=>MW/2-x>=12&&MH/2-y>=12&&x>=6&&y>=6&&B.every(([bx,by])=>{const d=Math.hypot(x-bx,y-by);return d>=18&&d<=46});
+  const near=(x,y)=>{for(let r=0;r<10;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(okT(x+dx,y+dy))return [x+dx,y+dy]}return null};
+  let pick=null;const cand=main.map(e=>[e.tx<MW/2?e.tx:MW-1-e.tx,e.ty<MH/2?e.ty:MH-1-e.ty]).filter(([x,y])=>good(x,y));if(cand.length)pick=cand[(Math.random()*cand.length)|0];
+  for(let t=0;t<300&&!pick;t++){const x=6+((Math.random()*(MW/2-18))|0),y=6+((Math.random()*(MH/2-18))|0);if(good(x,y)&&okT(x,y))pick=[x,y]}
+  if(!pick)return;const spots=[];for(let q=0;q<4;q++){const sp=near(q&1?MW-1-pick[0]:pick[0],q&2?MH-1-pick[1]:pick[1]);if(sp)spots.push(sp)}if(spots.length<4)return;
+  for(const e of main){e.dead=true;G.byId.delete(e.id)}G.ents=G.ents.filter(e=>!e.dead);
+  const K=PZ.kinds.slice().sort(()=>Math.random()-.5);spots.forEach((sp,i)=>addEnt({kind:'poi',type:'ruin',owner:-1,tx:sp[0],ty:sp[1],size:1,x:(sp[0]+.5)*TILE,y:(sp[1]+.5)*TILE,v:Math.random(),pz:K[i]}))}
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&!G._r4)ruinsFour();if(PZ.open)pzTick()}catch(err){}return r}})(tick)}catch(err){}
+const pzParty=r=>G.ents.filter(u=>u.kind==='unit'&&u.owner===0&&!u.dead&&!u.naval&&!u.air&&!(DEF[u.type]&&DEF[u.type].animal)&&Math.hypot(u.x-r.x,u.y-r.y)<3*TILE);
+try{claimRuin=(function(prev){return function(r,o){
+  if(PZ.off||o!==0||r.looted||(typeof MP!=='undefined'&&MP.role&&MP.role!=='host'))return prev.apply(this,arguments);
+  if(PZ.open&&PZ.open.r===r)return;if(r.pzCool&&G.t<r.pzCool)return;if(PZ.open)return;
+  if(!r.pz)r.pz=PZ.kinds[(Math.random()*PZ.kinds.length)|0];pzOpen(r,prev);return}})(claimRuin)}catch(err){}
+function pzPay(prev,r,o){const RR=RUIN_REWARDS,old=RR.map(x=>x[1]);try{for(const x of RR){if(x[1]>0){x[1]*=2;x[2]=x[1]+' '+x[2].replace(/^\d+ /,'')}}return prev(r,o)}finally{RR.forEach((x,i)=>{x[1]=old[i];if(old[i]>0)x[2]=old[i]+' '+x[2].replace(/^\d+ /,'')})}}
+/* ---------- the room ---------- */
+const PZW=340,PZH=260;
+function pzEls(){let b=document.getElementById('pzBox');if(b)return b;b=document.createElement('div');b.id='pzBox';
+  b.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;background:#1c140d;border:2px solid #8a6a3a;border-radius:12px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,.6);color:#f2e3c4;font:13px system-ui;width:'+(PZW+16)+'px;max-width:96vw;display:none;touch-action:none';
+  b.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><b style="font-family:Cinzel,serif;color:#f0c35a">🏛️ Ancient ruins</b><span id="pzParty" style="opacity:.75;font-size:12px"></span><span style="flex:1"></span><button id="pzReset" style="background:#3a2a18;color:#f2e3c4;border:1px solid #8a6a3a;border-radius:6px;padding:3px 8px">↺</button><button id="pzLeave" style="background:#3a2a18;color:#f2e3c4;border:1px solid #8a6a3a;border-radius:6px;padding:3px 8px">Leave</button></div><canvas id="pzCv" style="width:100%;aspect-ratio:'+PZW+'/'+PZH+';display:block;border-radius:8px;touch-action:none"></canvas><div id="pzHint" style="margin-top:6px;min-height:18px;text-align:center"></div>';
+  document.body.appendChild(b);const cv=b.querySelector('#pzCv'),dpr=Math.min(2,window.devicePixelRatio||1);cv.width=PZW*dpr;cv.height=PZH*dpr;
+  cv.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();const R=cv.getBoundingClientRect();pzTap((ev.clientX-R.left)/R.width*PZW,(ev.clientY-R.top)/R.height*PZH)});
+  b.addEventListener('pointerdown',ev=>ev.stopPropagation());
+  b.querySelector('#pzLeave').onclick=()=>pzClose('You left the ruins');b.querySelector('#pzReset').onclick=()=>{if(PZ.open&&!PZ.open.won)pzSetup(PZ.open,true)};
+  (function loop(){try{if(PZ.open)pzDraw()}catch(e){}requestAnimationFrame(loop)})();return b}
+function pzOpen(r,prev){const b=pzEls();const S={r,prev,kind:r.pz,t0:performance.now(),won:false,chest:false,fx:[]};PZ.open=S;pzSetup(S);b.style.display='block';try{sfx('done')}catch(e){}}
+function pzClose(msg){const S=PZ.open;if(!S)return;if(!S.r.pzDone)S.r.pzCool=G.t+PZ.cool;PZ.open=null;const b=document.getElementById('pzBox');if(b)b.style.display='none';if(msg)toast(msg)}
+function pzTick(){const S=PZ.open;if(!S||S.paid)return;if(G.over){pzClose();return}const P=pzParty(S.r);if(!P.length){pzClose('Your party left the ruins');return}S.party=P;
+  if(!S.won&&S.need){S.need=pzNeed(S);if(!S.need)pzSetup(S)}}
+const pzHint=t=>{const h=document.getElementById('pzHint');if(h)h.innerHTML=t};
+function pzNeed(S){const P=pzParty(S.r);S.party=P;const pt=document.getElementById('pzParty');if(pt)pt.textContent='· '+P.length+' inside';
+  if(S.kind==='targets'&&!P.some(u=>RANGED.has(u.type)))return 'A target puzzle. <b>Bring a bowman</b> (any ranged unit) to shoot the targets';
+  if(S.kind==='plates'&&P.length<3)return 'Three pressure plates. <b>Bring 3 of your people</b> into the ruins (you have '+P.length+')';return ''}
+function pzSetup(S,again){S.won=false;S.chest=false;S.fx=[];S.sel=null;S.need=pzNeed(S);const R=Math.random;
+  if(S.kind==='targets'){S.tg=[{x:80,y:78},{x:170,y:70},{x:260,y:78}];const o=[1,2,3].sort(()=>R()-.5);S.tg.forEach((t,i)=>{t.n=o[i];t.hit=false});S.next=1;S.arrow=null;pzHint(S.need||'The targets are across a chasm. Shoot them in order: <b>1 dot, 2 dots, 3 dots</b>. Tap a target')}
+  if(S.kind==='plates'){S.pl=[{x:85,y:170},{x:170,y:135},{x:255,y:170}];S.tok=(S.party||[]).slice(0,5).map((u,i,a)=>({u,x:170+(i-(a.length-1)/2)*36,y:228,on:-1}));S.door=0;pzHint(S.need||'Tap one of your people, then a plate. Hold <b>all 3 plates</b> at once')}
+  if(S.kind==='torches'){S.br=[{x:62,y:178},{x:131,y:200},{x:209,y:200},{x:278,y:178}];const o=[0,1,2,3].sort(()=>R()-.5);S.seq=o;S.got=0;S.show=performance.now()+700;S.lit=[];pzHint('Watch the mural, then light the braziers in the <b>same order</b>. Tap the mural to see it again')}
+  if(S.kind==='block'){pzBlockGen(S);pzHint('Push the stone onto the glowing switch. It <b>slides until it hits</b> something. Tap beside the stone to push it that way')}}
+/* sliding-block level: 7x4 grid, a few pillars, block start, switch; must need 3+ pushes (BFS) */
+function pzBlockGen(S){const W=7,H=4;for(let tries=0;tries<400;tries++){const P=new Set();const n=3+((Math.random()*3)|0);for(let k=0;k<n;k++)P.add(((Math.random()*W)|0)+','+((Math.random()*H)|0));
+    const free=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(!P.has(x+','+y))free.push([x,y]);const st=free[(Math.random()*free.length)|0],gl=free[(Math.random()*free.length)|0];if(st[0]===gl[0]&&st[1]===gl[1])continue;
+    const slide=(x,y,dx,dy)=>{while(true){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=H||P.has(nx+','+ny))return [x,y];x=nx;y=ny;if(x===gl[0]&&y===gl[1])return [x,y]}};
+    const seen=new Map([[st+'',0]]),q=[st];let d=-1;while(q.length){const c=q.shift(),cd=seen.get(c+'');if(c[0]===gl[0]&&c[1]===gl[1]){d=cd;break}for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nb=slide(c[0],c[1],dx,dy);if(!seen.has(nb+'')){seen.set(nb+'',cd+1);q.push(nb)}}}
+    if(d>=3&&d<=6){S.bk={W,H,P,st,gl,b:st.slice(),slide,moves:0,best:d,anim:null};return}}
+  S.bk={W:7,H:4,P:new Set(['2,1','4,2']),st:[0,0],gl:[6,3],b:[0,0],slide:(x,y,dx,dy)=>{while(true){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=7||ny>=4||['2,1','4,2'].includes(nx+','+ny))return[x,y];x=nx;y=ny;if(x===6&&y===3)return[x,y]}},moves:0,best:3}}
+const BK={x0:48,y0:112,cs:35};
+function pzTap(x,y){const S=PZ.open;if(!S)return;
+  if(S.chest&&!S.paid){if(Math.hypot(x-170,y-175)<40){S.paid=true;S.r.pzDone=1;try{pzPay(S.prev,S.r,0)}catch(e){console.warn(e)}S.fx.push({k:'burst',t:performance.now()});setTimeout(()=>pzClose(),1100)}return}
+  if(S.won)return;{const was=S.need;S.need=pzNeed(S);if(S.need){pzHint(S.need);return}if(was){pzSetup(S);return}}
+  if(S.kind==='targets'){if(S.arrow)return;const t=S.tg.find(t=>Math.hypot(x-t.x,y-t.y)<30);if(!t||t.hit)return;S.arrow={t,t0:performance.now()};
+    setTimeout(()=>{S.arrow=null;if(t.n===S.next){t.hit=true;S.next++;try{sfx('hit')}catch(e){}if(S.next>3)pzWin(S)}else{t.bad=performance.now();S.tg.forEach(q=>q.hit=false);S.next=1;pzHint('Wrong order: the targets reset. Count the dots')}},260)}
+  if(S.kind==='plates'){const tk=S.tok.find(k=>Math.hypot(x-k.x,y-k.y)<17);if(tk){S.sel=tk;return}const pi=S.pl.findIndex(p=>Math.hypot(x-p.x,(y-p.y)*1.6)<34);if(pi>=0&&S.sel){const oc=S.tok.find(k=>k.on===pi);if(oc&&oc!==S.sel){oc.on=-1;oc.x=170+(S.tok.indexOf(oc)-(S.tok.length-1)/2)*36;oc.y=228}S.sel.on=pi;S.sel.x=S.pl[pi].x;S.sel.y=S.pl[pi].y-6;S.sel=null;
+      if(S.pl.every((p,i)=>S.tok.some(k=>k.on===i)))pzWin(S)}}
+  if(S.kind==='torches'){if(y<95){S.show=performance.now()+200;S.got=0;S.lit=[];return}if(performance.now()<S.show+S.seq.length*700)return;const bi=S.br.findIndex(b=>Math.hypot(x-b.x,y-b.y)<30);if(bi<0||S.lit.includes(bi))return;
+    if(S.seq[S.got]===bi){S.lit.push(bi);S.got++;if(S.got>=S.seq.length)pzWin(S)}else{S.bad=performance.now();S.lit=[];S.got=0;pzHint('The flames go out. Tap the mural to watch again')}}
+  if(S.kind==='block'){const B=S.bk;if(B.anim)return;let d=null;{const cx=BK.x0+(B.b[0]+.5)*BK.cs,cy=BK.y0+(B.b[1]+.5)*BK.cs*.92,dx=x-cx,dy=y-cy;if(Math.hypot(dx,dy)>10)d=Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,Math.sign(dy)]}
+    if(!d)return;const to=B.slide(B.b[0],B.b[1],d[0],d[1]);if(to[0]===B.b[0]&&to[1]===B.b[1])return;B.anim={from:B.b.slice(),to,t0:performance.now()};B.moves++;
+    setTimeout(()=>{B.b=to;B.anim=null;try{sfx('stone')}catch(e){}if(to[0]===B.gl[0]&&to[1]===B.gl[1])pzWin(S)},Math.max(120,Math.hypot(to[0]-B.b[0],to[1]-B.b[1])*90))}}
+function pzWin(S){S.won=true;S.wt=performance.now();pzHint('✨ Solved! A chest appears: <b>tap it</b>');try{sfx('done')}catch(e){}setTimeout(()=>{if(PZ.open===S)S.chest=true},600)}
+/* ---------- drawing ---------- */
+function pzFig(c,x,y,u,sel){const col=(typeof PCOL!=='undefined'&&PCOL[0])||'#3f7fd6';c.save();c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(x,y+9,9,3.5,0,0,7);c.fill();
+  c.fillStyle=col;c.beginPath();c.moveTo(x-7,y+9);c.lineTo(x-5,y-4);c.lineTo(x+5,y-4);c.lineTo(x+7,y+9);c.closePath();c.fill();c.fillStyle='#e8c39a';c.beginPath();c.arc(x,y-9,5,0,7);c.fill();
+  if(u&&RANGED.has(u.type)){c.strokeStyle='#7a4f22';c.lineWidth=2;c.beginPath();c.arc(x+7,y-2,8,-1.2,1.2);c.stroke()}else if(u&&u.type==='villager'){c.fillStyle='#7a5a3a';c.fillRect(x+6,y-6,2,12)}else{c.fillStyle='#bbb';c.fillRect(x+6,y-10,2,14)}
+  if(sel){c.strokeStyle='#ffd25a';c.lineWidth=2;c.beginPath();c.ellipse(x,y+9,12,5,0,0,7);c.stroke()}c.restore()}
+function pzDraw(){const S=PZ.open,cv=document.getElementById('pzCv');if(!S||!cv)return;const c=cv.getContext('2d'),k=cv.width/PZW,now=performance.now();c.setTransform(k,0,0,k,0,0);
+  // wall + floor
+  c.fillStyle='#3b3128';c.fillRect(0,0,PZW,105);c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=1;for(let y=0;y<105;y+=15){c.beginPath();c.moveTo(0,y);c.lineTo(PZW,y);c.stroke();for(let x=((y/15)%2)*20;x<PZW;x+=40){c.beginPath();c.moveTo(x,y);c.lineTo(x,y+15);c.stroke()}}
+  const fg=c.createLinearGradient(0,105,0,PZH);fg.addColorStop(0,'#52463a');fg.addColorStop(1,'#6b5c4a');c.fillStyle=fg;c.fillRect(0,105,PZW,PZH-105);c.strokeStyle='rgba(0,0,0,.18)';for(let y=105;y<PZH;y+=22){c.beginPath();c.moveTo(0,y);c.lineTo(PZW,y);c.stroke()}for(let x=0;x<PZW;x+=34){c.beginPath();c.moveTo(x,105);c.lineTo(x+(x-170)*.25,PZH);c.stroke()}
+  c.fillStyle='rgba(0,0,0,.35)';c.fillRect(0,103,PZW,4);
+  for(const tx of [14,PZW-14]){const f=.8+.2*Math.sin(now/90+tx);const g=c.createRadialGradient(tx,40,2,tx,40,60*f);g.addColorStop(0,'rgba(255,190,90,.45)');g.addColorStop(1,'rgba(255,190,90,0)');c.fillStyle=g;c.fillRect(tx-70,0,140,140);c.fillStyle='#5a3a1a';c.fillRect(tx-2,42,4,14);c.fillStyle='#ffb347';c.beginPath();c.ellipse(tx,37,3.5,6*f,0,0,7);c.fill()}
+  if(S.kind==='targets'){c.fillStyle='rgba(240,200,120,.5)';c.font='bold 13px system-ui';c.textAlign='center';
+    for(const t of S.tg){const bad=t.bad&&now-t.bad<500;c.fillStyle=t.hit?'#f0c35a':bad?'#c0392b':'#e8dcc0';c.beginPath();c.arc(t.x,t.y,19,0,7);c.fill();c.fillStyle=t.hit?'#b8860b':'#a3342b';c.beginPath();c.arc(t.x,t.y,13,0,7);c.fill();c.fillStyle=t.hit?'#f0c35a':'#e8dcc0';c.beginPath();c.arc(t.x,t.y,7,0,7);c.fill();c.fillStyle='#a3342b';c.beginPath();c.arc(t.x,t.y,3,0,7);c.fill();
+      c.fillStyle='#d9c79e';for(let i=0;i<t.n;i++){c.beginPath();c.arc(t.x-((t.n-1)*7)/2+i*7,t.y+29,2.6,0,7);c.fill()}}
+    // painted arrow on the wall (hint: shoot them) + a chasm in front of the wall so a sword can't reach
+    c.save();c.strokeStyle='rgba(214,190,140,.85)';c.fillStyle='rgba(214,190,140,.85)';c.lineWidth=2.5;c.lineCap='round';c.beginPath();c.moveTo(118,28);c.lineTo(222,28);c.stroke();
+    c.beginPath();c.moveTo(230,28);c.lineTo(216,21);c.lineTo(219,28);c.lineTo(216,35);c.closePath();c.fill();
+    c.lineWidth=2;for(const dx of [0,7]){c.beginPath();c.moveTo(118+dx,28);c.lineTo(110+dx,21);c.moveTo(118+dx,28);c.lineTo(110+dx,35);c.stroke()}c.restore();
+    {const g=c.createLinearGradient(0,116,0,142);g.addColorStop(0,'#050302');g.addColorStop(1,'#1a120b');c.fillStyle=g;c.beginPath();c.moveTo(0,118);for(let x=0;x<=PZW;x+=20)c.lineTo(x,116+((x*7)%5));c.lineTo(PZW,140);for(let x=PZW;x>=0;x-=20)c.lineTo(x,138+((x*3)%6));c.closePath();c.fill();
+     c.strokeStyle='rgba(150,130,100,.5)';c.lineWidth=1;c.beginPath();for(let x=0;x<=PZW;x+=20)c.lineTo(x,138+((x*3)%6));c.stroke()}
+    const P=S.party||[],bw=P.find(u=>RANGED.has(u.type));pzFig(c,170,214,bw||P[0]);if(S.arrow){const p=Math.min(1,(now-S.arrow.t0)/250),t=S.arrow.t,ax=170+(t.x-170)*p,ay=200+(t.y-200)*p;c.strokeStyle='#d9c79e';c.lineWidth=2;c.beginPath();c.moveTo(ax,ay);c.lineTo(ax-(t.x-170)*.08,ay-(t.y-200)*.08);c.stroke()}}
+  if(S.kind==='plates'){const op=S.won?Math.min(1,(now-S.wt)/700):0;c.fillStyle='#1a120b';c.fillRect(145,40,50,65);c.fillStyle='#6b5a44';c.fillRect(145,40-op*60,50,65);c.strokeStyle='#2a2018';c.strokeRect(145,40-op*60,50,65);c.fillStyle='#3b3128';c.fillRect(140,0,60,40);
+    S.pl.forEach((p,i)=>{const on=S.tok.some(k=>k.on===i);c.fillStyle=on?'#8fa36a':'#7d6d58';c.beginPath();c.ellipse(p.x,p.y+(on?2:0),28,12,0,0,7);c.fill();c.strokeStyle='rgba(0,0,0,.4)';c.stroke()});
+    for(const k of S.tok)pzFig(c,k.x,k.y,k.u,S.sel===k)}
+  if(S.kind==='torches'){const sh=now-S.show,stepI=Math.floor(sh/700),showing=sh>=0&&stepI<S.seq.length;
+    c.fillStyle='#2e261f';c.fillRect(90,18,160,62);c.strokeStyle='#8a6a3a';c.lineWidth=2;c.strokeRect(90,18,160,62);
+    for(let i=0;i<4;i++){const x=110+i*40,on=showing&&sh>=0&&(sh%700)<500&&S.br[S.seq[stepI]]&&i===S.seq[stepI];c.fillStyle=on?'#ffcf5a':'#5a4a3a';c.beginPath();c.moveTo(x,64);c.lineTo(x-8,72);c.lineTo(x+8,72);c.closePath();c.fill();if(on){c.fillStyle='#ff8c2a';c.beginPath();c.ellipse(x,55,5,9,0,0,7);c.fill()}}
+    S.br.forEach((b,i)=>{const lit=S.lit.includes(i)||S.won,bad=S.bad&&now-S.bad<400;c.fillStyle='#4a3d30';c.fillRect(b.x-12,b.y-4,24,14);c.fillStyle='#2b231b';c.beginPath();c.ellipse(b.x,b.y-4,14,5,0,0,7);c.fill();
+      if(lit){const f=.85+.15*Math.sin(now/70+i);const g=c.createRadialGradient(b.x,b.y-14,2,b.x,b.y-14,40);g.addColorStop(0,'rgba(255,170,60,.55)');g.addColorStop(1,'rgba(255,170,60,0)');c.fillStyle=g;c.fillRect(b.x-45,b.y-55,90,90);c.fillStyle='#ffb347';c.beginPath();c.ellipse(b.x,b.y-14,7,13*f,0,0,7);c.fill();c.fillStyle='#fff1a8';c.beginPath();c.ellipse(b.x,b.y-11,3,6*f,0,0,7);c.fill()}
+      else if(bad){c.fillStyle='rgba(200,200,200,.4)';c.beginPath();c.arc(b.x,b.y-14,6,0,7);c.fill()}});
+    const P=S.party||[];pzFig(c,170,232,P[0])}
+  if(S.kind==='block'){const B=S.bk,cs=BK.cs,ry=cs*.92;for(let y=0;y<B.H;y++)for(let x=0;x<B.W;x++){const X=BK.x0+x*cs,Y=BK.y0+y*ry;c.fillStyle=(x+y)%2?'#5e5040':'#665846';c.fillRect(X,Y,cs-1,ry-1)}
+    const gx=BK.x0+(B.gl[0]+.5)*cs,gy=BK.y0+(B.gl[1]+.5)*ry,gp=.6+.4*Math.sin(now/200);c.fillStyle='rgba(120,220,255,'+(.25+.25*gp)+')';c.beginPath();c.ellipse(gx,gy,13,9,0,0,7);c.fill();c.strokeStyle='#8fe8ff';c.lineWidth=2;c.beginPath();c.ellipse(gx,gy,13,9,0,0,7);c.stroke();
+    for(const s of B.P){const[x,y]=s.split(',').map(Number),X=BK.x0+(x+.5)*cs,Y=BK.y0+(y+.5)*ry;c.fillStyle='#3a3029';c.fillRect(X-11,Y-22,22,30);c.fillStyle='#4e4337';c.fillRect(X-11,Y-26,22,6)}
+    let bx=B.b[0],by=B.b[1];if(B.anim){const d=Math.hypot(B.anim.to[0]-B.anim.from[0],B.anim.to[1]-B.anim.from[1]),p=Math.min(1,(now-B.anim.t0)/Math.max(120,d*90));bx=B.anim.from[0]+(B.anim.to[0]-B.anim.from[0])*p;by=B.anim.from[1]+(B.anim.to[1]-B.anim.from[1])*p}
+    const X=BK.x0+(bx+.5)*cs,Y=BK.y0+(by+.5)*ry;c.fillStyle='rgba(0,0,0,.35)';c.fillRect(X-13,Y-2,28,10);c.fillStyle='#9a8c78';c.fillRect(X-14,Y-18,28,22);c.fillStyle='#b5a68e';c.fillRect(X-14,Y-23,28,7);c.strokeStyle='#5a4e40';c.lineWidth=1;c.strokeRect(X-14,Y-23,28,27);
+    if(!S.won&&!B.anim){c.fillStyle='rgba(255,210,90,'+(.55+.3*Math.sin(now/250))+')';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';for(const[a,b2,t]of[[24,-8,'▶'],[-24,-8,'◀'],[0,-33,'▲'],[0,15,'▼']])c.fillText(t,X+a,Y+b2);c.textBaseline='alphabetic'}
+    c.fillStyle='#e8dcc0';c.font='11px system-ui';c.textAlign='left';c.fillText('Pushes: '+B.moves,8,98)}
+  if(S.chest){const p=Math.min(1,(now-(S.wt+600))/400);c.save();c.translate(170,175);c.scale(p,p);c.fillStyle='rgba(255,215,90,.35)';c.beginPath();c.arc(0,0,40+4*Math.sin(now/150),0,7);c.fill();
+    c.fillStyle='#7a4a1e';c.fillRect(-22,-8,44,24);c.fillStyle='#8f5a26';c.beginPath();c.moveTo(-22,-8);c.quadraticCurveTo(0,-26,22,-8);c.closePath();c.fill();c.fillStyle='#e0b043';c.fillRect(-22,-2,44,4);c.fillRect(-3,-6,6,10);c.restore();
+    if(!S.paid){c.fillStyle='#ffd25a';c.font='bold 12px system-ui';c.textAlign='center';c.fillText('Tap the chest',170,222)}}
+  for(const f of S.fx){const p=(now-f.t)/900;if(p>1)continue;for(let i=0;i<18;i++){const a=i/18*6.283,r=10+p*70;c.fillStyle='rgba(255,220,100,'+(1-p)+')';c.beginPath();c.arc(170+Math.cos(a)*r,175+Math.sin(a)*r*.7,3,0,7);c.fill()}}
+  if(S.need&&!S.won){c.fillStyle='rgba(0,0,0,.55)';c.fillRect(0,PZH-34,PZW,34);c.fillStyle='#ffd25a';c.font='12px system-ui';c.textAlign='center';c.fillText(S.kind==='targets'?'🏹 Needs a bowman in the ruins':'👥 Needs 3 of your people in the ruins',170,PZH-13)}}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
