@@ -11641,17 +11641,183 @@ try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){co
   if(land.length&&land.length===sel.length){let hit=pick(wx,wy);
     if(hit&&hit.type==='dock'&&hit.owner===0&&hit.built){const w=dockWater(hit);const bt=w&&G.ents.filter(e=>e.type==='transport'&&e.owner===0&&!e.dead&&boatCargo(e).length<ISL.carry).sort((a,b)=>Math.hypot(a.x-(w.x+.5)*TILE,a.y-(w.y+.5)*TILE)-Math.hypot(b.x-(w.x+.5)*TILE,b.y-(w.y+.5)*TILE))[0];
       if(bt&&Math.hypot(bt.x-(w.x+.5)*TILE,bt.y-(w.y+.5)*TILE)<4*TILE){return prev.call(this,bt.x,bt.y)}}
-    if(hit&&hit.type==='transport'&&hit.owner===0&&!hit.dead&&!boatLandTile(hit)){const s=shoreFor(hit,land);if(!s){toast('No dock or beach this boat can reach');return}
+    if((hit&&hit.type==='transport'&&MPHU(hit.owner)&&!hit.dead&&!boatLandTile(hit))&&MPTW(hit.owner)){const s=shoreFor(hit,land);if(!s){toast('No dock or beach this boat can reach');return}
       hit.order={type:'move',x:s.x,y:s.y};hit.path=null;hit.dest=0;hit.land=null;hit._pend=land.map(u=>u.id);for(const u of land){u.order=null;u.path=null}mark(hit.x,hit.y,'#8fe36a');toast('⛵ The boat is coming to the shore to pick them up');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u.type==='transport'&&u._pend&&!u.dead){const t=boatLandTile(u);if(t&&(!u.order||!u.moving)){const ids=u._pend;u._pend=null;
   const room=ISL.carry-boatCargo(u).length;let n=0;for(const id of ids){const v=G.byId.get(id);if(!v||v.dead||n>=room)continue;v._board=u.id;v._bt=0;v.order={type:'move',x:t.x,y:t.y};v._bo=v.order;v.path=null;n++}
-  if(u.owner===0)toast('⛵ '+n+' boarding');}else if(!u.order&&!t){u._pend=null}}}catch(err){}return r}})(updUnit)}catch(err){}
+  if((MPHU(u.owner))&&MPTW(u.owner))toast('⛵ '+n+' boarding');}else if(!u.order&&!t){u._pend=null}}}catch(err){}return r}})(updUnit)}catch(err){}
 
 /* Rail depot purpose (Josh Oct 19, option A): gold/stone/tin gathering and mine shafts within 6 tiles of a rail depot
    that has track to a station dig 50% faster. Same total ore per pile, it just comes out sooner. RAILX=1 turns it off. */
 var RAILX=1.5;
 function railNear(o,x,y){if(RAILX===1)return false;for(const e of G.ents)if(e.type==='depot'&&e.owner===o&&e.rail&&e.built&&!e.dead&&Math.hypot(e.x-x,e.y-y)<6*TILE)return true;return false;}
 try{gatherRate=(function(prev){return function(u,t){let r=prev.apply(this,arguments);try{const rt=t&&RES[t.type]&&RES[t.type].r;if(rt&&rt!=='w'&&rt!=='f'&&t.type!=='farm'&&railNear(u.owner,t.x,t.y)){r*=RAILX;if(u.owner===0&&Math.random()<.004&&V0(t))G.fx.push({type:'float',x:t.x,y:t.y-20,t:1.4,text:'⛏️ +50% rail',col:'#cfe8ff'});}}catch(err){}return r;}})(gatherRate)}catch(err){}
+
+/* ===== Smarter computer: islands by boat + answers sacred-site threats, gameplay chat 2 (Josh, Oct 19 2026: picked "Smarter computer") =====
+   Wraps aiTick (every ~5 s per computer player; not on the gentle Easy mode for the island trips).
+   1. ISLANDS: from the Bronze Age, with a built dock and 7+ soldiers and no attack going on, it trains a transport boat (dock queue),
+      loads up to 5 soldiers, sails to an island dock and lands them. Targets in order: the Sacred Isle (if it doesn't hold that site),
+      a Ruin Isle with unexplored ruins, the Gold Isle (if nobody holds it). Landed soldiers walk to the site / ruins and stay to guard.
+      The boat goes home; a new trip only after AI2.gap s, and only if the last landing party is gone.
+   2. SACRED-SITE THREAT: when the other side holds all 4 sites (a Miracle charging, or a Spirit Age countdown), or 3 when the Spirit Age
+      victory is on, the computer sends most of its army to retake the nearest enemy site it can walk to (island sites go by boat, 1.).
+   The dock is unlocked for the computer from the Bronze Age on island maps (players unlock it by catching a fish from the shore).
+   State: ai.fer = {st:'boat'|'load'|'sail'|'land'|'home', boat, isl, ids:[...], t}. AI2.off=true turns it all off. */
+const AI2={off:false,gap:150,minArmy:7,load:40,sail:90};
+{const isSold=u=>u&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&!u.naval&&!u.air&&!SIEGE.has(u.type);
+  const islOf=s=>s&&G.islands&&G.islands.find(x=>x===s);
+  function target(o){const I=G.islands||[];if(!I.length)return null;
+    const sac=I.find(s=>s.k==='sacred');if(sac){const site=G.ents.find(e=>e.type==='sacred'&&!e.dead&&islAt(e.tx,e.ty)===sac);if(site&&site.owner!==o)return {s:sac,goal:site};}
+    for(const s of I){if(s.k!=='ruin')continue;const r=G.ents.find(e=>e.type==='ruin'&&!e.dead&&!e.looted&&islAt(e.tx,e.ty)===s);if(r)return {s,goal:r};}
+    const gold=I.find(s=>s.k==='gold');if(gold&&gold.owner!==o){const d=G.byId.get(gold.dock);return {s:gold,goal:d?{x:d.x+TILE*2*(Math.random()-.5),y:d.y}:{x:gold.cx*TILE,y:gold.cy*TILE}};}
+    return null;}
+  let WC=null,WCk=null;   // water areas: boats can only sail between docks on the same connected water
+  function wcomp(){const k=G.seed+':'+MW;if(WC&&WCk===k)return WC;const N=MW*MH,L=new Int32Array(N);let id=0;
+    for(let i=0;i<N;i++){if(L[i])continue;const x0=i%MW,y0=(i/MW)|0;if(!wwalk(x0,y0))continue;id++;const q=[i];L[i]=id;
+      for(let h=0;h<q.length;h++){const j=q[h],x=j%MW,y=(j/MW)|0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!inB(nx,ny))continue;const n=ti(nx,ny);if(L[n]||!wwalk(nx,ny))continue;L[n]=id;q.push(n);}}}
+    WC=L;WCk=k;return L;}
+  function compNear(tx,ty,s){const L=wcomp(),out=new Set();for(let y=ty-2;y<ty+s+2;y++)for(let x=tx-2;x<tx+s+2;x++)if(inB(x,y)&&L[ti(x,y)])out.add(L[ti(x,y)]);return out;}
+  function islComp(o){const tg=target(o);if(!tg)return 0;const d=G.byId.get(tg.s.dock);if(!d)return 0;const w=dockWater(d);return w?wcomp()[ti(w.x,w.y)]:0;}
+  function ferry(o,ai,army){const F=ai.fer||(ai.fer={st:'idle',t:-1e9,ids:[]}),P=G.players[o];
+    const ic=islComp(o);const dock=G.ents.find(e=>e.owner===o&&e.type==='dock'&&e.built&&!e.dead&&(!ic||compNear(e.tx,e.ty,e.size||2).has(ic)));
+    if(!dock&&!G.gentle&&P.age>=1&&army.length>=AI2.minArmy&&target(o)&&G.t>=(ai.dkT||0)&&!G.ents.some(e=>e.owner===o&&e.type==='dock'&&!e.dead&&(!e.built||!ic||compNear(e.tx,e.ty,e.size||2).has(ic)))){ai.dkT=G.t+60;   // build a dock on the coast nearest the town
+      const base=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&!e.dead);if(base&&canAfford(P,DEF.dock.cost)){let spot=ai.dkSpot;
+        const okD=(x,y)=>placeOK('dock',x,y,o,false,0)&&(!ic||compNear(x,y,2).has(ic));if(!spot||!okD(spot[0],spot[1])){spot=null;const bx=base.tx,by=base.ty;for(let r=4;r<80&&!spot;r++)for(let dy=-r;dy<=r&&!spot;dy++)for(let dx=-r;dx<=r&&!spot;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(okD(bx+dx,by+dy))spot=[bx+dx,by+dy];}ai.dkSpot=spot;}
+        if(spot){const vs=G.ents.filter(v=>v.owner===o&&v.type==='villager'&&!v.dead&&(!v.order||v.order.type==='gather')).sort((a,b)=>Math.hypot(a.tx-spot[0],a.ty-spot[1])-Math.hypot(b.tx-spot[0],b.ty-spot[1]));
+          if(vs.length>8){aiBuild('dock',{x:(spot[0]+1)*TILE,y:(spot[1]+1)*TILE},vs.slice(0,2),0,o);const b=G.ents.find(e=>e.owner===o&&e.type==='dock'&&!e.dead&&!e.built);if(b&&vs[1])orderBuild(vs[1],b);}}}}
+    if(F.st==='idle'){if(G.gentle||P.age<1||!dock||ai.attacking||G.t-F.t<AI2.gap)return;if(F.ids.some(id=>{const u=G.byId.get(id);return u&&!u.dead;}))return;   // last party still alive
+      const tg=target(o);if(!tg||army.length<AI2.minArmy)return;F.isl=tg.s.id;F.st='boat';F.t=G.t;}
+    const s=(G.islands||[]).find(x=>x.id===F.isl),idock=s&&G.byId.get(s.dock);if(!s||!idock){F.st='idle';return;}
+    let boat=F.boat&&G.byId.get(F.boat);if(boat&&boat.dead)boat=null;
+    if(F.st==='boat'){if(!boat)boat=G.ents.find(e=>e.owner===o&&e.type==='transport'&&!e.dead&&!(e.cargo&&e.cargo.length)&&(!ic||wcomp()[ti(tl(e.x),tl(e.y))]===ic));
+      if(boat){F.boat=boat.id;F.st='load';F.t=G.t;
+        const pick=army.filter(u=>!u.order||u.order.type==='move').sort((a,b)=>Math.hypot(a.x-boat.x,a.y-boat.y)-Math.hypot(b.x-boat.x,b.y-boat.y)).slice(0,ISL.carry);
+        F.ids=pick.map(u=>u.id);for(const u of pick){const t=boatLandTile(boat);if(!t){F.st='idle';F.t=G.t;return;}u._board=boat.id;u._bt=0;u.order={type:'move',x:t.x,y:t.y};u._bo=u.order;u.path=null;}}
+      else if(!dock.queue.includes('transport')){if(!enqueue(dock,'transport')&&G.t-F.t>120){F.st='idle';F.t=G.t;}}
+      return;}
+    if(!boat){F.st='idle';F.t=G.t;return;}
+    if(F.st==='load'){const n=boatCargo(boat).length,coming=G.ents.filter(u=>u._board===boat.id&&!u.dead).length;
+      if((n>=ISL.carry||(!coming&&n>0)||(G.t-F.t>AI2.load&&n>0))){const w=dockWater(idock);if(!w){F.st='idle';return;}boat.dest=idock.id;boat._dt=0;boat.order={type:'move',x:w.x,y:w.y};boat.path=null;F.st='sail';F.t=G.t;}
+      else if(G.t-F.t>AI2.load*2){F.st='idle';F.t=G.t;}return;}
+    if(F.st==='sail'){if(!boat.dest&&!boatCargo(boat).length){F.st='land';F.t=G.t;
+        const tg=target(o),goal=tg&&tg.s===s?tg.goal:{x:s.cx*TILE,y:s.cy*TILE};
+        for(const id of F.ids){const u=G.byId.get(id);if(u&&!u.dead)orderMove([u],goal.x+(Math.random()-.5)*TILE*1.5,goal.y+(Math.random()-.5)*TILE*1.5);}
+        const home=dockWater(dock);if(home){boat.order={type:'move',x:home.x,y:home.y};boat.path=null;}}
+      else if(G.t-F.t>AI2.sail){if(boatCargo(boat).length){boat.dest=dock.id;boat._dt=0;const w=dockWater(dock);if(w){boat.order={type:'move',x:w.x,y:w.y};boat.path=null;}F.st='back';F.t=G.t;}else{boat.dest=0;F.st='idle';F.t=G.t;}}return;}
+    if(F.st==='back'){if(!boatCargo(boat).length||G.t-F.t>AI2.sail){F.st='idle';F.t=G.t;F.ids=[];}return;}
+    if(F.st==='land'){F.st='idle';F.t=G.t;}}
+  function threat(o,ai,army){const en=1-o,S=G.ents.filter(e=>e.kind==='poi'&&e.type==='sacred'&&!e.dead);if(S.length<4)return;
+    const held=S.filter(e=>e.owner===en).length;if(!(held>=4||(G.spiritWin&&held>=3)))return;if((ai.thT=(ai.thT||0)-1)>0)return;ai.thT=3;
+    const base=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&!e.dead);if(!base)return;
+    const land=S.filter(e=>e.owner===en&&!islAt(e.tx,e.ty)).sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y))[0];
+    if(land){const go=army.filter(u=>!(ai.fer&&ai.fer.ids.includes(u.id))&&(!u.order||u.order.type==='move'));const n=Math.max(4,Math.round(go.length*.8));
+      for(const u of go.slice(0,n))orderMove([u],land.x+(Math.random()-.5)*2*TILE,land.y+(Math.random()-.5)*2*TILE);}
+    else if(ai.fer&&ai.fer.st==='idle'){ai.fer.t=-1e9;ai.fer.ids=[];}}   // the only enemy site left is on the island: send a boat now
+  const _ai=aiTick;aiTick=function(o){const r=_ai.apply(this,arguments);
+    try{const ai=G.ais&&G.ais[o];if(AI2.off||!ai||G.over||(G.cheat&&G.cheat.peace))return r;if((ai.a2T=(ai.a2T||0)-1)>0)return r;ai.a2T=10;
+      const P=G.players[o];if(G.islands&&G.islands.length&&P.age>=1&&!G.gentle){const U=P.unlock||(P.unlock={});if(!U.fish){U.fish=1;ai.noDock=0;}}   // the dock needs a fish caught from the shore; the computer skips that step on island maps
+      const army=G.ents.filter(u=>u.owner===o&&isSold(u));threat(o,ai,army);ferry(o,ai,army);}catch(err){}
+    return r;};
+  window.__ai2=AI2;
+}
+/* ===== END smarter computer: islands + sacred threats ===== */
+/* ===== Ruin puzzle: carry the flame, gameplay chat 2 (Josh, Oct 19 2026: "a torch lit in the middle of the room and you need to grab it
+   and light the 4 other torches in each corner of the room before the flame runs out") =====
+   A 5th puzzle kind for gameplay chat 1's ruin rooms (PZ.kinds gets 'relay'; each map still picks 4 kinds, so a map has 4 of the 5).
+   Tap the torch in the middle: your person walks over and takes it, and the flame starts burning down (RELAY.fuel s). Tap a corner torch:
+   they walk there and light it. Light all 4 corners before the flame dies. If it dies, the corner torches go out and the torch goes back
+   to its stand: try again. Built only with wrappers around chat 1's pzSetup / pzTap / pzDraw (their code is untouched).
+   State on the room S: S.rl = {me:{x,y}, tgt, carry, fuel, lit:[4], t}. RELAY.off=true removes the kind. */
+const RELAY={off:false,fuel:11,speed:125};
+try{(function(){if(typeof PZ==='undefined'||RELAY.off)return;if(!PZ.kinds.includes('relay'))PZ.kinds.push('relay');
+  const MID={x:170,y:172},CORN=[{x:34,y:126},{x:306,y:126},{x:34,y:238},{x:306,y:238}];
+  const _set=pzSetup;pzSetup=function(S,again){if(S&&S.kind==='relay'){S.won=false;S.chest=false;S.fx=[];S.sel=null;S.need=pzNeed(S);
+      S.rl={me:{x:170,y:236},tgt:null,carry:false,fuel:0,lit:[0,0,0,0],t:performance.now(),out:0};
+      pzHint(S.need||'Grab the torch in the middle, then light <b>all 4 corner torches</b> before its flame runs out. Tap a torch to walk to it');return;}
+    return _set.apply(this,arguments);};
+  const _tap=pzTap;pzTap=function(x,y){const S=PZ.open;if(!S||S.kind!=='relay'||S.chest||S.won)return _tap.apply(this,arguments);
+    {const was=S.need;S.need=pzNeed(S);if(S.need){pzHint(S.need);return}if(was){pzSetup(S);return}}
+    const R=S.rl;if(Math.hypot(x-MID.x,y-MID.y)<30&&!R.carry){R.tgt={x:MID.x,y:MID.y+14,k:'mid'};return;}
+    const ci=CORN.findIndex(p=>Math.hypot(x-p.x,y-p.y)<34);if(ci>=0){R.tgt={x:CORN[ci].x+(ci%2?-16:16),y:CORN[ci].y+6,k:ci};if(!R.carry)pzHint('Grab the torch in the middle first');return;}
+    if(y>110)R.tgt={x:Math.max(20,Math.min(320,x)),y:Math.max(120,Math.min(248,y)),k:'walk'};};
+  function step(S,now){const R=S.rl;const dt=Math.min(.05,(now-R.t)/1000);R.t=now;if(S.won)return;
+    if(R.tgt){const dx=R.tgt.x-R.me.x,dy=R.tgt.y-R.me.y,d=Math.hypot(dx,dy),st=RELAY.speed*dt;
+      if(d<=st){R.me.x=R.tgt.x;R.me.y=R.tgt.y;const k=R.tgt.k;R.tgt=null;
+        if(k==='mid'&&!R.carry){R.carry=true;R.fuel=RELAY.fuel;try{sfx('done')}catch(e){}pzHint('Go! Light the 4 corner torches before the flame dies');}
+        else if(typeof k==='number'&&R.carry&&!R.lit[k]){R.lit[k]=1;try{sfx('hit')}catch(e){}if(R.lit.every(Boolean)){R.carry=false;pzWin(S);}}}
+      else{R.me.x+=dx/d*st;R.me.y+=dy/d*st;}}
+    if(R.carry){R.fuel-=dt;if(R.fuel<=0){R.carry=false;R.fuel=0;R.lit=[0,0,0,0];R.out=now;pzHint('The flame died and the torches went out. The torch is back on its stand: try again (plan the shortest path!)');}}}
+  function flame(c,x,y,s,now,i){const f=.85+.15*Math.sin(now/70+i);const g=c.createRadialGradient(x,y,2,x,y,34*s);g.addColorStop(0,'rgba(255,170,60,.55)');g.addColorStop(1,'rgba(255,170,60,0)');c.fillStyle=g;c.fillRect(x-40*s,y-40*s,80*s,80*s);
+    c.fillStyle='#ffb347';c.beginPath();c.ellipse(x,y,5*s,10*s*f,0,0,7);c.fill();c.fillStyle='#fff1a8';c.beginPath();c.ellipse(x,y+3*s,2.2*s,4.5*s*f,0,0,7);c.fill();}
+  const _draw=pzDraw;pzDraw=function(){const r=_draw.apply(this,arguments);const S=PZ.open;if(!S||S.kind!=='relay'||!S.rl)return r;
+    try{const cv=document.getElementById('pzCv'),c=cv.getContext('2d'),k=cv.width/PZW,now=performance.now();c.setTransform(k,0,0,k,0,0);step(S,now);const R=S.rl;
+      // corner torches
+      CORN.forEach((p,i)=>{c.fillStyle='#3a2f25';c.fillRect(p.x-3,p.y-22,6,24);c.fillStyle='#2b231b';c.beginPath();c.ellipse(p.x,p.y-22,9,4,0,0,7);c.fill();
+        if(R.lit[i]||S.won)flame(c,p.x,p.y-31,1,now,i);else if(R.out&&now-R.out<600){c.fillStyle='rgba(200,200,200,.35)';c.beginPath();c.arc(p.x,p.y-30,5,0,7);c.fill();}});
+      // middle stand
+      if(!S.chest){c.fillStyle='#4a3d30';c.fillRect(MID.x-10,MID.y-4,20,16);c.fillStyle='#2b231b';c.beginPath();c.ellipse(MID.x,MID.y-4,12,4.5,0,0,7);c.fill();
+        if(!R.carry&&!S.won){c.fillStyle='#6a4a26';c.fillRect(MID.x-2,MID.y-24,4,22);flame(c,MID.x,MID.y-30,1,now,9);}}
+      // your person (with the torch while carrying)
+      const P=S.party||[];pzFig(c,R.me.x,R.me.y,P[0]);
+      if(R.carry){const hx=R.me.x+9,hy=R.me.y-12;c.fillStyle='#6a4a26';c.fillRect(hx-1.5,hy,3,13);flame(c,hx,hy-5,.6+.4*Math.max(0,R.fuel/RELAY.fuel),now,7);}
+      // fuel bar
+      if(R.carry||R.fuel>0){const f=Math.max(0,R.fuel/RELAY.fuel);c.fillStyle='rgba(0,0,0,.6)';c.fillRect(110,8,120,10);c.fillStyle=f>.35?'#ffb347':'#ff5a3c';c.fillRect(111,9,118*f,8);c.fillStyle='#f2e3c4';c.font='bold 10px system-ui';c.textAlign='center';c.fillText('🔥 '+Math.ceil(R.fuel)+' s',170,31);}
+      if(R.tgt){c.strokeStyle='rgba(255,210,90,.6)';c.lineWidth=1.5;c.setLineDash([4,4]);c.beginPath();c.moveTo(R.me.x,R.me.y);c.lineTo(R.tgt.x,R.tgt.y);c.stroke();c.setLineDash([]);}
+    }catch(err){}return r;};
+  window.__relay=RELAY;
+})()}catch(err){}
+/* ===== END carry the flame ===== */
+/* ===== Army barracks (Josh, Oct 19): in the Industrial Age the barracks and the archery range join into one bigger building
+   (5x5, 'armybase'). On reaching the Industrial Age a card asks you to place it (the first one is free). The old barracks and
+   ranges keep training until it is built, then they are taken down: their training queues move into it (or are refunded).
+   From then on barracks and ranges can't be built; more Army barracks can (275 wood, 100 stone). The computer does the same.
+   Picture: the barracks picture drawn at 5x5 until the art chats draw one. ===== */
+DEF.armybase={kind:'bld',name:'Army barracks',hp:900,size:5,sight:6,trains:[...new Set(DEF.barracks.trains.concat(DEF.range.trains))],techs:[...new Set(DEF.barracks.techs.concat(DEF.range.techs))],time:60,age:5};
+(function(){const base={w:275,s:100};Object.defineProperty(DEF.armybase,'cost',{configurable:true,enumerable:true,get(){try{const P=G.players[COSTP];if(P&&!P.abFree)return {};}catch(e){}return base},set(v){}});})();
+try{BUILDS.push('armybase');const mt=BTABS.find(t=>t[0]==='mil')[2];mt.splice(mt.indexOf('range')+1,0,'armybase');UNLOCK_HINT.armybase='Reach the Industrial Age';MILQ.push('armybase');}catch(err){}
+const AB_OLD=new Set(['barracks','range']);
+try{bAvail=(function(prev){return function(o,b){if(AB_OLD.has(b)&&G.players[o]&&G.players[o].age>=5)return false;return prev.apply(this,arguments)}})(bAvail)}catch(err){}
+try{aiBuild=(function(prev){return function(type,near,vills,r0,o){if(AB_OLD.has(type)&&G.players[o]&&G.players[o].age>=5)return false;return prev.apply(this,arguments)}})(aiBuild)}catch(err){}
+const ABC=new WeakMap();
+function abGrow(s){if(!s||!s.w)return s;let c=ABC.get(s);if(c)return c;const k=5/3;c=document.createElement('canvas');c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);for(const p of Object.keys(s))c[p]=s[p];c.w=s.w*k;c.h=s.h*k;c.dx=(s.dx||0)*k;c.ov=(s.ov||0)*k;ABC.set(s,c);return c}
+try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='armybase'){const s=prev.call(this,Object.assign({},e,{type:'barracks',size:3}));try{return abGrow(s)}catch(err){return s}}return prev.apply(this,arguments)}})(bldSpr0)}catch(err){}
+try{nextBuilds=(function(prev){return function(o){const s=prev.apply(this,arguments);try{const P=G.players[o];if(P&&P.age>=5&&!G.ents.some(e=>e.type==='armybase'&&e.owner===o&&!e.dead))s.add('armybase');}catch(err){}return s}})(nextBuilds)}catch(err){}
+function abMerge(ab){ab.abDone=1;const o=ab.owner,P=G.players[o],D=DEF.armybase;let moved=0,refunded=0;
+  for(const b of G.ents.filter(e=>AB_OLD.has(e.type)&&e.owner===o&&!e.dead)){
+    if(b.built){for(const k of (b.queue||[]).slice()){if(ab.queue.length<5&&(D.trains.includes(k)||D.techs.includes(k))){ab.queue.push(k);moved++;}else{refund(P,itemOf(k).cost);refunded++;}}b.queue=[];b.trainT=0;try{releaseAll(b);}catch(err){}
+      if(b.rally&&!ab.rally)ab.rally=b.rally;}
+    else{withCP(o,()=>refund(P,DEF[b.type].cost));refunded++;}
+    kill(b);}
+  if(o===0&&!(G.ais&&G.ais[0])){toast('Army barracks finished: your old barracks and archery ranges are gone'+(moved?', their training moved here':'')+(refunded?' (the rest refunded)':''));panelKeyLast='';try{sfx('done',ab.x,ab.y);}catch(e){}}}
+function abPrompt(){let el=document.getElementById('abpop');if(el)el.remove();el=document.createElement('div');el.id='abpop';
+  el.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;width:260px;background:rgba(42,32,23,.97);border:1px solid var(--gold);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.55)';
+  el.innerHTML='<div style="font-weight:800;font-size:15px;color:var(--gold)">🎖️ Army barracks</div><div style="font-size:12px;line-height:1.35">Your barracks and archery range join into one bigger building. Place it anywhere in your territory: <b>the first one is free</b>.<br><span style="color:var(--muted)">The old ones keep training until it is built.</span></div><div style="display:flex;gap:8px"><button class="b" data-ab="go" style="min-width:110px;height:40px;border-color:var(--gold);font-size:13px;font-weight:700">Place it</button><button class="b" data-ab="later" style="min-width:70px;height:40px;font-size:12px">Later</button></div>';
+  document.getElementById('app').appendChild(el);
+  el.addEventListener('click',e=>{const b=e.target.closest('button[data-ab]');if(!b)return;el.remove();if(b.dataset.ab==='go')abStartPlace();else toast('Tap a villager, then Military → Army barracks when you are ready');});}
+function abStartPlace(){const old=G.ents.find(e=>e.type==='barracks'&&e.owner===0&&!e.dead)||G.ents.find(e=>e.type==='range'&&e.owner===0&&!e.dead)||G.ents.find(e=>e.type==='towncenter'&&e.owner===0&&!e.dead);
+  const vs=G.ents.filter(u=>u.type==='villager'&&u.owner===0&&!u.dead&&!buildBusy(u)).sort((a,b)=>old?Math.hypot(a.x-old.x,a.y-old.y)-Math.hypot(b.x-old.x,b.y-old.y):0).slice(0,3);
+  G.sel=vs.map(u=>u.id);G.buildTab='mil';let c=centerTile();if(old){cam.x=old.x-W/2/cam.z;cam.y=old.y-(H-PANH+TOPH)/2/cam.z;c={x:tl(old.x),y:tl(old.y)+4};}
+  G.place={type:'armybase',tx:c.x-2,ty:c.y-2};panelKeyLast='';toast('Drag to where the Army barracks goes, then tap Place'+(vs.length?'':' (select villagers to build it)'));}
+function abTick(){if(!G||!G.players)return;for(let o=0;o<G.players.length;o++){const P=G.players[o];if(!P||P.age<5)continue;
+  const abs=G.ents.filter(e=>e.type==='armybase'&&e.owner===o&&!e.dead);if(abs.length)P.abFree=1;
+  for(const a of abs)if(a.built&&!a.abDone)abMerge(a);
+  const ai=G.ais&&G.ais[o];
+  if(!ai){if(o!==0)continue;const mp=window.__mp;if(mp&&mp.role==='client')continue;
+    const hasOld=G.ents.some(e=>AB_OLD.has(e.type)&&e.owner===0&&!e.dead);
+    if(!abs.length&&!P.abAsk){P.abAsk=G.t;setTimeout(()=>{try{if(!G.ents.some(e=>e.type==='armybase'&&e.owner===0&&!e.dead))abPrompt();}catch(err){}},5200);}
+    else if(!abs.length&&hasOld&&G.t-P.abAsk>120&&!(G.place&&G.place.type==='armybase')){P.abAsk=G.t;toast('Reminder: place your free Army barracks (Military tab). It replaces the barracks and archery range');}
+    continue;}
+  if(!abs.length){if(G.t-(P.abT||-99)>15){P.abT=G.t;const near=G.ents.find(e=>e.type==='barracks'&&e.owner===o&&!e.dead)||G.ents.find(e=>e.type==='towncenter'&&e.owner===o&&!e.dead);
+      const vs=G.ents.filter(u=>u.type==='villager'&&u.owner===o&&!u.dead&&!(u.order&&(u.order.type==='build'||u.order.type==='upgrade')));if(near&&vs.length){vs.sort((a,b)=>Math.hypot(a.x-near.x,a.y-near.y)-Math.hypot(b.x-near.x,b.y-near.y));withCP(o,()=>aiBuild('armybase',near,vs.slice(0,3),3,o));}}continue;}
+  for(const a of abs){if(!a.built){if(!G.ents.some(u=>u.order&&u.order.type==='build'&&u.order.id===a.id&&!u.dead)&&G.t-(a.abB||-99)>10){a.abB=G.t;const vs=G.ents.filter(u=>u.type==='villager'&&u.owner===o&&!u.dead&&!(u.order&&(u.order.type==='build'||u.order.type==='upgrade'))).sort((x,y)=>Math.hypot(x.x-a.x,x.y-a.y)-Math.hypot(y.x-a.x,y.y-a.y)).slice(0,2);for(const u of vs)orderBuild(u,a);}continue;}
+    if(a.queue.length>=2||G.t-(a.abQ||-99)<3)continue;a.abQ=G.t;
+    if(!P.tech.rifles&&!a.queue.includes('rifles')&&withCP(o,()=>enqueue(a,'rifles')))continue;
+    if(P.age>=6&&!P.tech.automatic&&!a.queue.includes('automatic')&&withCP(o,()=>enqueue(a,'automatic')))continue;
+    const army=G.ents.filter(u=>u.owner===o&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!DEF[u.type].animal).length;if(army>=45)continue;
+    let k=P.age>=6&&Math.random()<.3?'bazooka':P.age>=6?'infantry':'rifleman';if(!canTrain(o,k)){const al=D_AB().filter(x=>canTrain(o,x));k=al[al.length-1];}
+    if(k)withCP(o,()=>enqueue(a,k));}}}
+function D_AB(){return DEF.armybase.trains.filter(x=>DEF[x]&&DEF[x].kind==='unit');}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{abTick();}catch(err){}return r}})(railTick)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
