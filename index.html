@@ -6493,6 +6493,45 @@ try{(function(){
       try{if(sick(c,u,x,y,now,'sheep',gs))return}catch(e){}}return _ds(c,u,x,y,now)};
   if(typeof drawCollar==='function'){const _dk=drawCollar;drawCollar=function(c,u,x,y,now){if(u&&u.sick&&GFX.SICK3D&&GFX.mode==='V23D'){const v=Object.create(u);v.sick=0;return _dk(c,v,x,y,now)}return _dk(c,u,x,y,now)}}
 }catch(err){}})();
+/* ranch extras (handed to art chat 3 by Josh, Oct 16; picks Oct 19: dairy wing B, sheep fold A). New pictures in the same frames as before
+   (a1_r8 wing frame 1092x778, a1_poi fold frame), so every spot, lane, gate and tap test still lines up.
+   Dairy wing: 4-stall slate milking shed along the back, round cheese house with a person-sized door, cheese rack, stone trough, open
+   front-left side toward the ranch. Stall spots for 4 cows (gameplay: COW_CAP=4 fills the 4th), milkmaid door = cheese-house door, cows
+   in the stalls drawn under the shed roof, and the draw-order shapes follow the new buildings.
+   Sheep fold: thatched shearing shed (bench, wool bales), hay rack, trough, dry-stone wall and rail fence, gate at the front-left; the
+   picture follows the fold's own size (e.size), so gameplay can switch the sheep wing to 4x4. For a lane on the front-right side the
+   picture is mirrored. GFX.RANCH3=false = old layouts. */
+setTimeout(function(){try{
+  if(typeof GFX==='undefined'||!GFX.wingLay)return;const on=()=>GFX.RANCH3!==false&&GFX.mode==='V23D'&&GFX.ranch8&&GFX.ranch8();
+  const WW=1092,q9=900/WW,ROOF=[[135,326],[488,170],[560,244],[548,298],[300,402],[160,350]];
+  const SLOT=[[262,458],[336,428],[410,398],[484,368]],DR=[652,440],CH=[812,438];
+  const MASS=[[[135,326],[488,170],[560,244],[548,330],[260,468],[150,452]],[[584,300],[640,215],[700,192],[810,300],[770,438],[598,438]],[[756,346],[900,372],[905,462],[770,452]]];
+  const isWing=e=>e&&e.type==='dairy'&&e.ranch&&G.byId.get(e.ranch)&&!G.byId.get(e.ranch).dead;
+  const fpt=(W,sp,[x,y])=>{const left=GFX.wingLeft(W),k=sp.w/WW;return [W.tx*TILE-(sp.dx||0)+(left?WW-x:x)*k,W.ty*TILE-sp.ov+y*k]};
+  const wl=GFX.wingLay;GFX.wingLay=function(e){const L=wl.apply(this,arguments);try{if(L&&on()&&isWing(e)){const left=GFX.wingLeft(e),X=x=>(left?WW-x:x)*q9;
+      L.slot=SLOT.map(([x,y])=>[X(x),y*q9]);L.dr=[X(DR[0]),DR[1]*q9];L.ch=[X(CH[0]),CH[1]*q9];L.face=left?3*Math.PI/4:Math.PI/4;L.sx=left?-7:7;L.sy=2;L.px=left?3:-3;L.md=left?7:5;L.cs=.88}}catch(err){}return L};
+  if(typeof BANIM!=='undefined'&&BANIM.dairy){const bd=BANIM.dairy;BANIM.dairy=function(c,b,now){const r=bd.apply(this,arguments);try{if(on()&&b&&b.built&&b.owner<2&&isWing(b)){const sp=GFX.wingSpr(b);if(sp&&sp.w){
+      c.save();c.beginPath();ROOF.forEach((p,i)=>{const q=fpt(b,sp,p);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();c.clip();c.drawImage(sp,b.tx*TILE-(sp.dx||0),b.ty*TILE-sp.ov,sp.w,sp.h);c.restore()}}}catch(err){}return r}}
+  const inPoly=(P,x,y)=>{let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c};
+  if(typeof townDecor==='function'){const td=townDecor;townDecor=function(c,now,E,V,list){let Ws=null,keep=null;try{if(on()&&list){Ws=[];for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built||R.owner>1)continue;const W=R.wing&&G.byId.get(R.wing);if(W&&!W.dead&&W.built&&isWing(W))Ws.push(W)}
+        if(Ws.length){keep=new Map();for(const it of list){const e=it[1];if(!e||e.kind!=='unit'||it[2]===undefined)continue;for(const W of Ws){const x=it[2],y=it[3];if(x>=W.tx*TILE&&x<(W.tx+W.size)*TILE&&y>=W.ty*TILE&&y<(W.ty+W.size)*TILE){keep.set(it,[it[0],W]);break}}}}}}catch(err){keep=null}
+      const r=td.apply(this,arguments);
+      try{if(keep)for(const [it,[k0,W]] of keep){const sp=GFX.wingSpr(W);if(!sp||!sp.w)continue;const left=GFX.wingLeft(W),k=sp.w/WW,x=it[2],y=it[3];let px=(x-(W.tx*TILE-(sp.dx||0)))/k;const py=(y-(W.ty*TILE-sp.ov))/k;if(left)px=WW-px;
+        const top=px<490?470-(px-40)*(255/450):215+(px-490)*(265/490);const bh=py<top||MASS.some(P=>inPoly(P,px,py));it[0]=bh?W.ty*TILE+(y-W.ty*TILE)*1e-3:k0}}catch(err){}return r}}
+  // art chat 1's milking scene keeps 3 cow slots internally: at most 3 tied cows are drawn until it holds 4 (then the 4th stall fills)
+  if(GFX.dyScene&&!GFX.dyScene._a3){const ds=GFX.dyScene;GFX.dyScene=function(c,b,now){const m=b&&b.milked;if(m>3)b.milked=3;try{return ds.apply(this,arguments)}finally{if(m>3)b.milked=m}};GFX.dyScene._a3=1}
+  // ---- sheep fold at its own size, mirrored for a front-right gate ----
+  const FW=853,FWF=1.378,FDN=-.045,FC={},NUDGE={SW:[52,30],SE:[-36,21]};
+  const fb0=GFX.foldBase,fg0=GFX.foldGate;
+  if(fb0){GFX.foldBase=function(o){const b=fb0.apply(this,arguments);if(!b||!on())return b;const n=GFX._foldN||3;if(n===3)return b;o=o>1?0:o;const k=o+'_'+n;if(FC[k])return FC[k];
+      return FC[k]=GFX.spr('a1_fold',o,n*TILE,FWF,FDN)};
+    GFX.foldGate=function(o,fk){if(!on())return fg0.apply(this,arguments);const b=GFX.foldBase(o);if(!b)return null;if(fk!=='SE')return b;const k='m'+(o>1?0:o)+'_'+(GFX._foldN||3);if(FC[k])return FC[k];
+      const c=document.createElement('canvas');c.width=b.width;c.height=b.height;const g=c.getContext('2d');g.translate(c.width,0);g.scale(-1,1);g.drawImage(b,0,0);for(const key of Object.keys(b))c[key]=b[key];c.dx=(b.w-(GFX._foldN||3)*TILE)-(b.dx||0);return FC[k]=c}}
+  const sr0=GFX.swRoute;if(sr0){const RC=new WeakMap();GFX.swRoute=function(w,s){if(w)GFX._foldN=w.size||3;const r=sr0.apply(this,arguments);try{if(!r||!on()||!w)return r;let m=RC.get(r);if(m)return m;
+      const fb=GFX.foldBase(w.owner);if(!fb)return r;const kF=fb.w/FW,d=NUDGE[r.fk]||[0,0],P=r.P.slice(),n=P.length;for(const i of [n-1,n-2])P[i]=[P[i][0]+d[0]*kF,P[i][1]+d[1]*kF];
+      m=Object.assign({},r,{P});RC.set(r,m);return m}catch(err){return r}}}
+  try{bldSpr0=(function(prev){return function(e){if(e&&e.type==='pen'&&e.sranch)GFX._foldN=e.size||3;return prev(e)}})(bldSpr0)}catch(err){}
+}catch(err){}},90);
 /* ===== END art chat 3: late ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
