@@ -827,9 +827,9 @@ function railTick(dt){for(const d of G.ents){if(d.type!=='depot'||!d.built||d.de
     else if(tr.dir<0&&tr.pos<=0){tr.pos=0;tr.dir=1;tr.cargo=d.stock||{};d.stock={};}}}
 function fishJackpot(u,dp){const o=u.owner,P=G.players[o],boat=u.type==='fishboat',r=Math.random(),k=boat?1:.5;let txt=null,col='#9fe0ff';
   if(!G.legend)G.legend=[false,false];
-  if(!G.legend[o]&&r<.003*k){G.legend[o]=true;P.f+=600;inc(o,'f',600,'catch');txt='+600 food';if(o===0){toast('A LEGENDARY SEA MONSTER! Your fishermen hauled in a giant beast (+600 food)');try{catchCard();}catch(e){}sfx('done',dp.x,dp.y);if(typeof fanfare==='function')try{fanfare();}catch(e){}for(let i=0;i<14;i++)emit('spark',dp.x+(Math.random()-.5)*60,dp.y-20-Math.random()*30,2,'#9fe0ff');}}
-  else if(P.age>=2&&r<.013*k){P.g+=100;inc(o,'g',100,'catch');txt='+100 gold (pearl)';col='#f6f0ff';if(o===0){toast('A pearl oyster! +100 gold');sfx('done',dp.x,dp.y);}}
-  else if(r<.038*k){P.f+=200;inc(o,'f',200,'catch');txt='+200 food (giant fish)';if(o===0){toast('Giant fish! +200 food');sfx('done',dp.x,dp.y);}}
+  if(!G.legend[o]&&r<.003*k){G.legend[o]=true;P.f+=600;inc(o,'f',600,'catch');txt='+600 food';if((MPHU(o))&&MPTW(o)){toast('A LEGENDARY SEA MONSTER! Your fishermen hauled in a giant beast (+600 food)');try{catchCard();}catch(e){}sfx('done',dp.x,dp.y);if(typeof fanfare==='function')try{fanfare();}catch(e){}for(let i=0;i<14;i++)emit('spark',dp.x+(Math.random()-.5)*60,dp.y-20-Math.random()*30,2,'#9fe0ff');}}
+  else if(P.age>=2&&r<.013*k){P.g+=100;inc(o,'g',100,'catch');txt='+100 gold (pearl)';col='#f6f0ff';if((MPHU(o))&&MPTW(o)){toast('A pearl oyster! +100 gold');sfx('done',dp.x,dp.y);}}
+  else if(r<.038*k){P.f+=200;inc(o,'f',200,'catch');txt='+200 food (giant fish)';if((MPHU(o))&&MPTW(o)){toast('Giant fish! +200 food');sfx('done',dp.x,dp.y);}}
   if(txt&&o===0){G.fx.push({type:'float',x:dp.x,y:dp.y-40,t:2.2,text:txt,col});emit('dust',dp.x,dp.y,6);}}
 /* Josh: show a picture of the sea monster that was caught. Tap to close (closes by itself after 7 s). */
 const SEAMON='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMjAgMjEwIj4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0ic2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjRjNzdhIi8+PHN0b3Agb2Zmc2V0PSIuNTUiIHN0b3AtY29sb3I9IiNlOTkyNWEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM4YTVhNmEiLz48L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9InNlYSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzJmN2Q4ZiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEyM2E0YSIvPjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0iYm9keSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVmYmY4YSIvPjxzdG9wIG9mZnNldD0iLjYiIHN0b3AtY29sb3I9IiMyZjhhNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxYzVhNDIiLz48L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9ImJlbGx5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjJlM2E2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYzliMDZhIi8+PC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIxMCIgZmlsbD0idXJsKCNza3kpIi8+CjxjaXJjbGUgY3g9IjI1MCIgY3k9IjcwIiByPSIyNiIgZmlsbD0iI2ZmZTliMCIgb3BhY2l0eT0iLjg1Ii8+CjxyZWN0IHk9IjExOCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI5MiIgZmlsbD0idXJsKCNzZWEpIi8+CjwhLS0gYmFjayBjb2lsIC0tPgo8cGF0aCBkPSJNNDAgMTMyIEM1NSA5MiA5NSA5MiAxMTAgMTMyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxYzVhNDIiIHN0cm9rZS13aWR0aD0iMjAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNNDAgMTMyIEM1NSA5MiA5NSA5MiAxMTAgMTMyIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjYm9keSkiIHN0cm9rZS13aWR0aD0iMTYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNNTggMTA0IGw2IC0xMCBsNCA5IGw2IC0xMSBsNCAxMCBsNiAtMTAgbDMgMTAiIGZpbGw9IiNjMjRhM2EiIHN0cm9rZT0iIzdhMmEyMiIgc3Ryb2tlLXdpZHRoPSIxIi8+CjwhLS0gdGFpbCAtLT4KPHBhdGggZD0iTTE4IDEzNCBDMTQgMTIwIDIyIDExMCAzMCAxMTYgQzI0IDEyMCAyNCAxMjggMzAgMTM0IFoiIGZpbGw9IiMyZjhhNjMiIHN0cm9rZT0iIzFjNWE0MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjwhLS0gbmVjayByaXNpbmcgLS0+CjxwYXRoIGQ9Ik0xNTAgMTM2IEMxNTAgOTIgMTc2IDU4IDIxNCA1MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWM1YTQyIiBzdHJva2Utd2lkdGg9IjI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTE1MCAxMzYgQzE1MCA5MiAxNzYgNTggMjE0IDUyIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjYm9keSkiIHN0cm9rZS13aWR0aD0iMjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTU4IDEzMiBDMTU4IDk4IDE3OCA3MiAyMDYgNjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNiZWxseSkiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIuOSIvPgo8IS0tIGZpbiBhbG9uZyBuZWNrIC0tPgo8cGF0aCBkPSJNMTQ2IDExMiBsLTEyIC02IGwxMiAtNCBsLTExIC05IGwxMyAtMiBsLTggLTExIGwxNCAyIGwtNCAtMTIgbDEzIDcgbDEgLTEyIGwxMCAxMCIgZmlsbD0iI2MyNGEzYSIgc3Ryb2tlPSIjN2EyYTIyIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8IS0tIGhlYWQgLS0+CjxwYXRoIGQ9Ik0xOTYgMzggQzIxNCAyNiAyNDQgMzAgMjYyIDQ0IEMyNzAgNTAgMjY4IDU4IDI1OCA2MCBMMjMwIDYyIEMyMjIgNjYgMjA4IDY4IDE5OCA2MiBDMTg4IDU2IDE4OCA0NCAxOTYgMzggWiIgZmlsbD0idXJsKCNib2R5KSIgc3Ryb2tlPSIjMWM1YTQyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8cGF0aCBkPSJNMjMyIDYwIEMyNDQgNjQgMjU2IDY2IDI2MiA2MiBDMjU2IDcyIDIzNiA3NCAyMjQgNjggWiIgZmlsbD0iIzdhMmEyMiIgc3Ryb2tlPSIjMWM1YTQyIiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTIzNiA2MSBsMyA2IGwzIC01IGwzIDYgbDMgLTUgbDMgNSBsMyAtNSIgZmlsbD0iI2ZmZjhlMCIgc3Ryb2tlPSIjYmJiIiBzdHJva2Utd2lkdGg9Ii42Ii8+CjxwYXRoIGQ9Ik0yMDAgMzYgbC0xMCAtMTQgbDE2IDggWiBNMjEyIDMyIGwtNCAtMTggbDEyIDE0IFoiIGZpbGw9IiNjMjRhM2EiIHN0cm9rZT0iIzdhMmEyMiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KPGNpcmNsZSBjeD0iMjI2IiBjeT0iNDQiIHI9IjYuNSIgZmlsbD0iI2ZmZTE0YSIgc3Ryb2tlPSIjMWM1YTQyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGVsbGlwc2UgY3g9IjIyNyIgY3k9IjQ0IiByeD0iMS44IiByeT0iNC42IiBmaWxsPSIjMWExYTFhIi8+CjxjaXJjbGUgY3g9IjI1NiIgY3k9IjQ4IiByPSIxLjYiIGZpbGw9IiMxYzVhNDIiLz4KPCEtLSBzcGxhc2ggJiB3YXZlcyAtLT4KPGcgZmlsbD0iI2NmZWZmMiIgb3BhY2l0eT0iLjkiPjxwYXRoIGQ9Ik0xMzQgMTM2IHE4IC0xMiAxNiAwIHE4IC0xNCAxOCAwIHoiLz48cGF0aCBkPSJNMzAgMTM2IHE2IC04IDEyIDAgcTYgLTkgMTQgMCB6Ii8+PHBhdGggZD0iTTk2IDEzNiBxNiAtOSAxMiAwIHE3IC0xMCAxNCAwIHoiLz48L2c+CjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdmYzNjYyIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIuNyI+PHBhdGggZD0iTTAgMTUwIHEyMCAtNiA0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIi8+PHBhdGggZD0iTTAgMTcyIHEyMCAtNiA0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIHQ0MCAwIiBvcGFjaXR5PSIuNiIvPjwvZz4KPCEtLSBsaXR0bGUgZmlzaGluZyBib2F0IHdpdGggbmV0IGxpbmUgLS0+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1MCAxNTApIj4KPHBhdGggZD0iTS0zMCAwIEwzMCAwIEwyMiAxNCBMLTIyIDE0IFoiIGZpbGw9IiM4YTVhMzIiIHN0cm9rZT0iIzRhMmMxNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxyZWN0IHg9Ii0zMCIgeT0iLTIiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0IiBmaWxsPSIjYjA3YTQ0Ii8+CjxsaW5lIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSItNDIiIHN0cm9rZT0iIzRhMmMxNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxwYXRoIGQ9Ik0yIC00MCBMMjYgLTEwIEwyIC0xMCBaIiBmaWxsPSIjZjJlNmM4IiBzdHJva2U9IiNiOWE1NzgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CjxjaXJjbGUgY3g9Ii0xNCIgY3k9Ii03IiByPSI1IiBmaWxsPSIjZThiNDhhIi8+PHJlY3QgeD0iLTE4IiB5PSItMyIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iIzNmN2ZkNiIvPgo8cGF0aCBkPSJNLTE4IC05IGwtNiAtMTAiIHN0cm9rZT0iIzRhMmMxNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjwvZz4KPHBhdGggZD0iTTIyOCAxNDAgQzIxNCAxMjAgMTk2IDk2IDE3OCA3NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlNmM4IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIi8+Cjwvc3ZnPgo=';
@@ -845,7 +845,7 @@ function digResult(u,x,y){const tx=tl(x),ty=tl(y),o=u.owner;let best=null,bd=1e9
     msg='You struck a '+(best.r==='g'?'gold':'stone')+' vein! Build a mine shaft on it';if(o===0){sfx('done',x,y);G.ping={x:e.x,y:e.y,t:8};for(let i=0;i<10;i++)emit('spark',e.x+(Math.random()-.5)*20,e.y-6,1,best.r==='g'?'#ffd34a':'#e8e4d8');}}
   else if(best&&bd<=6){pit.res='hot';msg='Strong signs of '+(best.r==='g'?'gold':'stone')+' very close, to the '+dirName(best.x-tx,best.y-ty);}
   else if(best&&bd<=14){pit.res='warm';msg='Traces of '+(best.r==='g'?'gold':'stone')+' to the '+dirName(best.x-tx,best.y-ty);}
-  if(o===0){toast('Test pit: '+msg);G.fx.push({type:'float',x,y:y-18,t:2.4,text:pit.res==='hit'?'Struck!':pit.res==='hot'?'Very close':pit.res==='warm'?'Traces':'Nothing',col:pit.res==='hit'?'#ffd34a':pit.res==='hot'?'#ff9a6a':pit.res==='warm'?'#ffe08a':'#cfc6b4'});}}
+  if((MPHU(o))&&MPTW(o)){toast('Test pit: '+msg);G.fx.push({type:'float',x,y:y-18,t:2.4,text:pit.res==='hit'?'Struck!':pit.res==='hot'?'Very close':pit.res==='warm'?'Traces':'Nothing',col:pit.res==='hit'?'#ffd34a':pit.res==='hot'?'#ff9a6a':pit.res==='warm'?'#ffe08a':'#cfc6b4'});}}
 const FREE_T=6;
 function nextFree(u,skip){let best=null,bd=6*TILE;for(const e of G.ents){if(e.type!=='sheep'||e.dead||e.owner>1||e.owner===u.owner||e.id===skip)continue;const d=Math.hypot(e.x-u.x,e.y-u.y);if(d>=bd)continue;if(G.ents.some(v=>v!==u&&!v.dead&&v.order&&v.order.type==='free'&&v.order.id===e.id))continue;bd=d;best=e;}return best?{type:'free',id:best.id}:null;}
 /* ---- joined pens / corrals (Josh: merge by building side by side). Same grouping rule as the picture (GFX.mgCalc): 2 side by side = pair, 2x2 = quad ---- */
@@ -1060,7 +1060,7 @@ const WAREV={wool:9,cheese:15,beer:10};
 /* Josh (Oct 14): the donkey caravan upgrades to the trade cart in the Renaissance (like soldier upgrades): it keeps hauling wool/cheese/beer, and trades from the market */
 function caravanUp(o){let n=0;for(const u of G.ents){if(u.type!=='caravan'||u.owner!==o||u.dead)continue;const f=u.hp/(u.maxHp||DEF.caravan.hp);u.type='tradecart';u.maxHp=DEF.tradecart.hp;u.hp=Math.max(1,Math.round(f*u.maxHp));delete u.raise;u.home=0;u.penned=0;if(u.order&&u.order.wander)u.order=null;u.anim=u.anim||{};n++;}
   for(const b of G.ents)if(b.owner===o&&b.queue&&b.queue.includes('caravan'))b.queue=b.queue.map(q=>q==='caravan'?'tradecart':q);
-  if(n&&o===0)toast(n===1?'Your donkey caravan is now a trade cart':'Your '+n+' donkey caravans are now trade carts');return n;}
+  if((n&&MPHU(o))&&MPTW(o))toast(n===1?'Your donkey caravan is now a trade cart':'Your '+n+' donkey caravans are now trade carts');return n;}
 function hasCaravan(o){return G.ents.some(e=>(e.type==='caravan'||e.type==='tradecart')&&e.owner===o&&!e.dead);}
 function addWare(b,k,unitsPerSec,dt,goldEq){const P=G.players[b.owner];if(hasCaravan(b.owner)){b.ware=b.ware||{};b.ware[k]=(b.ware[k]||0)+unitsPerSec*dt;if(b.ware[k]>30){const x=b.ware[k]-30;b.ware[k]=30;P.g+=x*goldEq*.5;inc(b.owner,'g',x*goldEq*.5,k);}}else{P.g+=unitsPerSec*dt*goldEq*.5*(b.owner===1?G.aiMult:1);inc(b.owner,'g',unitsPerSec*dt*goldEq*.5,k);}}
 function bakeLine(b,P){const T=P.tech,egg=T.grandbake&&(b.eggs||0)>=1,milk=(T.bakeworks||b.steam)&&egg&&(b.milk||0)>=1;return milk?{k:'pastry',v:3,name:'Full line (flour, eggs, milk)'}:egg?{k:'cake',v:2.2,name:'Cakes (flour, eggs)'}:{k:'bread',v:1.5,name:'Bread (flour)'};}
@@ -1258,7 +1258,7 @@ function coppiceOwner(t){for(const o of[0,1])if(G.players[o].tech.coppicing&&inT
 function gatherRate(u,t){const p=G.players[u.owner],rt=RES[t.type].r;let r=t.copd&&!t.stump?RATE.w*1.2:t.type==='farm'?.55:t.type==='carcass'?1:t.type==='fish'?(u.type==='fishboat'?.2:.4):RATE[rt];if(t.type==='goldmine'||t.type==='stonemine')r*=1.15;if(t.type==='farm'){if(bigFarm(t))r*=2;if(!t.mc||G.t-t.mc>5){t.mc=G.t;const ml=millOf(t);t.milled=!!ml;t.millUse=ml&&!(ml.useT>0)?useOf(ml):null;}if(t.milled)r*=1.25;if(t.millUse==='flax')r*=.45;else if(t.millUse==='barley'||t.millUse==='hay')r*=.7;if(BON(u.owner).oxen)r*=1.2;}if(u.forester){r*=2;if(p.tech.sawmill)r*=1.5;}if(p.tech.bronzetools&&u.type==='villager')r*=1.2;if(u.buff&&u.buff.type==='rest'&&u.buff.until>G.t)r*=1.15;if(t.type==='farm'&&t.ox){const ox=G.byId.get(t.ox);if(ox&&!ox.dead&&ox.owner===u.owner&&ox.plowing)r*=1.4;}if(rt==='w'&&p.tech.axes)r*=1.25;if(rt==='s'&&p.tech.picks)r*=1.25;if(t.type==='farm'&&p.tech.plow)r*=1.25;r*=spiritGather(u.owner,t,rt);return r*(u.owner===1?G.aiMult:1);}
 function applyTech(o,k){
   if(k==='renaissance'){try{caravanUp(o);}catch(err){}}
-  if(k==='harvesters'){let n=0;for(const u of G.ents)if(u.owner===o&&u.type==='villager'&&u.order&&u.order.type==='gather'&&u.order.rtype==='farm'){u.order=null;u.path=null;n++;}if(o===0)toast('Steam harvesters now work your farms. '+n+' farmer'+(n===1?' is':'s are')+' free for other work');}
+  if(k==='harvesters'){let n=0;for(const u of G.ents)if(u.owner===o&&u.type==='villager'&&u.order&&u.order.type==='gather'&&u.order.rtype==='farm'){u.order=null;u.path=null;n++;}if((MPHU(o))&&MPTW(o))toast('Steam harvesters now work your farms. '+n+' farmer'+(n===1?' is':'s are')+' free for other work');}
   if(k==='cartography'){G.exp[o].fill(1);if(o===0){try{computeVis();}catch(e){}}}
   const p=G.players[o];p.tech[k]=1;
   if(o===0&&['bronze','iron','medieval','renaissance','industrial','modern'].includes(k))setTimeout(()=>ageCard({bronze:1,iron:2,medieval:3,renaissance:4,industrial:5,modern:6}[k]),4500);
@@ -1269,7 +1269,7 @@ function applyTech(o,k){
   if(k==='guardtower')for(const e of G.ents)if(e.owner===o&&e.type==='tower'){e.maxHp+=150;e.hp+=150;}
   if(k==='keeps')for(const e of G.ents)if(e.owner===o&&e.type==='tower'){e.maxHp+=250;e.hp+=250;}
   if(k==='vetsling')for(const e of G.ents)if(e.owner===o&&e.type==='slinger'){e.maxHp+=10;e.hp+=10;}
-  if(o===0){if(CONV[k])toast(DEF[CONV[k][0]].plural+' upgraded to '+DEF[CONV[k][1]].plural.toLowerCase());else if(k==='vetsling')toast('Slingers upgraded to veteran slingers');else toast(TECH[k].name+' researched');}
+  if((MPHU(o))&&MPTW(o)){if(CONV[k])toast(DEF[CONV[k][0]].plural+' upgraded to '+DEF[CONV[k][1]].plural.toLowerCase());else if(k==='vetsling')toast('Slingers upgraded to veteran slingers');else toast(TECH[k].name+' researched');}
 }
 const HOUSEPOP=[5,8,12];
 /* ---- row houses and apartment blocks (Josh: merging is a button) ---- */
@@ -1317,12 +1317,12 @@ const GUNS=new Set(['arquebus','rifleman','bombard','fieldgun','bazooka']);
 {const baseAtk=atkOf;atkOf=function(u){const a=baseAtk(u);return (G&&G.players[u.owner]&&G.players[u.owner].tech&&G.players[u.owner].tech.chemistry&&GUNS.has(u.type))?Math.round(a*1.15):a;};}
 function expTick(){for(const o of[0,1])if(G.players[o].tech.medicine)for(const u of G.ents)if(u.owner===o&&u.kind==='unit'&&!u.dead&&u.hp<u.maxHp&&G.t-(u.hitT||-99)>8)u.hp=Math.min(u.maxHp,u.hp+1.5);
   const L=G.exped||[];for(let i=L.length-1;i>=0;i--){const x=L[i];if(G.t<x.ret)continue;L.splice(i,1);const u=x.u,o=u.owner,P=G.players[o],r=Math.random();
-    if(r<.12){if(o===0)toast('Your expedition was lost at sea');continue;}
+    if(r<.12){if((MPHU(o))&&MPTW(o))toast('Your expedition was lost at sea');continue;}
     u.dead=false;u.x=u.px=x.x;u.y=u.py=x.y;u.order=null;u.path=null;G.ents.push(u);G.byId.set(u.id,u);
-    if(r<.47){const g=300+Math.round(Math.random()*300);P.g+=g;inc(o,'g',g,'expedition');if(o===0){toast('Your expedition returns with '+g+' gold of treasure!');G.ping={x:u.x,y:u.y,t:6};}}
-    else if(r<.72){P.f+=400;P.w+=300;inc(o,'f',400,'expedition');inc(o,'w',300,'expedition');if(o===0){toast('Your expedition returns with exotic food and timber (+400 food, +300 wood)');G.ping={x:u.x,y:u.y,t:6};}}
+    if(r<.47){const g=300+Math.round(Math.random()*300);P.g+=g;inc(o,'g',g,'expedition');if((MPHU(o))&&MPTW(o)){toast('Your expedition returns with '+g+' gold of treasure!');G.ping={x:u.x,y:u.y,t:6};}}
+    else if(r<.72){P.f+=400;P.w+=300;inc(o,'f',400,'expedition');inc(o,'w',300,'expedition');if((MPHU(o))&&MPTW(o)){toast('Your expedition returns with exotic food and timber (+400 food, +300 wood)');G.ping={x:u.x,y:u.y,t:6};}}
     else{let spot=null;for(let k=0;k<300&&!spot;k++){const tx=6+Math.floor(Math.random()*(MW-12)),ty=6+Math.floor(Math.random()*(MH-12));if(G.bases.some(([bx,by])=>Math.hypot(tx-bx,ty-by)<24))continue;let okk=true;for(let yy=ty;yy<ty+2;yy++)for(let xx=tx;xx<tx+2;xx++)if(G.terrain[ti(xx,yy)]||G.occ[ti(xx,yy)])okk=false;if(okk)spot=[tx,ty];}
-      if(spot){for(let yy=spot[1];yy<spot[1]+2;yy++)for(let xx=spot[0];xx<spot[0]+2;xx++)mkRes('gold',xx,yy);for(let yy=spot[1]-8;yy<=spot[1]+8;yy++)for(let xx=spot[0]-8;xx<=spot[0]+8;xx++)if(inB(xx,yy))G.exp[o][ti(xx,yy)]=1;if(o===0){try{computeVis();}catch(e){}toast('Your explorer charted rich new land with gold. It is marked on your map');G.ping={x:(spot[0]+1)*TILE,y:(spot[1]+1)*TILE,t:10};}}}}}
+      if(spot){for(let yy=spot[1];yy<spot[1]+2;yy++)for(let xx=spot[0];xx<spot[0]+2;xx++)mkRes('gold',xx,yy);for(let yy=spot[1]-8;yy<=spot[1]+8;yy++)for(let xx=spot[0]-8;xx<=spot[0]+8;xx++)if(inB(xx,yy))G.exp[o][ti(xx,yy)]=1;if((MPHU(o))&&MPTW(o)){try{computeVis();}catch(e){}toast('Your explorer charted rich new land with gold. It is marked on your map');G.ping={x:(spot[0]+1)*TILE,y:(spot[1]+1)*TILE,t:10};}}}}}
 function aiExtra(o){const P=G.players[o],ai=G.ais[o];if(!ai||P.age<4)return;
   if(P.age>=6){const tc0=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&!e.dead),cnt=t=>G.ents.filter(e=>e.owner===o&&e.type===t&&!e.dead).length,free=G.ents.filter(e=>e.owner===o&&e.type==='villager'&&(!e.order||e.order.type==='gather')).slice(0,2);
     if(tc0&&free.length&&G.t-(ai.airB||0)>40){ai.airB=G.t;const need=cnt('aagun')<2&&P.s>=200&&P.g>=150?'aagun':cnt('airfield')<1&&P.w>=400&&P.s>=300&&P.g>=300&&cnt('power')?'airfield':cnt('helipad')<1&&P.w>=150&&P.s>=150&&cnt('power')?'helipad':null;if(need)aiBuild(need,tc0,free,4,o);}
@@ -1978,7 +1978,7 @@ function claimRuin(r,o){
   if(pick[0]==='tech'){const av=Object.keys(TECH).filter(k=>k!=='bronze'&&(TECH[k].age||0)<=P.age&&!P.tech[k]);if(av.length){const k=av[(Math.random()*av.length)|0];applyTech(o,k);msg='free upgrade: '+TECH[k].name;}else{P.g+=200;msg='200 gold';}}
   else if(pick[0]==='reveal'){const E=G.exp[o],cx=r.tx,cy=r.ty;for(let y=cy-28;y<=cy+28;y++)for(let x=cx-28;x<=cx+28;x++)if(inB(x,y)&&Math.hypot(x-cx,y-cy)<=28)E[ti(x,y)]=1;if(o===0)computeVis();}
   else P[pick[0]]+=pick[1];
-  if(o===0){toast('Ruins explored: '+msg);G.fx.push({type:'puff',x:r.x,y:r.y-10,t:.35});CELE.on||(CELE.stars=[]);for(let i=0;i<14;i++)CELE.stars.push({x:r.x+(Math.random()-.5)*30,y:r.y,z:Math.random()*10,vz:20+Math.random()*30,t:0,life:1+Math.random(),size:2+Math.random()*2.5,rot:Math.random()*3,col:'#ffe58a'});CELE.on=true;CELE.t=Math.max(CELE.t,12);}
+  if((MPHU(o))&&MPTW(o)){toast('Ruins explored: '+msg);G.fx.push({type:'puff',x:r.x,y:r.y-10,t:.35});CELE.on||(CELE.stars=[]);for(let i=0;i<14;i++)CELE.stars.push({x:r.x+(Math.random()-.5)*30,y:r.y,z:Math.random()*10,vz:20+Math.random()*30,t:0,life:1+Math.random(),size:2+Math.random()*2.5,rot:Math.random()*3,col:'#ffe58a'});CELE.on=true;CELE.t=Math.max(CELE.t,12);}
   else if(G.vis[0][ti(r.tx,r.ty)])toast('The red tribe explored ruins');
 }
 /* Josh (Oct 15): wolves raid chicken coops and the coop starts again from 1 hen; a new wolf pack wanders in from the map edge every few minutes.
@@ -2018,15 +2018,15 @@ function spiritSpeed(u){let m=1;if(u.owner<2&&spH(u.owner,'wind'))m*=1.05;if(u.o
 function wxIn(x,y,k,o,own){const W=G&&G.weather;if(!W||!W.length)return false;for(const w of W){if(w.k!==k||G.t<w.t0||G.t>w.t0+w.dur)continue;if(own?w.owner!==o:w.owner===o)continue;if((x-w.x)*(x-w.x)+(y-w.y)*(y-w.y)<w.r*w.r)return true;}return false;}
 function mainTC(o){return G.ents.filter(e=>e.type==='towncenter'&&e.owner===o&&!e.dead).sort((a,b)=>a.id-b.id)[0];}
 function castMiracle(o,k,wx,wy){const P=G.players[o];if(!P.mirReady||!MIRDEF[k])return false;let x,y;
-  if(k==='storm'){x=wx;y=wy;}else{const tc=mainTC(k==='rain'?o:1-o);if(!tc){if(o===0)toast('No town center to cast it on');return false;}x=tc.x;y=tc.y;}
+  if(k==='storm'){x=wx;y=wy;}else{const tc=mainTC(k==='rain'?o:1-o);if(!tc){if((MPHU(o))&&MPTW(o))toast('No town center to cast it on');return false;}x=tc.x;y=tc.y;}
   P.mirReady=0;P.mirC=0;P.mirCD=G.t+MIR_CD;G.weather=(G.weather||[]).filter(w=>G.t<w.t0+w.dur+3);G.weather.push({k,x,y,r:k==='storm'?5*TILE:MIR_R,t0:G.t,dur:MIRDEF[k].dur,owner:o,bt:0});
-  if(o===0)toast(MIRDEF[k].n+'!');else toast('The red tribe called down a '+MIRDEF[k].n.toLowerCase()+'!');try{sfx('done',x,y);}catch(e){}return true;}
+  if((MPHU(o))&&MPTW(o))toast(MIRDEF[k].n+'!');else toast('The red tribe called down a '+MIRDEF[k].n.toLowerCase()+'!');try{sfx('done',x,y);}catch(e){}return true;}
 function spiritTick(dt){if(G.spiritWin===undefined&&G.t<5){try{G.spiritWin=!!SPIRIT_OPT;}catch(e){G.spiritWin=false;}}const S=G.ents.filter(e=>e.kind==='poi'&&e.type==='sacred'&&!e.dead);
   if(S.some(e=>!e.spirit)){const ks=['sun','rain','stone','wind'].sort(()=>Math.random()-.5);S.sort((a,b)=>a.id-b.id).forEach((e,i)=>{if(!e.spirit)e.spirit=ks[i%4];});}
   G._sp={};for(const e of S)if(e.owner===0||e.owner===1)G._sp[e.spirit]=e.owner;
   const all=[0,1].find(o=>S.length>=4&&S.every(e=>e.owner===o));
   for(const o of[0,1]){const P=G.players[o];if(P.mirReady)continue;if(all===o&&G.t>=(P.mirCD||0)){const b=Math.floor((P.mirC||0)/6);P.mirC=(P.mirC||0)+dt;if(o===0&&Math.floor(P.mirC/6)!==b)panelKeyLast='';
-      if(P.mirC>=MIR_CHARGE){P.mirReady=1;P.mirC=MIR_CHARGE;if(o===0){toast('A Miracle is ready! Select your town center');try{sfx('done',0,0);}catch(e){}panelKeyLast='';}}}}
+      if(P.mirC>=MIR_CHARGE){P.mirReady=1;P.mirC=MIR_CHARGE;if((MPHU(o))&&MPTW(o)){toast('A Miracle is ready! Select your town center');try{sfx('done',0,0);}catch(e){}panelKeyLast='';}}}}
   // weather effects
   if(G.weather&&G.weather.length){G.weather=G.weather.filter(w=>G.t<w.t0+w.dur+3);
     for(const w of G.weather){if(G.t>w.t0+w.dur)continue;
@@ -2079,7 +2079,7 @@ function sacFound(p,o){return !p||!p.hid||!!(p.found&&p.found[o]);}
 function sacDisc(p,dt){if(!p.found)p.found=[0,0];if(!p.disc)p.disc=[0,0];
   for(const o of[0,1]){if(p.found[o])continue;let on=false;for(const u of G.ents)if(u.kind==='unit'&&u.owner===o&&!u.dead&&!u.air&&!DEF[u.type].animal&&Math.abs(u.x-p.x)<48&&Math.hypot(u.x-p.x,u.y-p.y)<1.4*TILE){on=true;break;}
     p.disc[o]=on?p.disc[o]+dt:Math.max(0,p.disc[o]-dt*.5);
-    if(p.disc[o]>=SAC_FIND){p.found[o]=Math.max(.001,G.t);if(o===0){toast('You found a sacred site! Hold it to earn gold');try{sfx('done',p.x,p.y);}catch(err){}}}}}
+    if(p.disc[o]>=SAC_FIND){p.found[o]=Math.max(.001,G.t);if((MPHU(o))&&MPTW(o)){toast('You found a sacred site! Hold it to earn gold');try{sfx('done',p.x,p.y);}catch(err){}}}}}
 function sacAlpha(e){if(!e||!e.hid)return 1;const f=e.found&&e.found[0];if(!f){const d=(e.disc&&e.disc[0])||0;return d>0?.06+.2*Math.min(1,d/SAC_FIND):0;}
   const k=G.t-f;if(k<0)return 1;if(k<1.2)return .3;if(k<3.6){const q=(k-1.2)/2.4;return .3+.7*q*q*(3-2*q);}return 1;}
 function checkEnd(){
@@ -10222,7 +10222,7 @@ function islTick(){if(!G.islands)return;for(const s of G.islands){islSet(s);cons
       else if(e.kind==='bld'){if(e.tx<s.x0||e.tx>s.x1||e.ty<s.y0||e.ty>s.y1||!s.set[ti(e.tx,e.ty)])continue;has[e.owner]=1}}
     for(const o of [0,1]){if(has[o]&&!has[1-o]&&s.owner!==o){s.cap[o]=Math.min(ISL.cap,s.cap[o]+1);s.cap[1-o]=0;if(s.cap[o]>=ISL.cap){s.owner=o;s.cap=[0,0];islTaken(s,o)}}
       else if(!has[o])s.cap[o]=0}}}
-function islTaken(s,o){const dk=G.byId.get(s.dock);if(o===0){toast('🚩 '+ISL.names[s.k]+' is yours! A free watchtower guards its dock');try{sfx('done',dk?dk.x:0,dk?dk.y:0)}catch(e){}}else if(o===1&&G.exp[0]&&dk&&G.exp[0][ti(dk.tx,dk.ty)])toast('🚩 The enemy took '+ISL.names[s.k]);
+function islTaken(s,o){const dk=G.byId.get(s.dock);if((MPHU(o))&&MPTW(o)){toast('🚩 '+ISL.names[s.k]+' is yours! A free watchtower guards its dock');try{sfx('done',dk?dk.x:0,dk?dk.y:0)}catch(e){}}else if(o===1&&G.exp[0]&&dk&&G.exp[0][ti(dk.tx,dk.ty)])toast('🚩 The enemy took '+ISL.names[s.k]);
   if(G.ents.some(e=>e.type==='tower'&&e.owner===o&&!e.dead&&islAt(e.tx,e.ty)===s))return;const sz=DEF.tower.size;let spot=null,bd=1e9;
   for(const t of s.tiles){const x=t%MW,y=(t/MW)|0;let ok=true;for(let yy=y;yy<y+sz&&ok;yy++)for(let xx=x;xx<x+sz;xx++)if(!s.set[ti(xx,yy)]||G.occ[ti(xx,yy)]||(dk&&xx===dk.tx&&yy===dk.ty)){ok=false;break}
     if(!ok)continue;const d=dk?Math.hypot(x-dk.tx,y-dk.ty):0;if(d<bd&&d>=1.5){bd=d;spot=[x,y]}}
@@ -10623,7 +10623,7 @@ setTimeout(()=>{try{const d0=draw;draw=function(){const r=d0.apply(this,argument
 function MPHU(o){return o===0||(o===1&&window.__mpH===1&&MP.inTick);}
 function MPTW(o){if(o===0){MP.tw=0;return true;}if(o===1&&window.__mpH===1&&MP.inTick){MP.tw=1;return true;}return false;}
 const MP={off:false,role:null,conn:null,peer:null,hz:10,replaying:false,code:'',stats:{sent:0,bytes:0,recv:0},
-  UIF:['sel','place','lastPlaceTap','lastGTap','selForm','mirAim','strikeN','reconAim','strikeFrom','prospect','aground','jobKey','boxMode','groups','groupForm','marks','buildTab','demo','ping'],
+  UIF:['sel','place','lastPlaceTap','lastGTap','selForm','mirAim','strikeN','reconAim','strikeFrom','prospect','aground','jobKey','boxMode','groups','groupForm','marks','buildTab','demo','ping','mysDig','mysShow'],
   SWAPK:['players','vis','exp','culture','ais','bases'],
   LOCAL:['upq','tab','gofor','hlock','form'],
   SKIPG:['hurt','alert','water','oceanPic','ents','byId','rand','vis','exp','projs','fx','marks','paused','over','mp','aiPlayers','ais','lastSaveT','aiT','visT','endT','miniT','poiT','pathBudget','seenAvail','pendingUnlock','idleIdx','lastAlert','lastPopMsg'],
@@ -10642,7 +10642,7 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
   const sw=v=>v===0?1:v===1?0:v;
   function swapOwners(){
     const fix=o=>{if(o&&typeof o==='object'&&'owner' in o)o.owner=sw(o.owner);};
-    for(const e of G.ents){e.owner=sw(e.owner);if(Array.isArray(e.gar))e.gar.forEach(fix);if(Array.isArray(e.units))e.units.forEach(fix);}
+    for(const e of G.ents){e.owner=sw(e.owner);if(e.mby!==undefined)e.mby=sw(e.mby);if(Array.isArray(e.gar))e.gar.forEach(fix);if(Array.isArray(e.units))e.units.forEach(fix);}
     for(const p of G.projs||[])p.owner=sw(p.owner);
     for(const k of SWAPK){const a=G[k];if(Array.isArray(a)&&a.length>=2){const t=a[0];a[0]=a[1];a[1]=t;}}
   }
@@ -10715,11 +10715,11 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
     const rmS=new Set(m.rm||[]);let gone=false;for(const e of G.ents)if(rmS.has(e.id)||e.id>=1e9){G.byId.delete(e.id);gone=true;}if(gone)G.ents=G.ents.filter(e=>!rmS.has(e.id)&&e.id<1e9);
     for(const[id,f,del,full]of m.ch){let e=G.byId.get(id);const isNew=!e;if(isNew){if(!f.kind)continue;e={};}
       if(full&&!isNew)for(const k of Object.keys(e))if(!(k in f)&&!ESKIP.has(k)&&typeof e[k]!=='function')delete e[k];   // drop what the friend's guesses added
-      for(const k in f){let v=f[k];if(k==='owner')v=sw(v);else if((k==='gar'||k==='units')&&Array.isArray(v))v.forEach(o=>{if(o&&typeof o==='object'&&'owner' in o)o.owner=sw(o.owner);});e[k]=v;}
+      for(const k in f){let v=f[k];if(k==='owner'||k==='mby')v=sw(v);else if((k==='gar'||k==='units')&&Array.isArray(v))v.forEach(o=>{if(o&&typeof o==='object'&&'owner' in o)o.owner=sw(o.owner);});e[k]=v;}
       if(del)for(const k of del)delete e[k];
       if(isNew){e.px=e.x;e.py=e.y;G.ents.push(e);G.byId.set(id,e);}}
     if(m.n!=null&&Math.abs(G.ents.length-m.n)>0&&(MP.chk=(MP.chk||0)+1)%(MP.hz*2)===0)send({k:'ids?'});   // every 2 s, if counts differ, ask for the full id list
-    for(const k in m.g){let v=m.g[k];if(SWAPK.has(k)&&Array.isArray(v)&&v.length>=2){const t=v[0];v[0]=v[1];v[1]=t;}G[k]=v;}
+    for(const k in m.g){let v=m.g[k];if(SWAPK.has(k)&&Array.isArray(v)&&v.length>=2){const t=v[0];v[0]=v[1];v[1]=t;}if(k==='spHold'&&v&&typeof v.o==='number')v.o=sw(v.o);G[k]=v;}   // spHold.o is a side: swap it like owners
     for(const k in m.ta){const d=m.ta[k];if(d.full){const C=window[d.ctor]||Uint8Array;G[k]=C.from(d.full);}else if(d.d&&G[k]){const a=G[k];for(let i=0;i<d.d.length;i+=2)a[d.d[i]]=d.d[i+1];}}
     if(m.ta.terrain||m.ta.road)try{renderGround();}catch(err){}
     G.t=m.t;if(m.sp)speed=m.sp;if(!!m.pz!==!!MP.hostPaused&&MP.rawToast)MP.rawToast(m.pz?'Your friend paused the game':'Your friend is back');MP.hostPaused=m.pz;}
@@ -10732,6 +10732,7 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
   function onMsg(raw){let m;try{m=typeof raw==='string'?JSON.parse(raw):raw;}catch(err){return;}if(!m||!m.k)return;
     if(MP.role==='host'){
       if(m.k==='tap'||m.k==='btn'||m.k==='gm'||m.k==='cure')replay(m);
+      else if(m.k==='x'){const fn=MP.X&&MP.X[m.f];if(fn&&G&&!G.over){MP.inTick=true;try{fn(1,m.a);}catch(err){console.warn('mp x',err);}finally{MP.inTick=false;MP.tw=0;}}}   // the friend's own actions (e.g. the mystery's "Name the answer"): run as owner 1
       else if(m.k==='rein'){const b=G&&G.byId.get(m.id);if(b&&b.owner===1)b.rein=m.v|0;}
       else if(m.k==='need'){for(const id of m.ids||[])LS.delete(id);}
       else if(m.k==='ids?'){send({k:'ids',ids:G.ents.map(e=>e.id)});}
@@ -11117,14 +11118,14 @@ try{cancelQ=(function(prev){return function(b){const last=b&&b.queue&&b.queue[b.
 try{spawnFrom=(function(prev){return function(b,type){if(type==='tradecart'&&b&&b.type==='market'){const d=G.ents.find(e=>e.cartFor===b.id&&!e.dead&&e.owner===b.owner);if(d){d.dead=true;d.cartFor=0;try{G.sel=G.sel.filter(i=>i!==d.id)}catch(e){}}}return prev.apply(this,arguments)}})(spawnFrom)}catch(err){}
 try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u.cartFor&&!u.dead){const m=G.byId.get(u.cartFor);
   if(!m||m.dead||!(m.queue||[]).includes('tradecart')){u.cartFor=0}else if(!u.order||u.order.auto){if(Math.hypot(u.x-m.x,u.y-m.y)>m.size*TILE*.9){u.order={type:'move',x:m.tx+1,y:m.ty+m.size,cart:1};u.path=null}else u.order=null}}}catch(err){}return r}})(updUnit)}catch(err){}
-try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if(sel.length&&sel.every(u=>u.type==='donkey'&&u.owner===0&&u.raise)){const hit=pick(wx,wy);
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if((sel.length&&sel.every(u=>u.type==='donkey'&&MPHU(u.owner)&&u.raise))&&MPTW(u.owner)){const hit=pick(wx,wy);
   if(hit&&hit.owner===0&&(hit.type==='villager'||hit.kind==='bld')){const R=sel[0].raise;toast('🐣 This donkey is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 
 /* Oxen go to the farm you tap (Josh, Oct 18: "The ox are not leaving the yard and can't figure out how to get to the farm that I tell them
    to go to"). Oxen only ever picked the nearest farm without an ox by themselves; tapping a farm just made them walk there and turn back.
    Now: select oxen, tap your farm -> that ox plows that farm (an ox already there goes back to looking). Young oxen say how long until grown. */
-try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if(sel.length&&sel.every(u=>u.type==='ox'&&u.owner===0&&!u.dead)){const hit=pick(wx,wy);
-  if(hit&&hit.type==='farm'&&hit.owner===0&&!hit.dead){if(!hit.built){toast('That farm is not finished yet');return}const u=sel.find(o=>!o.raise);
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if((sel.length&&sel.every(u=>u.type==='ox'&&MPHU(u.owner)&&!u.dead))&&MPTW(u.owner)){const hit=pick(wx,wy);
+  if((hit&&hit.type==='farm'&&MPHU(hit.owner)&&!hit.dead)&&MPTW(hit.owner)){if(!hit.built){toast('That farm is not finished yet');return}const u=sel.find(o=>!o.raise);
     if(!u){const R=sel[0].raise;toast('🐣 This ox is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}
     try{corralFree(u)}catch(e){}const old=hit.ox&&G.byId.get(hit.ox);if(old&&old!==u&&!old.dead){old.farm=0;old.plowing=false}
     hit.ox=u.id;u.farm=hit.id;u.home=0;u.penned=0;u.plowing=false;u.order=null;u.path=null;orderMove([u],hit.x,hit.y);if(u.order)u.order.auto=true;
@@ -11138,6 +11139,353 @@ setInterval(()=>{try{const el=document.getElementById('upop');if(!el||!G)return;
   const it=TECH[k],P=G.players[0],miss=reqMissing(0,k),dis=!!miss||!canAfford(P,it.cost);b.classList.toggle('dis',dis);if(dis)b.setAttribute('aria-disabled','true');else b.removeAttribute('aria-disabled');
   const sub=b.querySelector('.cost');const nh=miss?reqIcons(it.req,miss):costHtml(it.cost);if(sub&&sub.outerHTML!==nh){const t=document.createElement('div');t.innerHTML=nh;if(t.firstChild)sub.replaceWith(t.firstChild)}}catch(err){}},500);
 
+/* ===== The Ancients' Mystery, step 1: clues, journal, vault, answer — gameplay chat 2 (Josh, Oct 18 2026: "Start the mystery";
+   design in project doc claude/mystery-design.md) =====
+   Sits ON TOP of gameplay chat 1's ruins (Oct 18: 4 mirrored ruins per map, each a puzzle room; the computer and the online friend still
+   claim ruins by walking in). This block never changes how a ruin is opened: whenever a ruin gets looted, whoever looted it also gets
+   that ruin's clues. Every ruin on the map (the 4 + any island ruins) is a mystery ruin.
+   - Each ruin holds three clues:
+       WHERE: "from the Lion Gate the vault lies to the NE, 20-35 paces away" (+ on 2 ruins: near/far from water, or nearer which town).
+       WHAT : rules out some of the 8 peoples / 8 causes / 8 relics (all ruins together rule out every wrong one).
+       WHY  : some letters of the carved phrase "THE <people> FELL TO <cause> AND HID THE <relic>".
+   - Journal (scroll button under the minimap): clues, the search area (gold on the map + minimap = every tile that fits your clues and
+     digs), the three lists with ruled-out names crossed off, the phrase. "Dig for the vault": tap the ground, the selected villager digs
+     MYST.dig s. Miss = how far the vault is (very close / close / not far / far), which also shrinks the search area. Hit = vault found.
+   - Vault found -> pick one name per list -> "Name the answer". Right = mystery solved (+800 gold, +500 stone; the Wonder is step 3).
+     Wrong = "n of 3 are right", locked MYST.lock s. One winner per game.
+   - Computer: digs inside its search area once it has 2+ clues, names an answer that fits its ruled-out names and every earlier 'n of 3 right' (it doesn't read the carving; gentle waits longer).
+   - Data: G.myst (answer, vault, per-ruin clues; no owner indexes). Per side: G.players[o].myst = {got:[ruin idx], digs:[[x,y,band]],
+     found, lock, tries, last, solved}. Ruin: r.myst=1, r.mi, r.mname, r.mby = who looted it. Digger: u.mdig=[tx,ty], u.mdt.
+     UI-only G fields: G.mysDig, G.mysShow (in the multiplayer UI list).
+   - Multiplayer: digging is a replayed tap; "Name the answer" goes as MP action 'myst'. The friend never simulates.
+   MYST.off=true turns the mystery off (ruins work as before). */
+const MYST={off:false,dig:8,lock:120,near:2.5,gold:800,stone:500};
+const MYS_WHO=['River Kings','Sky Watchers','Stone Shapers','Horse Lords','Sea Wanderers','Fire Keepers','Forest Folk','Sun Priests'];
+const MYS_WHAT=['Greed','Plague','Flood','Endless War','Famine','Wildfire','Pride','Betrayal'];
+const MYS_REL=['Sun Crown','Storm Horn','Stone Heart','Wind Harp','Moon Mirror','Iron Seed','Star Map','Ember Cup'];
+const MYS_LISTS=[MYS_WHO,MYS_WHAT,MYS_REL];
+const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar Hall','Owl Tower','Serpent Wall','Twin Columns'];
+{
+  const OCT=['east','north-east','north','north-west','west','south-west','south','south-east'];
+  const BANDS=[[0,8,'very close'],[8,16,'close'],[16,30,'not far'],[30,1e9,'far away']];
+  const isClient=()=>window.__mp&&window.__mp.role==='client';
+  const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const landOK=(x,y)=>{if(!inB(x,y))return false;const t=G.terrain[ti(x,y)];if(t!==0&&t!==2)return false;const L=G.landBox;if(L&&(x<L[0]||y<L[1]||x>=L[2]||y>=L[3]))return false;return true;};
+  const PM=o=>{const P=G.players[o];if(!P)return null;if(!P.myst)P.myst={got:[],digs:[],found:0,lock:0,tries:0,last:null,solved:0};return P.myst;};
+  const phraseOf=M=>('THE '+MYS_WHO[M.ans[0]]+' FELL TO '+MYS_WHAT[M.ans[1]]+' AND HID THE '+MYS_REL[M.ans[2]]).toUpperCase();
+  // the carving shows the three names in fixed 13-cell slots (spaces and padding are blanks too), so a name's length gives nothing away
+  const SLOT=13,slotsOf=a=>[MYS_WHO[a[0]],MYS_WHAT[a[1]],MYS_REL[a[2]]].map(n=>n.toUpperCase().padEnd(SLOT,' '));
+  let WD=null,WDk=null;
+  function waterDist(){const k=G.seed+':'+MW;if(WD&&WDk===k)return WD;const N=MW*MH,D=new Uint16Array(N).fill(999),q=[];
+    for(let i=0;i<N;i++){const t=G.terrain[i];if(t===1){D[i]=0;q.push(i);}}
+    for(let h=0;h<q.length;h++){const i=q[h],x=i%MW,y=(i/MW)|0,d=D[i]+1;if(d>40)continue;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!inB(nx,ny))continue;const j=ti(nx,ny);if(D[j]>d){D[j]=d;q.push(j);}}}
+    WD=D;WDk=k;return D;}
+  const octOf=(fx,fy,tx,ty)=>((Math.round(Math.atan2(-(ty-fy),tx-fx)/(Math.PI/4))%8)+8)%8;
+  function fits(p,x,y){
+    if(p.t==='rel'){const d=Math.hypot(x-p.x,y-p.y);return d>=p.d0&&d<=p.d1&&octOf(p.x,p.y,x,y)===p.oct;}
+    if(p.t==='water'){const w=waterDist()[ti(x,y)];return p.near?w<=4:w>=9;}
+    if(p.t==='town'){return Math.hypot(x-p.n[0],y-p.n[1])<Math.hypot(x-p.f[0],y-p.f[1]);}
+    if(p.t==='ring'){const d=Math.hypot(x-p.x,y-p.y);return d>=p.lo&&d<p.hi;}
+    return true;}
+  function preds(o){const M=G.myst,S=PM(o);if(!M||!S)return[];const L=[];for(const i of S.got){const R=M.ruins[i];if(!R)continue;L.push(R.map);if(R.extra)L.push(R.extra);}
+    for(const d of S.digs){const b=BANDS[d[2]];if(b)L.push({t:'ring',x:d[0],y:d[1],lo:b[0],hi:b[1]});}return L;}
+  const CC=new Map();
+  function cand(o){const L=preds(o);if(!L.length)return null;const k=o+':'+JSON.stringify(L);const c=CC.get(o);if(c&&c.k===k)return c.v;
+    const B=G.landBox||[0,0,MW,MH],v=[];for(let y=B[1];y<B[3];y++)for(let x=B[0];x<B[2];x++){if(!landOK(x,y))continue;let ok=true;for(const p of L)if(!fits(p,x,y)){ok=false;break;}if(ok)v.push(ti(x,y));}
+    CC.set(o,{k,v});return v;}
+  /* ---------- setup ---------- */
+  function setup(){if(MYST.off||!G||G.myst)return;const keep=G.ents.filter(e=>e.kind==='poi'&&e.type==='ruin'&&!e.dead);if(!keep.length)return;
+    const tcs=G.ents.filter(e=>e.type==='towncenter'&&!e.dead).sort((a,b)=>a.owner-b.owner);
+    // the vault: open land, away from towns, ruins and the edge, not on an island
+    const B=G.landBox||[0,0,MW,MH],IM=typeof islMap==='function'?islMap():null;let vault=null;
+    for(let k=0;k<4000&&!vault;k++){const x=B[0]+10+((Math.random()*(B[2]-B[0]-20))|0),y=B[1]+10+((Math.random()*(B[3]-B[1]-20))|0);
+      if(!landOK(x,y)||G.terrain[ti(x,y)]!==0||G.occ[ti(x,y)]||(IM&&IM[ti(x,y)]))continue;if(tcs.some(t=>Math.hypot(t.tx-x,t.ty-y)<(k<3000?22:14)))continue;if(keep.some(r=>Math.hypot(r.tx-x,r.ty-y)<10))continue;vault=[x,y];}
+    if(!vault)vault=[((B[0]+B[2])/2)|0,((B[1]+B[3])/2)|0];
+    const ans=[(Math.random()*8)|0,(Math.random()*8)|0,(Math.random()*8)|0];const M={v:1,ans,vault,ruins:[]};const rn=shuf(MYS_RNAME.slice());
+    // deduction: the 7 wrong names of each list are shared out 2,2,1,1,1 over the 5 ruins
+    const ded=keep.map(()=>[]);for(let l=0;l<3;l++){const wrong=shuf([0,1,2,3,4,5,6,7].filter(i=>i!==ans[l]));const order=shuf(keep.map((_,i)=>i));wrong.forEach((x,k)=>ded[order[k%keep.length]].push([l,x]));}   // the 7 wrong names of each list, shared out evenly
+    // letters: every distinct letter of the three names, shared out over the ruins (the vault keeps the last share)
+    const letters=shuf([...new Set(slotsOf(ans).join('').replace(/[^A-Z]/g,''))]);const per=Math.ceil(letters.length/(keep.length+1));
+    const extraAt=new Set(shuf(keep.map((_,i)=>i)).slice(0,2));
+    keep.forEach((r,i)=>{r.myst=1;r.mi=i;delete r.mby;
+      const d=Math.hypot(vault[0]-r.tx,vault[1]-r.ty);const map={t:'rel',nm:rn[i],x:r.tx,y:r.ty,oct:octOf(r.tx,r.ty,vault[0],vault[1]),d0:Math.max(0,Math.floor(d*.85)-1),d1:Math.ceil(d*1.15)+2};
+      let extra=null;if(extraAt.has(i)){const w=waterDist()[ti(vault[0],vault[1])];const opts=[];if(w<=4)opts.push({t:'water',near:true});else if(w>=9)opts.push({t:'water',near:false});
+        if(tcs.length>=2){const a=tcs[0],b=tcs[1],da=Math.hypot(a.tx-vault[0],a.ty-vault[1]),db=Math.hypot(b.tx-vault[0],b.ty-vault[1]);if(Math.abs(da-db)>6)opts.push(da<db?{t:'town',n:[a.tx,a.ty],f:[b.tx,b.ty]}:{t:'town',n:[b.tx,b.ty],f:[a.tx,a.ty]});}
+        if(opts.length)extra=opts[(Math.random()*opts.length)|0];}
+      r.mname=rn[i];M.ruins.push({id:r.id,name:rn[i],map,extra,ded:ded[i],let:letters.slice(i*per,(i+1)*per).join('')});});
+    // any letters left over go to the vault itself
+    M.vlet=letters.slice(keep.length*per).join('');
+    G.myst=M;for(const o of[0,1])PM(o);CC.clear();}
+  // set up on the first half-second tick (after every other chat's new-game code has built the map), see mystTick
+  /* ---------- clue text ---------- */
+  function predText(p,viewer){
+    if(p.t==='rel')return 'From the '+(p.nm||'ruins')+', the vault lies to the <b>'+OCT[p.oct]+'</b>, about '+p.d0+' to '+p.d1+' paces away.';
+    if(p.t==='water')return p.near?'The vault lies <b>near water</b>, within 4 paces of it.':'The vault lies <b>far from water</b>, at least 9 paces from any.';
+    if(p.t==='town'){const tc=mainTC(viewer);const mine=tc&&Math.hypot(tc.tx-p.n[0],tc.ty-p.n[1])<14;return 'The vault lies <b>closer to '+(mine?'your town':'the enemy\'s town')+'</b> than to '+(mine?'the enemy\'s':'yours')+'.';}
+    return '';}
+  function known(o){const M=G.myst,S=PM(o),out=[new Set(),new Set(),new Set()];if(!M||!S)return out;for(const i of S.got){const R=M.ruins[i];if(R)for(const[l,x]of R.ded)out[l].add(x);}return out;}
+  function shownLetters(o){const M=G.myst,S=PM(o);let s='';if(!M||!S)return s;for(const i of S.got){const R=M.ruins[i];if(R)s+=R.let;}if(S.found)s+=M.vlet||'';if(S.solved||mysWinner()!=null)s='ABCDEFGHIJKLMNOPQRSTUVWXYZ';return s;}
+  function mysWinner(){for(const o of[0,1]){const S=G.players[o]&&G.players[o].myst;if(S&&S.solved)return o;}return null;}
+  /* ---------- solving a ruin, digging, naming ---------- */
+  const bandOf=d=>BANDS.findIndex(b=>d>=b[0]&&d<b[1]);
+  function sayTo(o,msg){if(MPHU(o)&&MPTW(o))toast(msg);}
+  function giveClues(r,o){const M=G.myst,S=PM(o);if(!M||!S||!r.myst||r.mby!==undefined)return;r.mby=o;if(!S.got.includes(r.mi))S.got.push(r.mi);CC.clear();
+    const N=M.ruins.length,left=M.ruins.filter(R=>{const e=G.byId.get(R.id);return e&&!e.looted;}).length;
+    if(MPHU(o)&&MPTW(o))toast('New clues in your journal 📜 ('+S.got.length+' of '+N+' ruins)');
+    const other=1-o;if(MPHU(other)&&MPTW(other))toast((other===0?'The red tribe':'Your friend')+' explored an ancient ruin and took its clues. '+left+' left');}
+  const solveRuin=(r,o)=>{if(!r.looted){try{claimRuin(r,o);}catch(e){}}if(r.looted)giveClues(r,o);};   // test hook
+  function digAt(u){const M=G.myst,o=u.owner,S=PM(o);if(!M||!S||!u.mdig)return;const[x,y]=u.mdig;delete u.mdig;delete u.mdt;
+    const d=Math.hypot(x-M.vault[0],y-M.vault[1]);G.fx.push({type:'puff',x:u.x,y:u.y,t:.5});
+    if(d<=MYST.near){if(!S.found){S.found=1;S.foundT=G.t;sayTo(o,'You found the vault! Open the journal 📜 to name the answer');if(o===0&&!isClient())G.ping={x:(M.vault[0]+.5)*TILE,y:(M.vault[1]+.5)*TILE,t:5};}return;}
+    const b=bandOf(d);S.digs.push([x,y,b]);if(S.digs.length>30)S.digs.shift();CC.clear();sayTo(o,'Nothing here. The vault is '+BANDS[b][2]+' from this spot');}
+  function nameAnswer(o,a){const M=G.myst,S=PM(o);if(!M||!S||!Array.isArray(a)||a.length!==3)return;if(!S.found||S.solved||mysWinner()!=null)return;if(G.t<(S.lock||0))return;
+    const n=a.filter((v,i)=>(v|0)===M.ans[i]).length;S.tries=(S.tries||0)+1;S.last=[a[0]|0,a[1]|0,a[2]|0,n];(S.hist=S.hist||[]).push(S.last);
+    if(n===3){S.solved=G.t;const P=G.players[o];P.g=(P.g||0)+MYST.gold;P.s=(P.s||0)+MYST.stone;
+      sayTo(o,'Mystery solved! The '+MYS_WHO[M.ans[0]]+' fell to '+MYS_WHAT[M.ans[1]].toLowerCase()+' and hid the '+MYS_REL[M.ans[2]]+'. +'+MYST.gold+' gold, +'+MYST.stone+' stone. You can restore the Ancients\' Wonder');
+      const other=1-o;if(MPHU(other)&&MPTW(other))toast((other===0?'The red tribe':'Your friend')+' solved the Ancients\' mystery!');
+      if(o===0&&!isClient()){try{sfx('done',0,0);}catch(e){}}}
+    else{S.lock=G.t+MYST.lock;sayTo(o,n+' of 3 are right. The vault seals for '+Math.round(MYST.lock/60)+' minutes');}
+    }
+  window.__mystAct=function(o,a){try{nameAnswer(o,a);}catch(err){}};
+  function act(a){const mp=window.__mp;if(mp&&mp.role==='client'&&mp.ready){mp.send({k:'x',f:'myst',a});return;}
+    if(mp&&mp.role==='host'){mp.inTick=true;try{nameAnswer(0,a);}finally{mp.inTick=false;mp.tw=0;}}else nameAnswer(0,a);}
+  setTimeout(()=>{try{const mp=window.__mp;if(mp){mp.X=mp.X||{};mp.X.myst=(o,a)=>nameAnswer(o,a);}}catch(err){}},0);
+  /* ---------- dig orders from taps ---------- */
+  function sendDig(u,x,y){u.order={type:'move',x,y,mdg:1};u.path=null;u.mdig=[x,y];u.mdt=0;}
+  const _tap=onTap;onTap=function(wx,wy){
+    try{if(G&&!G.over&&G.myst&&!MYST.off&&G.mysDig){G.mysDig=false;const vs=selEnts().filter(u=>u.kind==='unit'&&u.owner===0&&u.type==='villager'&&!u.dead);
+        if(!vs.length){toast('Select a villager, then tap Dig in the journal');return;}const x=tl(wx),y=tl(wy);
+        if(!landOK(x,y)){toast('Pick a spot on land');return;}const u=vs.sort((a,b)=>Math.hypot(a.x-wx,a.y-wy)-Math.hypot(b.x-wx,b.y-wy))[0];sendDig(u,x,y);mark(wx,wy,'#ffd25a');toast('Your villager will dig here');try{panelKeyLast='';}catch(e){}return;}
+    }catch(err){}
+    return _tap.apply(this,arguments);};
+  // whoever loots a ruin by any path (puzzle chest, walking in) gets its clues. The outermost claimRuin knows who; the puzzle's chest
+  // calls the inner one, so a looted ruin nobody was credited for is the host's (only player 0 gets puzzle rooms).
+  setTimeout(()=>{try{const _cr=claimRuin;claimRuin=function(r,o){const was=r&&r.looted;const res=_cr.apply(this,arguments);try{if(r&&!was&&r.looted&&G.myst&&!MYST.off&&!isClient())giveClues(r,o);}catch(err){}return res;};}catch(err){}},50);
+  /* ---------- each tick: study + dig progress (host / single player only) ---------- */
+  function mystTick(dt){if(MYST.off||isClient())return;
+    if(G.myst&&!G.myst.ruins.some(R=>G.byId.get(R.id))&&![0,1].some(o=>{const S=G.players[o]&&G.players[o].myst;return S&&(S.got.length||S.digs.length);})){delete G.myst;for(const o of[0,1])if(G.players[o])delete G.players[o].myst;}   // the map was made again after setup: start over
+    if(!G.myst){if(!G._r4&&G.t<6)return;setup();if(!G.myst)return;}   // wait for chat 1's ruinsFour layout
+    for(const R of G.myst.ruins){const r=G.byId.get(R.id);if(r&&r.looted&&r.mby===undefined)giveClues(r,0);}
+    if(mysWinner()!=null){for(const u of G.ents)if(u.mdig){if(u.order&&u.order.type==='mdig')u.order=null;delete u.mdig;delete u.mdt;}return;}
+    for(const u of G.ents){if(u.kind!=='unit')continue;
+      if(u.mdig){let o=u.order;const stop=()=>{if(u.order&&u.order.type==='mdig')u.order=null;delete u.mdig;delete u.mdt;};
+        if(u.dead){stop();continue;}if(o&&o.type==='move'&&o.mdg)continue;if(o&&o.type!=='mdig'){delete u.mdig;delete u.mdt;continue;}
+        if(!o){if(Math.hypot(u.x-(u.mdig[0]+.5)*TILE,u.y-(u.mdig[1]+.5)*TILE)>1.8*TILE){stop();continue;}u.order={type:'mdig'};u.path=null;}
+        u.working=true;u.mdt=(u.mdt||0)+dt;if(Math.random()<dt*3)emit('dust',u.x+(Math.random()-.5)*8,u.y+4,1);if(u.mdt>=MYST.dig){if(u.order&&u.order.type==='mdig')u.order=null;digAt(u);}}}
+  }
+  // the computer's economy must not pull its own explorers off a ruin or a dig
+  const aiBusy=u=>u&&u.mdig&&G.aiPlayers&&G.aiPlayers.includes(u.owner);
+  const _og=orderGather;orderGather=function(u){if(aiBusy(u))return;return _og.apply(this,arguments);};
+  if(typeof orderBuild==='function'){const _ob=orderBuild;orderBuild=function(u){if(aiBusy(u))return;return _ob.apply(this,arguments);};}
+  // park a worker the moment it arrives, before idle-worker code (the computer's economy) hands it another job
+  const _uu=updUnit;updUnit=function(u,dt){const r=_uu.apply(this,arguments);try{if(!u.order&&!u.dead){
+      if(u.mdig&&Math.hypot(u.x-(u.mdig[0]+.5)*TILE,u.y-(u.mdig[1]+.5)*TILE)<=1.8*TILE){u.order={type:'mdig'};u.path=null;}}}catch(err){}return r;};
+  const _up=updPOIs;updPOIs=function(dt){const r=_up.apply(this,arguments);try{if(G&&!G.over)mystTick(dt);}catch(err){console.warn('myst',err);}return r;};   // every 0.5 s inside tick()
+  /* ---------- the computer ---------- */
+  function mystAI(o){const ai=G.ais&&G.ais[o];if(!ai||MYST.off||!G.myst||mysWinner()!=null)return;if((ai.myT=(ai.myT||0)-1)>0)return;ai.myT=10;
+    const M=G.myst,S=PM(o),P=G.players[o];const vills=G.ents.filter(e=>e.owner===o&&e.type==='villager'&&!e.dead);
+    const start=G.gentle?420:150;if(G.t<start||vills.length<8)return;
+    const busy=vills.filter(v=>v.mdig);
+    if(!S.found&&S.got.length>=2&&!busy.some(v=>v.mdig)&&G.t>=(S.aiDig||0)){const c=cand(o);if(c&&c.length){const t=c[(Math.random()*c.length)|0],x=t%MW,y=(t/MW)|0;
+        const v=vills.filter(v=>!v.order||v.order.type==='gather').sort((a,b)=>Math.hypot(a.x-(x+.5)*TILE,a.y-(y+.5)*TILE)-Math.hypot(b.x-(x+.5)*TILE,b.y-(y+.5)*TILE))[0];if(v)sendDig(v,x,y);S.aiDig=G.t+(G.gentle?90:35);}}
+    if(S.found&&!S.solved&&G.t>=(S.lock||0)){const K=known(o),lt=shownLetters(o);const opt=[0,1,2].map(l=>[0,1,2,3,4,5,6,7].filter(i=>!K[l].has(i)));
+      const T=slotsOf(M.ans).join('');const fitsLet=a=>{const g=slotsOf(a).join('');for(let i=0;i<T.length;i++){const c=T[i],d=g[i];if(lt.includes(c)&&d!==c)return false;if(lt.includes(d)&&d!==c)return false;}return true;};
+      const all=[];for(const a of opt[0])for(const b of opt[1])for(const c of opt[2])all.push([a,b,c]);let ok=all;/* the computer doesn't read the carving (a sharp player can) */
+      for(const h of S.hist||[])ok=ok.filter(g=>[0,1,2].filter(i=>g[i]===h[i]).length===h[3]);if(!ok.length)ok=all;/* fits every earlier 'n of 3 right' */const g=ok[(Math.random()*ok.length)|0];if(g)nameAnswer(o,g);}}
+  const _ai=aiTick;aiTick=function(o){const r=_ai.apply(this,arguments);try{mystAI(o);}catch(err){}return r;};
+  /* ---------- drawing: search area, study / dig bars ---------- */
+  const _dh=drawHints;drawHints=function(c,now){const r=_dh.apply(this,arguments);try{drawMyst(c,now);}catch(err){if(!window.__mysErr){window.__mysErr=1;console.warn('myst draw',err);}}return r;};
+  function drawMyst(c,now){if(!G||!G.myst||MYST.off)return;const z=cam.z,x0=cam.x-40,y0=cam.y-40,x1=cam.x+W/z+40,y1=cam.y+H/z+40;
+    if(G.mysShow!==false&&mysWinner()==null&&!PM(0).found){const v=cand(0);if(v&&v.length<6000){c.save();c.fillStyle='rgba(255,206,60,'+(.27+.08*Math.sin(now/400))+')';
+      for(const t of v){const x=(t%MW)*TILE,y=((t/MW)|0)*TILE;if(x<x0||y<y0||x>x1||y>y1)continue;c.fillRect(x,y,TILE,TILE);}c.restore();}}
+    const bar=(x,y,f,col)=>{c.fillStyle='rgba(0,0,0,.6)';c.fillRect(x-17,y,34,6);c.fillStyle=col;c.fillRect(x-16,y+1,32*Math.max(0,Math.min(1,f)),4);};
+    for(const u of G.ents){if(u.kind!=='unit'||u.owner!==0||u.dead)continue;if(u.x<x0||u.y<y0||u.x>x1||u.y>y1)continue;
+      if(u.mdig&&u.mdt>0)bar(u.x,u.y-40,u.mdt/MYST.dig,'#c9a070');}}
+  const _dm=drawMini;drawMini=function(){const r=_dm.apply(this,arguments);try{if(G&&G.myst&&G.mysShow!==false&&mysWinner()==null&&!PM(0).found){const v=cand(0);if(v&&v.length<6000){const m=mctx,s=mini.width/MW;m.fillStyle='rgba(255,214,90,.55)';for(const t of v)m.fillRect((t%MW)*s,((t/MW)|0)*s,s,s);}}}catch(err){}return r;};
+  /* ---------- a selected ruin shows its name and who took its clues ---------- */
+  const _rp=renderPanel;renderPanel=function(){const r=_rp.apply(this,arguments);try{if(!G||!G.myst||MYST.off)return r;const s=selEnts();if(s.length!==1||s[0].type!=='ruin'||!s[0].myst)return r;const e=s[0];
+      const nm=document.querySelector('#info .nm');if(nm&&e.mname)nm.textContent='Ruins: the '+e.mname;
+      if(e.looted&&e.mby!==undefined){const sb=document.querySelector('#info .sub');if(sb)sb.textContent=e.mby===0?'Explored by you: clues in your journal 📜':'Explored by the enemy';}}catch(err){}return r;};
+  /* ---------- the journal ---------- */
+  let sel3=[-1,-1,-1],lastKey='',seenK=0;
+  try{const st=document.createElement('style');st.textContent=
+    '#mysBtn{position:absolute;right:calc(6px + var(--sr));top:calc(133px + var(--st));z-index:3;width:46px;height:32px;border:1px solid var(--edge);border-radius:9px;background:rgba(74,56,38,.93);font-size:16px;padding:0;display:flex;align-items:center;justify-content:center;gap:2px}'+
+    '#mysBtn small{font-size:10px;font-weight:800;color:var(--gold)}#mysBtn.new{border-color:var(--gold);box-shadow:0 0 10px rgba(255,214,90,.8)}#app.swap #mysBtn{right:auto;left:calc(6px + var(--sl))}'+
+    '#mysBox{position:absolute;left:50%;top:calc(34px + var(--st));transform:translateX(-50%);z-index:9;width:min(94vw,560px);max-height:calc(100% - 44px - var(--st) - var(--sb));overflow-y:auto;background:rgba(36,27,18,.97);border:1px solid var(--gold);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.6);font-size:13px;line-height:1.35}'+
+    '#mysBox[hidden]{display:none}#mysBox h3{margin:0 0 2px;font-family:Cinzel,Georgia,serif;color:var(--gold);font-size:17px}#mysBox .ms{color:var(--muted);font-size:12px;margin-bottom:6px}'+
+    '#mysBox h4{margin:10px 0 4px;font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em}#mysBox ul{margin:0;padding-left:18px}#mysBox li{margin:2px 0}'+
+    '#mysBox .chips{display:flex;flex-wrap:wrap;gap:4px}#mysBox .chip{border:1px solid var(--edge);border-radius:14px;padding:4px 9px;background:var(--btn);font-size:12px}#mysBox .chip.x{opacity:.35;text-decoration:line-through}#mysBox .chip.on{border-color:var(--gold);background:#6a4d22;color:#ffe9a8}'+
+    '#mysBox .ph{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:.12em;word-spacing:.4em;background:#1c140c;border-radius:8px;padding:8px;line-height:1.7}'+
+    '#mysBox .row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}#mysBox .mb{background:var(--btn);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-weight:700}#mysBox .mb.alt{border-color:var(--edge)}#mysBox .mb:disabled{opacity:.4}';
+    document.head.appendChild(st);}catch(err){}
+  function els(){let b=document.getElementById('mysBtn');if(!b){const app=document.getElementById('app');if(!app)return null;b=document.createElement('button');b.id='mysBtn';b.setAttribute('aria-label','Mystery journal');app.appendChild(b);
+      b.addEventListener('click',e=>{e.stopPropagation();const x=document.getElementById('mysBox');if(!x.hidden){x.hidden=true;return;}x.hidden=false;try{const S=PM(0);seenK=S.got.length*2+(S.found?1:0);}catch(e){}lastKey='';render();});
+      const x=document.createElement('div');x.id='mysBox';x.hidden=true;app.appendChild(x);x.addEventListener('click',onBox);x.addEventListener('pointerdown',e=>e.stopPropagation());}
+    return [b,document.getElementById('mysBox')];}
+  function render(){const E=els();if(!E||!G||!G.myst)return;const[b,x]=E,M=G.myst,S=PM(0),K=known(0),lt=shownLetters(0),win=mysWinner();
+    const N=M.ruins.length,mine=S.got.length,theirs=(PM(1).got||[]).length,left=M.ruins.filter(R=>{const e=G.byId.get(R.id);return e&&!e.looted;}).length;
+    let h='<h3>The Ancients\' Mystery</h3><div class="ms">Ruins explored: you '+mine+' · enemy '+theirs+' · '+left+' left</div>';
+    if(win===0){const wp=wonderPOI(),wb=wonderBld();h+='<div style="color:#bff5a8;font-weight:700">You solved the mystery! The relic is the '+MYS_REL[M.ans[2]]+': while your Wonder stands it '+POWTXT[relPow()]+'.</div>';
+      if(wb&&wb.owner===0)h+='<div class="ms">Your Wonder stands. Hold it to win.</div>';else if(wp&&wp.wst==='restoring')h+='<div class="ms">Restoring: '+Math.round((wp.wp||0)*100)+'%. Tap the Wonder with villagers selected to help.</div>';
+      else if(wp){const c=wCost(0);h+='<div class="row2"><button class="mb" data-m="restore">🏛 Restore the Wonder ('+Object.entries(c).map(([k,v])=>v+' '+({s:'stone',g:'gold',w:'wood'})[k]).join(', ')+')</button></div><div class="ms">Then send villagers to it. Hold it '+Math.round(WONDER.hold/60)+' minutes to win.</div>';}}
+    else if(win===1)h+='<div style="color:#ffb4a4;font-weight:700">The enemy solved the mystery first.</div>';
+    h+='<h4>Where is the vault?</h4>';const cl=[];for(const i of S.got){const R=M.ruins[i];if(!R)continue;cl.push(predText(R.map,0));if(R.extra)cl.push(predText(R.extra,0));}
+    for(const d of S.digs.slice(-4))cl.push('You dug and found nothing: the vault is <b>'+BANDS[d[2]][2]+'</b> from that spot.');
+    h+=cl.length?'<ul>'+cl.map(t=>'<li>'+t+'</li>').join('')+'</ul>':'<div class="ms">No clues yet. Find the '+N+' ancient ruins and explore them: each one holds clues.</div>';
+    if(S.found)h+='<div style="color:#bff5a8;margin-top:4px">✔ You found the vault.</div>';
+    else if(cl.length)h+='<div class="ms" style="margin-top:4px">The gold glow on the map and minimap shows every spot that fits your clues.</div>';
+    if(win==null&&!S.found)h+='<div class="row2"><button class="mb" data-m="dig">⛏ Dig for the vault</button><button class="mb alt" data-m="show">'+(G.mysShow===false?'Show':'Hide')+' search area</button></div>';
+    const names=[['Who built the ruins?',MYS_WHO],['What destroyed them?',MYS_WHAT],['What did they hide?',MYS_REL]];const canName=S.found&&win==null&&G.t>=(S.lock||0);
+    names.forEach(([t,L],l)=>{h+='<h4>'+t+'</h4><div class="chips">'+L.map((n,i)=>{const out=K[l].has(i);return '<button class="chip'+(out?' x':'')+(sel3[l]===i?' on':'')+'" data-m="pick" data-l="'+l+'" data-i="'+i+'"'+(out||!canName?' disabled':'')+'>'+n+'</button>';}).join('')+'</div>';});
+    if(S.found&&win==null){if(G.t<(S.lock||0))h+='<div class="ms" style="margin-top:6px">The vault is sealed for '+Math.ceil((S.lock-G.t))+' s.'+(S.last?' Last guess: '+S.last[3]+' of 3 right.':'')+'</div>';
+      else h+='<div class="row2"><button class="mb" data-m="name"'+(sel3.every(v=>v>=0)?'':' disabled')+'>Name the answer</button>'+(S.last?'<span class="ms" style="align-self:center">Last guess: '+S.last[3]+' of 3 right</span>':'')+'</div>';}
+    else if(!S.found)h+='<div class="ms" style="margin-top:6px">Find the vault to name the answer.</div>';
+    const done=win!=null,sl=slotsOf(M.ans).map(w=>done?w.trim():[...w].map(c=>lt.includes(c)?c:'·').join(''));
+    h+='<h4>The carving</h4><div class="ph">THE <b>'+sl[0]+'</b><br>FELL TO <b>'+sl[1]+'</b><br>AND HID THE <b>'+sl[2]+'</b></div>'+(done?'':'<div class="ms">Each name fills its row of 13 stones; gaps and spaces stay hidden.</div>');
+    h+='<div class="row2"><button class="mb alt" data-m="close">Close</button></div>';x.innerHTML=h;}
+  function onBox(e){const t=e.target.closest('[data-m]');if(!t||!G)return;e.stopPropagation();const m=t.dataset.m;const x=document.getElementById('mysBox');
+    if(m==='close'){x.hidden=true;return;}
+    if(m==='show'){G.mysShow=G.mysShow===false;lastKey='';render();return;}
+    if(m==='dig'){const vs=selEnts().filter(u=>u.kind==='unit'&&u.owner===0&&u.type==='villager');if(!vs.length){toast('Select a villager first, then tap Dig');return;}G.mysDig=true;x.hidden=true;toast('Tap the ground where your villager should dig');return;}
+    if(m==='pick'){const l=+t.dataset.l,i=+t.dataset.i;sel3[l]=sel3[l]===i?-1:i;lastKey='';render();return;}
+    if(m==='restore'){wact();x.hidden=true;return;}
+    if(m==='name'){if(!sel3.every(v=>v>=0))return;act(sel3.slice());sel3=[-1,-1,-1];lastKey='';setTimeout(render,400);return;}}
+  let lastG=null;
+  setInterval(()=>{try{if(G!==lastG){lastG=G;seenK=0;sel3=[-1,-1,-1];}const E=els();if(!E)return;const[b,x]=E;const st=document.getElementById('start');const on=!!(G&&!G.over&&G.myst&&!MYST.off&&!(st&&!st.hidden));b.hidden=!on;if(!on){x.hidden=true;return;}
+      const S=PM(0);b.innerHTML='📜<small>'+S.got.length+'/'+G.myst.ruins.length+'</small>';const nk=S.got.length*2+(S.found?1:0);b.classList.toggle('new',nk>seenK);
+      if(!x.hidden){const wq=wonderPOI(),k=JSON.stringify([S,(PM(1).got||[]).length,mysWinner(),G.mysShow,wq&&wq.wst,wq&&Math.round((wq.wp||0)*20),!!wonderBld(),S.lock>G.t?Math.ceil(S.lock-G.t):0,G.ents.filter(e=>e.type==='ruin'&&e.looted).length]);if(k!==lastKey){lastKey=k;render();}}}catch(err){}},500);
+  /* ===== step 3: the Ancients' Wonder (Josh, Oct 19: picked "The Ancients' Wonder") =====
+     A sealed temple (POI 'wonder', 4x4, blocks the ground) sits near the middle of the land from the start. Whoever solves the mystery can
+     restore it: journal button pays WONDER.cost (half after it has been destroyed once), then villagers tapped onto it work on it
+     (WONDER.work villager-seconds, more workers = faster). Restored = a real building DEF.wonder owned by that side (can be attacked);
+     hold it WONDER.hold s and you win. Destroyed = the countdown resets and the sealed ruin comes back (restorable again, half cost).
+     While it stands its relic gives a power: sun = heals your units nearby, storm = lightning on enemies nearby, stone = your
+     buildings take 25% less damage, wind = your units move 12% faster. Everyone sees a countdown banner. The computer restores it if it
+     solved the mystery, and sends its army against yours. POI fields: e.wst 'sealed'|'restoring', e.wp 0..1, e.owner = who restores.
+     Per side: P.myst.wid (standing wonder id), P.myst.holdT, P.myst.wbuilt (times restored). Art: placeholder drawn here (art chats: please replace). */
+  const WONDER={cost:{s:1000,g:1000,w:500},work:600,hold:300,size:4,hp:3500,heal:3,boltDmg:28};
+  const RELPOW=['sun','storm','stone','wind','sun','stone','wind','storm'],POWTXT={sun:'heals your units near it',storm:'strikes nearby enemies with lightning',stone:'your buildings take 25% less damage',wind:'your units move 12% faster'};
+  DEF.wonder={kind:'bld',name:"Ancients' Wonder",hp:WONDER.hp,size:WONDER.size,sight:9,arm:2,cost:{},time:0};
+  const relPow=()=>G.myst?RELPOW[G.myst.ans[2]]:null;
+  function wonderPOI(){return G.ents.find(e=>e.kind==='poi'&&e.type==='wonder'&&!e.dead);}
+  function wonderBld(){return G.ents.find(e=>e.kind==='bld'&&e.type==='wonder'&&!e.dead);}
+  function occW(tx,ty,id){for(let y=ty;y<ty+WONDER.size;y++)for(let x=tx;x<tx+WONDER.size;x++)if(inB(x,y))G.occ[ti(x,y)]=id;}
+  function placeWonder(){if(wonderPOI()||wonderBld())return;const B=G.landBox||[0,0,MW,MH],cx=((B[0]+B[2])/2)|0,cy=((B[1]+B[3])/2)|0,S=WONDER.size,IM=typeof islMap==='function'?islMap():null;
+    const ok=(tx,ty)=>{for(let y=ty-1;y<ty+S+1;y++)for(let x=tx-1;x<tx+S+1;x++){if(!inB(x,y))return false;const i=ti(x,y);if(G.terrain[i]!==0||(IM&&IM[i]))return false;const o=G.occ[i];if(o){const e=G.byId.get(o);if(!(e&&e.type==='tree'))return false;}}
+      return !G.ents.some(e=>(e.kind==='poi'||e.kind==='bld')&&!e.dead&&Math.abs(e.tx-tx)<S+3&&Math.abs(e.ty-ty)<S+3);};
+    let spot=null;for(let r=0;r<40&&!spot;r++)for(let dy=-r;dy<=r&&!spot;dy++)for(let dx=-r;dx<=r&&!spot;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(ok(cx+dx-2,cy+dy-2))spot=[cx+dx-2,cy+dy-2];}
+    if(!spot)return;const[tx,ty]=spot;
+    for(let y=ty;y<ty+S;y++)for(let x=tx;x<tx+S;x++){const id=G.occ[ti(x,y)];const e=id&&G.byId.get(id);if(e&&e.type==='tree'){e.dead=true;G.byId.delete(e.id);}G.occ[ti(x,y)]=0;}
+    G.ents=G.ents.filter(e=>!(e.dead&&e.type==='tree'));
+    const e={kind:'poi',type:'wonder',owner:-1,tx,ty,size:S,x:(tx+S/2)*TILE,y:(ty+S/2)*TILE,wst:'sealed',wp:0};addEnt(e);occW(tx,ty,e.id);}
+  function wCost(o){const S=PM(o),k=S&&S.wbuilt?.5:1,c={};for(const r in WONDER.cost)c[r]=Math.round(WONDER.cost[r]*k);return c;}
+  function startRestore(o){const S=PM(o),P=G.players[o],w=wonderPOI();if(!S||!S.solved||!w||w.wst!=='sealed'||wonderBld())return false;const c=wCost(o);
+    if(!canAfford(P,c)){sayTo(o,'Restoring the Wonder needs '+Object.entries(c).map(([k,v])=>v+' '+({s:'stone',g:'gold',w:'wood',f:'food'})[k]).join(', '));return false;}
+    for(const r in c)P[r]-=c[r];w.wst='restoring';w.wp=0;w.owner=o;
+    sayTo(o,'Send villagers to the Ancients\' Wonder: tap it with villagers selected');
+    const other=1-o;if(MPHU(other)&&MPTW(other))toast('⚠ '+(other===0?'The red tribe':'Your friend')+' is restoring the Ancients\' Wonder! Stop them');
+    if(other===0&&!isClient())G.ping={x:w.x,y:w.y,t:8};return true;}
+  window.__wonderAct=(o)=>startRestore(o);
+  function wact(){const mp=window.__mp;if(mp&&mp.role==='client'&&mp.ready){mp.send({k:'x',f:'wonder',a:1});return;}
+    if(mp&&mp.role==='host'){mp.inTick=true;try{startRestore(0);}finally{mp.inTick=false;mp.tw=0;}}else startRestore(0);}
+  setTimeout(()=>{try{const mp=window.__mp;if(mp){mp.X=mp.X||{};mp.X.wonder=(o)=>startRestore(o);}}catch(err){}},0);
+  function finishRestore(w){const o=w.owner,S=PM(o);for(let y=w.ty;y<w.ty+WONDER.size;y++)for(let x=w.tx;x<w.tx+WONDER.size;x++)if(inB(x,y)&&G.occ[ti(x,y)]===w.id)G.occ[ti(x,y)]=0;
+    w.dead=true;G.byId.delete(w.id);G.ents=G.ents.filter(e=>e!==w);
+    for(const u of G.ents)if(u.mwork===w.id){if(u.order&&u.order.type==='mwork')u.order=null;delete u.mwork;}
+    const b=mkBld('wonder',o,w.tx,w.ty,true);if(!b)return;S.wid=b.id;WB[b.id]={tx:b.tx,ty:b.ty,x:b.x,y:b.y,id:b.id,dead:true};S.holdT=G.t;S.wbuilt=(S.wbuilt||0)+1;
+    sayTo(o,'The Ancients\' Wonder stands! Hold it for '+Math.round(WONDER.hold/60)+' minutes to win. Power: '+POWTXT[relPow()]);
+    const other=1-o;if(MPHU(other)&&MPTW(other))toast('⚠ The enemy restored the Ancients\' Wonder! Destroy it within '+Math.round(WONDER.hold/60)+' minutes');
+    if(!isClient()){G.ping={x:b.x,y:b.y,t:8};try{sfx('done',b.x,b.y);}catch(e){}}}
+  function wonderTick(dt){if(MYST.off||isClient()||!G.myst)return;wonderFallen();placeWonder();const w=wonderPOI();
+    // workers
+    if(w&&w.wst==='restoring'){let n=0;for(const u of G.ents){if(!u.mwork||u.kind!=='unit')continue;const o=u.order;const stop=()=>{if(u.order&&u.order.type==='mwork')u.order=null;delete u.mwork;};
+        if(u.dead||u.mwork!==w.id||u.owner!==w.owner){stop();continue;}if(o&&o.type==='move'&&o.mwk)continue;if(o&&o.type!=='mwork'){delete u.mwork;continue;}
+        if(!o){const d=Math.max(Math.abs(u.x-w.x),Math.abs(u.y-w.y));if(d>(WONDER.size/2+2.2)*TILE){stop();continue;}u.order={type:'mwork',id:w.id};u.path=null;}
+        u.working=true;u.face=Math.atan2(w.y-u.y,w.x-u.x);n++;if(Math.random()<dt*.6)emit('dust',u.x+(Math.random()-.5)*10,u.y,1);}
+      if(n)w.wp=Math.min(1,(w.wp||0)+dt*Math.pow(n,.85)/WONDER.work);if(w.wp>=1)finishRestore(w);}
+    // standing wonder: countdown, powers, destroyed
+    for(const o of[0,1]){const S=PM(o);if(!S||!S.wid)continue;const b=G.byId.get(S.wid);if(!b||b.dead)continue;
+      const pw=relPow(),R=10*TILE;
+      if(pw==='sun'){for(const u of G.ents)if(u.kind==='unit'&&u.owner===o&&!u.dead&&u.hp<u.maxHp&&Math.abs(u.x-b.x)<R&&Math.abs(u.y-b.y)<R)u.hp=Math.min(u.maxHp,u.hp+WONDER.heal*dt);}
+      else if(pw==='storm'&&(S.boltT=(S.boltT||0)-dt)<=0){S.boltT=2;const en=G.ents.filter(u=>u.kind==='unit'&&!u.dead&&u.owner<2&&u.owner!==o&&!(DEF[u.type]&&DEF[u.type].animal)&&Math.hypot(u.x-b.x,u.y-b.y)<9*TILE);
+        if(en.length){const t=en[(Math.random()*en.length)|0];damage(t,WONDER.boltDmg,b);(G.bolts=G.bolts||[]).push({x:t.x,y:t.y,t:G.t});}}
+      if(G.t-S.holdT>=WONDER.hold&&!G.over){G.over=true;try{clearSave();}catch(e){}const win=o===0;$('endTitle').textContent=win?'Victory':'Defeat';
+        $('endText').textContent=(win?'Your tribe restored the Ancients\' Wonder and held it. The cycle is broken.':'The red tribe held the Ancients\' Wonder. Their legend outlives yours.')+' Wonder victory at '+fmtTime(G.t)+'.';$('end').hidden=false;}}}
+  function wonderFallen(){for(const o of[0,1]){const S=PM(o);if(!S||!S.wid)continue;const b=G.byId.get(S.wid)||WB[S.wid];if(b&&!b.dead)continue;
+      S.wid=0;S.holdT=0;if(b&&!wonderPOI()){for(let y=b.ty;y<b.ty+WONDER.size;y++)for(let x=b.tx;x<b.tx+WONDER.size;x++)if(inB(x,y)&&G.occ[ti(x,y)]===b.id)G.occ[ti(x,y)]=0;
+        const e={kind:'poi',type:'wonder',owner:-1,tx:b.tx,ty:b.ty,size:WONDER.size,x:b.x,y:b.y,wst:'sealed',wp:0,ruined:1};addEnt(e);occW(b.tx,b.ty,e.id);}
+      sayTo(o,'Your Wonder was destroyed. You can restore it again for half the cost');const other=1-o;if(MPHU(other)&&MPTW(other))toast('The enemy\'s Wonder has fallen!');}}
+  const WB={};   // remembers each standing Wonder (its footprint) in case the building is removed from the lists when it dies
+  const _up2=updPOIs;updPOIs=function(dt){   // the base code treats every other POI as a sacred site: hide the Wonder from it
+    let wi=-1,we=null;try{wi=G.ents.findIndex(e=>e.kind==='poi'&&e.type==='wonder');if(wi>=0){we=G.ents[wi];G.ents.splice(wi,1);}}catch(err){}
+    let r;try{r=_up2.apply(this,arguments);}finally{if(we&&!G.ents.includes(we))G.ents.splice(Math.min(wi,G.ents.length),0,we);}
+    try{if(G&&!G.over)wonderTick(dt);}catch(err){console.warn('wonder',err);}return r;};
+  // stone relic: the holder's buildings take 25% less damage. wind relic: the holder's units move 12% faster
+  const holder=()=>{for(const o of[0,1]){const S=G.players[o]&&G.players[o].myst;if(S&&S.wid){const b=G.byId.get(S.wid);if(b&&!b.dead)return o;}}return -1;};
+  const _dmgW=damage;damage=function(t,amt){try{if(t&&t.kind==='bld'&&G.myst&&relPow()==='stone'&&holder()===t.owner){const a=[...arguments];a[1]=amt*.75;return _dmgW.apply(this,a);}}catch(err){}return _dmgW.apply(this,arguments);};
+  const _spd=speedOf;speedOf=function(u){const v=_spd.apply(this,arguments);try{if(G.myst&&relPow()==='wind'&&u&&holder()===u.owner)return v*1.12;}catch(err){}return v;};
+  // villagers tapped onto the Wonder while it is being restored by their side go to work on it
+  const _tapW=onTap;onTap=function(wx,wy){try{if(G&&!G.over&&G.myst&&!MYST.off){const w=wonderPOI();if(w&&Math.abs(wx-w.x)<WONDER.size*TILE/2+6&&Math.abs(wy-w.y)<WONDER.size*TILE/2+6){
+        const vs=selEnts().filter(u=>u.kind==='unit'&&u.owner===0&&u.type==='villager'&&!u.dead);
+        if(vs.length){if(w.wst==='restoring'&&w.owner===0){for(const u of vs){const a=Math.random()*6.283,t=[tl(w.x+Math.cos(a)*(WONDER.size/2+.8)*TILE),tl(w.y+Math.sin(a)*(WONDER.size/2+.8)*TILE)];u.order={type:'move',x:t[0],y:t[1],mwk:1};u.path=null;u.mwork=w.id;delete u.mdig;}
+            mark(w.x,w.y,'#ffd25a');toast(vs.length+' villager'+(vs.length>1?'s':'')+' restoring the Wonder');return;}
+          if(w.wst==='sealed'){toast(PM(0).solved?'Open the journal 📜 and tap Restore the Wonder first':'Sealed. Solve the Ancients\' mystery to open it');return;}}
+        else{setSel([w]);try{panelKeyLast='';}catch(e){}return;}}}}catch(err){}return _tapW.apply(this,arguments);};
+  const _uuW=updUnit;updUnit=function(u,dt){const r=_uuW.apply(this,arguments);try{if(u.mwork&&!u.order&&!u.dead){const w=G.byId.get(u.mwork);if(w&&w.wst==='restoring'&&Math.max(Math.abs(u.x-w.x),Math.abs(u.y-w.y))<=(WONDER.size/2+2.2)*TILE){u.order={type:'mwork',id:w.id};u.path=null;}}}catch(err){}return r;};
+  const aiBusyW=u=>u&&u.mwork&&G.aiPlayers&&G.aiPlayers.includes(u.owner);
+  {const _og2=orderGather;orderGather=function(u){if(aiBusyW(u))return;return _og2.apply(this,arguments);};}
+  /* ---------- the computer and the Wonder ---------- */
+  function wonderAI(o){const ai=G.ais&&G.ais[o];if(!ai||MYST.off||!G.myst)return;if((ai.wT=(ai.wT||0)-1)>0)return;ai.wT=8;const S=PM(o),P=G.players[o],w=wonderPOI(),en=1-o,SE=PM(en);
+    const army=G.ents.filter(u=>u.owner===o&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&!u.naval&&!u.air);
+    if(S.solved&&w&&w.wst==='sealed'&&!S.wid&&canAfford(P,wCost(o)))startRestore(o);
+    if(w&&w.wst==='restoring'&&w.owner===o){const vs=G.ents.filter(u=>u.owner===o&&u.type==='villager'&&!u.dead);const on=vs.filter(u=>u.mwork===w.id).length;
+      const free=vs.filter(u=>!u.mwork&&!u.mdig&&(!u.order||u.order.type==='gather')).sort((a,b)=>Math.hypot(a.x-w.x,a.y-w.y)-Math.hypot(b.x-w.x,b.y-w.y));
+      for(const u of free.slice(0,Math.max(0,6-on))){const a=Math.random()*6.283,t=[tl(w.x+Math.cos(a)*(WONDER.size/2+.8)*TILE),tl(w.y+Math.sin(a)*(WONDER.size/2+.8)*TILE)];u.order={type:'move',x:t[0],y:t[1],mwk:1};u.path=null;u.mwork=w.id;}
+      for(const u of army)if(!u.order)orderMove([u],w.x+(Math.random()-.5)*5*TILE,w.y+(Math.random()-.5)*5*TILE);}   // guard the work
+    const eb=SE.wid&&G.byId.get(SE.wid);
+    if(eb&&!eb.dead){for(const u of army)if(!u.order||u.order.type==='move'||(u.order.auto&&u.order.id!==eb.id))if(Math.random()<.85){u.order={type:'attack',id:eb.id};u.path=null;}}   // all-out on the enemy's Wonder
+    else if(w&&w.wst==='restoring'&&w.owner===en){const ws=G.ents.filter(u=>u.owner===en&&u.mwork===w.id&&!u.dead);for(const u of army)if(!u.order||u.order.type==='move'){const t=ws[(Math.random()*ws.length)|0];if(t){u.order={type:'attack',id:t.id};u.path=null;}else orderMove([u],w.x,w.y);}}
+    const mb=S.wid&&G.byId.get(S.wid);if(mb&&!mb.dead)for(const u of army)if(!u.order&&Math.hypot(u.x-mb.x,u.y-mb.y)>8*TILE)orderMove([u],mb.x+(Math.random()-.5)*6*TILE,mb.y+(Math.random()-.5)*6*TILE);}
+  const _aiW=aiTick;aiTick=function(o){const r=_aiW.apply(this,arguments);try{wonderAI(o);}catch(err){}return r;};
+  /* ---------- drawing (placeholder until the art chats paint it) ---------- */
+  function paintWonder(c,x0,y0,S,st,p,owner,now){   // x0,y0 = top-left of the footprint in px, S = footprint px
+    const cx=x0+S/2,by=y0+S;c.save();
+    c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(cx,by-4,S*.58,S*.18,0,0,7);c.fill();
+    const stone=(k)=>['#8f8778','#a39a89','#b7ad9a','#c9bfab'][k],step=(i,w,h,y)=>{c.fillStyle=stone(i);c.fillRect(cx-w/2,y-h,w,h);c.fillStyle='rgba(0,0,0,.18)';c.fillRect(cx-w/2,y-2,w,2);};
+    let y=by-6;step(0,S*1.02,10,y);y-=10;step(1,S*.86,10,y);y-=10;step(2,S*.7,10,y);y-=10;
+    const cw=S*.56,ch=S*.62,top=y-ch;c.fillStyle='#6f675a';c.fillRect(cx-cw/2,top,cw,ch);
+    for(let i=0;i<5;i++){const xx=cx-cw/2+cw*(i+.5)/5;c.fillStyle=stone(3);c.fillRect(xx-4,top+6,8,ch-6);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(xx+2,top+6,2,ch-6);}
+    c.fillStyle=stone(2);c.beginPath();c.moveTo(cx-cw/2-8,top+6);c.lineTo(cx,top-S*.22);c.lineTo(cx+cw/2+8,top+6);c.closePath();c.fill();
+    c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.moveTo(cx-cw/2-8,top+6);c.lineTo(cx+cw/2+8,top+6);c.lineTo(cx+cw/2+8,top+9);c.lineTo(cx-cw/2-8,top+9);c.fill();
+    if(st==='standing'){const g=.5+.5*Math.sin(now/300);c.globalCompositeOperation='lighter';const rg=c.createRadialGradient(cx,top-S*.05,2,cx,top-S*.05,S*.7);rg.addColorStop(0,'rgba(255,220,120,'+(.45+.25*g)+')');rg.addColorStop(1,'rgba(255,200,80,0)');c.fillStyle=rg;c.fillRect(cx-S,top-S*.8,S*2,S*1.6);c.globalCompositeOperation='source-over';
+      c.fillStyle=owner===0?PCOL[0]:PCOL[1];c.fillRect(cx-1,top-S*.22-26,2,26);c.beginPath();c.moveTo(cx+1,top-S*.22-26);c.lineTo(cx+16,top-S*.22-21);c.lineTo(cx+1,top-S*.22-16);c.fill();}
+    else{const vin=st==='sealed'?1:Math.max(0,1-p*1.4);if(vin>0){c.globalAlpha=vin;c.fillStyle='#3f6a2b';for(let i=0;i<26;i++){const a=(i*137.5)%360,rx=cx-cw/2+((i*53)%100)/100*cw,ry=top+((i*29)%100)/100*ch;c.beginPath();c.ellipse(rx,ry,6,4,a,0,7);c.fill();}
+        c.fillStyle='#577f35';for(let i=0;i<14;i++){const rx=cx-S*.5+((i*71)%100)/100*S,ry=by-6-((i*37)%30);c.beginPath();c.ellipse(rx,ry,7,4,0,0,7);c.fill();}c.globalAlpha=1;}
+      c.strokeStyle='#d8c08a';c.lineWidth=2;c.beginPath();c.moveTo(cx-cw/2+10,top+ch*.35);c.lineTo(cx+cw/2-10,top+ch*.35);c.moveTo(cx-cw/2+10,top+ch*.35);c.lineTo(cx-cw/2+18,top+ch);c.stroke();   // sealed door seam
+      if(st==='restoring'){c.strokeStyle='#8a5a2e';c.lineWidth=2.5;for(let i=0;i<4;i++){const xx=cx-cw/2-6+i*(cw+12)/3;c.beginPath();c.moveTo(xx,by-30);c.lineTo(xx,top-6);c.stroke();}
+        for(let j=0;j<3;j++){const yy=top+j*(ch/2.6);c.beginPath();c.moveTo(cx-cw/2-8,yy);c.lineTo(cx+cw/2+8,yy);c.stroke();}
+        c.fillStyle='rgba(0,0,0,.6)';c.fillRect(cx-30,top-S*.22-16,60,7);c.fillStyle='#ffd25a';c.fillRect(cx-29,top-S*.22-15,58*p,5);}}
+    c.restore();}
+  const _ds=drawSacred;drawSacred=function(c,e,now){if(e&&e.type==='wonder'){try{paintWonder(c,e.tx*TILE,e.ty*TILE,WONDER.size*TILE,e.wst,e.wp||0,e.owner,now);}catch(err){}return;}return _ds.apply(this,arguments);};
+  const _dbW=drawBuilding;drawBuilding=function(c,e,now){if(e&&e.type==='wonder'){try{paintWonder(c,e.tx*TILE,e.ty*TILE,WONDER.size*TILE,e.built===false?'restoring':'standing',1,e.owner,now);}catch(err){}return;}return _dbW.apply(this,arguments);};
+  setTimeout(()=>{try{if(!THUMB.wonder){const cv=document.createElement('canvas');cv.width=cv.height=96;const g=cv.getContext('2d');paintWonder(g,14,30,68,'standing',1,0,0);THUMB.wonder=cv.toDataURL();}}catch(err){}},200);
+  /* ---------- banner: everyone sees the race ---------- */
+  setInterval(()=>{try{let el=document.getElementById('wonBar');const app=document.getElementById('app');if(!app)return;
+      if(!el){el=document.createElement('div');el.id='wonBar';el.style.cssText='position:absolute;left:50%;transform:translateX(-50%);top:calc(64px + var(--st));z-index:4;background:rgba(40,28,10,.92);border:1px solid #ffd25a;border-radius:9px;padding:4px 10px;font-size:12px;color:#ffe9a8;pointer-events:none;white-space:nowrap';el.hidden=true;app.appendChild(el);}
+      if(!G||G.over||!G.myst||MYST.off){el.hidden=true;return;}let tx='';
+      for(const o of[0,1]){const S=G.players[o]&&G.players[o].myst;if(S&&S.wid){const b=G.byId.get(S.wid);if(b&&!b.dead)tx='🏛 Ancients\' Wonder: '+(o===0?'you win':'the enemy wins')+' in '+fmtTime(Math.max(0,WONDER.hold-(G.t-S.holdT)));}}
+      const w=wonderPOI();if(!tx&&w&&w.wst==='restoring')tx='🏛 '+(w.owner===0?'Restoring the Wonder':'The enemy is restoring the Wonder')+': '+Math.round((w.wp||0)*100)+'%';
+      el.hidden=!tx;if(tx&&el.textContent!==tx)el.textContent=tx;}catch(err){}},500);
+  /* ---------- panel for the sealed Wonder ---------- */
+  const _rpW=renderPanel;renderPanel=function(){const r=_rpW.apply(this,arguments);try{const s=selEnts();if(s.length===1&&s[0].type==='wonder'){const e=s[0],S=PM(0);
+        const nm=document.querySelector('#info .nm');if(nm)nm.textContent='Ancients\' Wonder';const sb=document.querySelector('#info .sub');
+        if(e.kind==='poi'){if(sb)sb.textContent=e.wst==='restoring'?('Restoring: '+Math.round((e.wp||0)*100)+'%'):e.ruined?'Fallen':'Sealed';
+          const h=document.querySelector('#acts .hint')||(()=>{const d=document.createElement('div');d.className='hint';const a=document.getElementById('acts');a&&a.appendChild(d);return d;})();
+          h.textContent=e.wst==='restoring'?(e.owner===0?'Tap it with villagers selected to help restore it.':'The enemy is restoring it. Kill their workers!'):S.solved?'Open the journal 📜 and tap Restore the Wonder.':'Solve the Ancients\' mystery (journal 📜) to unseal it. Restored and held '+Math.round(WONDER.hold/60)+' minutes = victory.';}
+        else if(sb&&e.owner===0)sb.textContent='Hold it to win. Power: '+POWTXT[relPow()];}}catch(err){}return r;};
+  window.__myst={MYST,tap:(x,y)=>onTap(x,y),setup,cand,known,shownLetters,phraseOf:()=>G.myst&&phraseOf(G.myst),solveRuin,giveClues,nameAnswer,digAt,winner:mysWinner,startRestore,wonderPOI,wonderBld,WONDER};
+}
+/* ===== END Ancients' Mystery step 1 ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -11240,7 +11588,7 @@ function rebuildHoles(o,holes,vills){const P=G.players[o];let n=0,left=0;const m
   for(const r of holes){if(P.s<WALL_FIX||!fits(r.x,r.y,1,0,false,true)){left++;continue;}P.s-=WALL_FIX;const w=mkBld(r.gate?'gate':'wall',o,r.x,r.y,false);w.span=r.span.slice();if(r.gate)gateArr()[ti(r.x,r.y)]=o+1;displaceUnits(w);made.push(w);n++;G.rubble.splice(G.rubble.indexOf(r),1);}
   if(n){pairGates(o);let vs=(vills||[]).filter(v=>v&&!v.dead&&v.type==='villager'&&v.owner===o);if(!vs.length)vs=G.ents.filter(v=>v.type==='villager'&&v.owner===o&&!v.dead&&(!v.order||v.order.type==='gather')).sort((a,b)=>Math.hypot(a.x-made[0].x,a.y-made[0].y)-Math.hypot(b.x-made[0].x,b.y-made[0].y)).slice(0,2);
     vs.forEach((v,i)=>{v.afterWall=v.order&&v.order.type==='gather'?v.order:(v.afterWall||null);orderBuild(v,made[i%made.length]);});}
-  if(o===0)toast(n?'Rebuilding '+n+' wall section'+(n>1?'s':'')+' for '+n*WALL_FIX+' stone'+(left?'. '+left+' more need stone or a clear spot':''):'Not enough stone to rebuild ('+WALL_FIX+' per section)');return n;}
+  if((MPHU(o))&&MPTW(o))toast(n?'Rebuilding '+n+' wall section'+(n>1?'s':'')+' for '+n*WALL_FIX+' stone'+(left?'. '+left+' more need stone or a clear spot':''):'Not enough stone to rebuild ('+WALL_FIX+' per section)');return n;}
 // villagers repair damaged buildings: half the build cost, paid as the health comes back
 const NOREPAIR=new Set(['farm','goldmine','stonemine']);
 function canRepair(b,o){return alive(b)&&b.kind==='bld'&&b.built&&b.owner===o&&b.hp<b.maxHp-.5&&!NOREPAIR.has(b.type);}
