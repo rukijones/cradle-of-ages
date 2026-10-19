@@ -6425,6 +6425,29 @@ try{(function(){
   const prev=GFX.wallSpr;
   GFX.wallSpr=function(e){try{const P=GFX.WALLS_IX&&G.players[e.owner],a=P&&P.age,D=a>=6?K[6]:a===5?K[5]:null;if(D){const s=spr(e,D,cache[a>=6?6:5]);if(s)return s}}catch(err){}return prev.call(this,e)};
 }catch(err){}})();
+/* sick cows and sheep in 3D (Josh: "Sick animals need 3D image"; handed to art chat 3 Oct 16). A sick animal (u.sick) is drawn with its own 3D
+   sheet instead of the old 2D drawing: sickly green-grey, slow sway, slowed motion, flies buzzing over its back, green stink puffs, and the red
+   "!" alert (blinks faster in the last stage). Drawn through a small offscreen canvas at screen resolution. GFX.SICK3D=false = old drawing. */
+(function(){try{
+  GFX.SICK3D=true;const OC=document.createElement('canvas'),BW=96,BH=84,FY=62;
+  function fx(c,u,x,y,now,h){const t=now/1000,late=G&&G.t-u.sick>45;c.save();c.translate(x,y);
+    for(let k=0;k<3;k++){const ph=(t*.7+k/3)%1;c.fillStyle='rgba(126,190,64,'+(.75*(1-ph)).toFixed(2)+')';c.beginPath();c.arc(-3+k*3+Math.sin(ph*6+k)*1.6,-h*.7-ph*h*.6,(1.3+ph*1.8)*h/16,0,7);c.fill()}
+    for(let k=0;k<3;k++){const a=t*(5+k*1.3)+k*2.1+(u.id||0),fx=Math.cos(a)*h*.45,fy=-h*.85+Math.sin(a*1.7)*h*.18;c.fillStyle='rgba(20,20,20,.9)';c.beginPath();c.arc(fx,fy,1.05,0,7);c.fill();
+      c.fillStyle='rgba(255,255,255,.45)';c.beginPath();c.ellipse(fx,fy-.8,1,.45,0,0,7);c.fill()}
+    if(Math.floor(t*(late?4:2))%2===0){c.fillStyle='#e04a3a';c.beginPath();c.roundRect(-2.4,-h-12,4.8,7.4,1.6);c.fill();c.fillStyle='#fff';c.font='bold 6px sans-serif';c.textAlign='center';c.fillText('!',0,-h-6.2)}
+    c.restore()}
+  function sick(c,u,x,y,now,k,gs){if(!GFX.SICK3D||GFX.mode!=='V23D')return false;const T=c.getTransform(),s=Math.min(6,Math.hypot(T.a,T.b)||1),pw=Math.ceil(BW*s),ph=Math.ceil(BH*s);
+    if(OC.width<pw||OC.height<ph){OC.width=Math.max(OC.width,pw);OC.height=Math.max(OC.height,ph)}const g=OC.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,pw,ph);g.setTransform(s,0,0,s,0,0);
+    let ok=false;try{ok=GFX.drawBeast(g,u,BW/2,FY,now*.55,k,gs)}catch(e){ok=false}if(!ok)return false;
+    g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-atop';g.fillStyle='rgba(118,150,52,.42)';g.fillRect(0,0,pw,ph);g.globalCompositeOperation='source-over';
+    const sw=Math.sin(now/700+(u.id||0))*.05;c.save();c.translate(x,y+4);c.rotate(sw);c.drawImage(OC,0,0,pw,ph,-BW/2,-FY-4,BW,BH);c.restore();
+    fx(c,u,x,y,now,(k==='cow'?26:19)*gs);return true}
+  const _dc=drawCow;drawCow=function(c,u,x,y,now){if(u&&u.sick&&!u.dead){let gs=1;try{const young=youngOf(u);gs=young?.55+.45*((G.t-u.born)/LIVE.cow.young):1}catch(e){}
+      try{if(sick(c,u,x,y,now,'cow',gs)){if(GFX.beastRing)GFX.beastRing(c,u,x,y,GFX_BEAST3D.cow.W*1.25*gs);return}}catch(e){}}return _dc(c,u,x,y,now)};
+  const _ds=drawSheep;drawSheep=function(c,u,x,y,now){if(u&&u.sick&&!u.dead){const lamb=u.born&&G&&G.t-u.born<60,gs=lamb?.55+.45*((G.t-u.born)/60):1;
+      try{if(sick(c,u,x,y,now,'sheep',gs))return}catch(e){}}return _ds(c,u,x,y,now)};
+  if(typeof drawCollar==='function'){const _dk=drawCollar;drawCollar=function(c,u,x,y,now){if(u&&u.sick&&GFX.SICK3D&&GFX.mode==='V23D'){const v=Object.create(u);v.sick=0;return _dk(c,v,x,y,now)}return _dk(c,u,x,y,now)}}
+}catch(err){}})();
 /* ===== END art chat 3: late ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
