@@ -11907,6 +11907,25 @@ function bkCard(){if($('bkcard'))return;const el=document.createElement('div');e
 setInterval(()=>{try{if(!G||!G.players||G.over||(G.ais&&G.ais[0]))return;const P=G.players[0];if(P.bkCard)return;const mp=window.__mp;if(mp&&mp.role==='client')return;
   if(G.ents.some(e=>e.type==='market'&&e.owner===0&&e.built&&!e.dead)&&G.ents.some(e=>e.type==='bakery'&&e.owner===0&&e.built&&!e.dead)){P.bkCard=1;bkCard()}}catch(err){}},2000);
 
+/* ===== Tanks: turret + shooting on the move (gameplay chat 1, Josh Oct 19: "move like real tanks... the top turret part is separate from the bottom";
+   picked "shoot on the move"). u.tAim = turret angle (same convention as u.face): turns toward the target at TURRET.rate rad/s, back to the hull
+   (u.face) when there is no target. While a tank drives (move order) it keeps driving and fires at enemies in range once the turret is on them.
+   Art chat 3 draws the turret from u.tAim (hull from u.face). TURRET.off=true = old behaviour. ===== */
+const TURRET={off:false,types:new Set(['tank']),rate:2.45,cone:.35};
+function angD(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d}
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(TURRET.off||!u||u.dead||!TURRET.types.has(u.type))return r;
+  if(u.tAim===undefined)u.tAim=u.face||0;const o=u.order;let t=null;
+  if(o&&o.type==='attack'){t=G.byId.get(o.id);if(t&&t.dead)t=null}
+  const rg=rangeOf(u)*TILE;
+  if(!t&&o&&o.type==='move'){if(G.t-(u._tsT||-9)>.3){u._tsT=G.t;u._tsI=0;const e=nearestEnemy(u,rg+TILE);u._tsI=e?e.id:0}t=u._tsI?G.byId.get(u._tsI):null;if(t&&t.dead)t=null}
+  const want=t?Math.atan2(t.y-u.y,t.x-u.x):(u.face||0),dA=angD(u.tAim,want),st=TURRET.rate*dt;
+  u.tAim+=Math.abs(dA)<=st?dA:Math.sign(dA)*st;
+  if(t&&o&&o.type==='move'&&u.cd<=0&&Math.abs(angD(u.tAim,want))<TURRET.cone&&!(t.air&&!AAOK.has(u.type))){
+    const dd=t.kind==='bld'?distPtEnt(u.x,u.y,t):Math.hypot(t.x-u.x,t.y-u.y)-(t.r||0);
+    if(dd<=rg+(t.r||0)){shoot(u,t,hitAmt(u,t),'bullet');u.cd=DEF[u.type].cd;u.fireOnMove=G.t}}
+}catch(err){}return r}})(updUnit)}catch(err){}
+window.__turret=TURRET;
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
