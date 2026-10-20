@@ -10949,11 +10949,11 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
 
 }
 {
-  const UIF=MP.UIF,SWAPK=new Set(MP.SWAPK),SKIPG=new Set(MP.SKIPG.concat(MP.UIF)),ESKIP=new Set(MP.ESKIP);
+  const UIF=MP.UIF,SWAPK=new Set(MP.SWAPK),SKIPG=new Set(MP.SKIPG.concat(MP.UIF)),ESKIP=new Set(MP.ESKIP),EPAIR=new Set(['found','disc','cap'])   /* per-side pairs on an entity ([you, them]): sacred sites */;
   const sw=v=>v===0?1:v===1?0:v;
   function swapOwners(){
     const fix=o=>{if(o&&typeof o==='object'&&'owner' in o)o.owner=sw(o.owner);};
-    for(const e of G.ents){e.owner=sw(e.owner);if(e.mby!==undefined)e.mby=sw(e.mby);if(Array.isArray(e.gar))e.gar.forEach(fix);if(Array.isArray(e.units))e.units.forEach(fix);}
+    for(const e of G.ents){e.owner=sw(e.owner);if(e.mby!==undefined)e.mby=sw(e.mby);for(const k of EPAIR)if(Array.isArray(e[k])&&e[k].length===2)e[k]=[e[k][1],e[k][0]];if(Array.isArray(e.gar))e.gar.forEach(fix);if(Array.isArray(e.units))e.units.forEach(fix);}
     for(const p of G.projs||[])p.owner=sw(p.owner);
     for(const k of SWAPK){const a=G[k];if(Array.isArray(a)&&a.length>=2){const t=a[0];a[0]=a[1];a[1]=t;}}
   }
@@ -11026,7 +11026,7 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
     const rmS=new Set(m.rm||[]);let gone=false;for(const e of G.ents)if(rmS.has(e.id)||e.id>=1e9){G.byId.delete(e.id);gone=true;}if(gone)G.ents=G.ents.filter(e=>!rmS.has(e.id)&&e.id<1e9);
     for(const[id,f,del,full]of m.ch){let e=G.byId.get(id);const isNew=!e;if(isNew){if(!f.kind)continue;e={};}
       if(full&&!isNew)for(const k of Object.keys(e))if(!(k in f)&&!ESKIP.has(k)&&typeof e[k]!=='function')delete e[k];   // drop what the friend's guesses added
-      for(const k in f){let v=f[k];if(k==='owner'||k==='mby')v=sw(v);else if((k==='gar'||k==='units')&&Array.isArray(v))v.forEach(o=>{if(o&&typeof o==='object'&&'owner' in o)o.owner=sw(o.owner);});e[k]=v;}
+      for(const k in f){let v=f[k];if(k==='owner'||k==='mby')v=sw(v);else if(EPAIR.has(k)&&Array.isArray(v)&&v.length===2)v=[v[1],v[0]];else if((k==='gar'||k==='units')&&Array.isArray(v))v.forEach(o=>{if(o&&typeof o==='object'&&'owner' in o)o.owner=sw(o.owner);});e[k]=v;}
       if(del)for(const k of del)delete e[k];
       if(isNew){e.px=e.x;e.py=e.y;G.ents.push(e);G.byId.set(id,e);}}
     if(m.n!=null&&Math.abs(G.ents.length-m.n)>0&&(MP.chk=(MP.chk||0)+1)%(MP.hz*2)===0)send({k:'ids?'});   // every 2 s, if counts differ, ask for the full id list
@@ -12286,14 +12286,14 @@ try{(function(){
   const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
   const bar=(who,f,txt)=>'<div class="vb"><b>'+(who==='y'?'You':'Enemy')+'</b><i class="'+who+'"><em style="width:'+Math.round(Math.max(0,Math.min(1,f))*100)+'%"></em></i><small>'+txt+'</small></div>';
   const ENEMY=()=>(window.__mp&&window.__mp.role)?'Your friend':'The enemy';
-  const live=e=>e&&!e.dead;
+  const live=e=>e&&!e.dead;let seenG=null,seenM=null;
   function sites(){return G.ents.filter(e=>e.kind==='poi'&&e.type==='sacred'&&!e.dead);}
   function known0(e){return !e.hid||(e.found&&e.found[0]);}
   // one snapshot of every win condition; hot = enemy close, mine = you close
   function state(){const R=[];if(!G||!G.players)return R;
     // conquest: your own side in full; the enemy only as far as you've seen it (Josh, Oct 20: "only count your own... not your enemy's, unless you've seen it")
     {const V=G.vis&&G.vis[0];const vis=e=>{try{return !!(V&&V[ti(tl(e.x),tl(e.y))])}catch(x){return false}};
-      const SEEN=G._vicSeen||(G._vicSeen=new Map());   // enemy building id -> {x,y} (remembered until you see it's gone)
+      if(seenG!==G){seenG=G;seenM=new Map();}const SEEN=seenM;   // kept outside G so online sync never touches it   // enemy building id -> {x,y} (remembered until you see it's gone)
       let n0=0,u0=0,uv=0;for(const e of G.ents){if(e.dead)continue;
         if(e.owner===0){if(e.kind==='bld')n0++;else if(e.kind==='unit'&&DEF[e.type]&&!DEF[e.type].animal)u0++;}
         else if(e.owner===1&&vis(e)){if(e.kind==='bld'&&e.built!==false)SEEN.set(e.id,{x:e.x,y:e.y});else if(e.kind==='unit'&&DEF[e.type]&&!DEF[e.type].animal&&!DEF[e.type].air)uv++;}}
