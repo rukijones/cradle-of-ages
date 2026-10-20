@@ -6106,7 +6106,9 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
    Oct 19 (Josh: "move like real tanks"): tank hull and turret are separate. vtank.webp now holds the hull only (walk + idle, 8 dirs, deck ring
    where the turret sits); the turret + gun is a 16-direction strip (data URI, V.vtank.tt) drawn on the hull's turret ring, turned by u.tAim
    (gameplay) or, until that exists, toward the attack target / last shot at 140 deg/s, back to the hull's heading when idle. Recoil, muzzle
-   flash and smoke follow the turret. GFX.TANK_TUR=false = turret drawn fixed to the hull's heading. ===== */
+   flash and smoke follow the turret. GFX.TANK_TUR=false = turret drawn fixed to the hull's heading.
+   Oct 19 (Josh: "I don't see the tank moving differently"): the game turns u.face to the target while firing, so the hull now keeps the
+   heading it last drove (GFX.TANK_HULL=false = old) and only the turret swings to the target. ===== */
 try{(function(){
   const V=GFX.VEH3D=GFX.VEH3D||{};
   Object.assign(V,{"vacar":{"file":"vacar","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"vacar","x":0,"n":8},"idle":{"f":"vacar","x":8,"n":1}},"size":38,"mz":[[105.0,99.5],[140.9,90.9],[155.8,70.3],[140.9,49.7],[105.0,41.2]]},"varty":{"file":"varty","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,8]},"rows5":1,"nc":17,"v":2,"pack":{"walk":{"f":"varty","x":0,"n":8},"idle":{"f":"varty","x":8,"n":1},"attack":{"f":"varty","x":9,"n":8}},"size":56,"mz":[[105.0,118.9],[164.9,104.7],[189.7,70.3],[164.9,36.0],[105.0,21.7]]},"vatgun":{"file":"vatgun","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,6]},"rows5":1,"nc":15,"v":2,"pack":{"walk":{"f":"vatgun","x":0,"n":8},"idle":{"f":"vatgun","x":8,"n":1},"attack":{"f":"vatgun","x":9,"n":6}},"size":38,"mz":[[105.0,142.5],[164.9,128.2],[189.7,93.9],[164.9,59.6],[105.0,45.3]]},"vbomber":{"file":"vbomber","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,1]},"rows5":1,"nc":1,"v":2,"pack":{"idle":{"f":"vbomber","x":0,"n":1}},"size":48},"vfgun":{"file":"vfgun","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,8]},"rows5":1,"nc":17,"v":2,"pack":{"walk":{"f":"vfgun","x":0,"n":8},"idle":{"f":"vfgun","x":8,"n":1},"attack":{"f":"vfgun","x":9,"n":8}},"size":40,"mz":[[105.0,145.2],[164.9,131.0],[189.7,96.7],[164.9,62.3],[105.0,48.1]]},"vheli":{"file":"vheli","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,6]},"rows5":1,"nc":6,"v":2,"pack":{"idle":{"f":"vheli","x":0,"n":6}},"size":42,"mz":[[105.0,159.8],[158.9,147.0],[181.2,116.1],[158.9,85.2],[105.0,72.4]]},"vtank":{"file":"vtank","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,4],"idle":[4,1]},"rows5":1,"nc":5,"v":2,"pack":{"walk":{"f":"vtank","x":0,"n":4},"idle":{"f":"vtank","x":4,"n":1}},"size":50,"tt":{"cw":174,"ch":112,"cx":87.0,"tur":[[87.0,60.7,87.0,107.5],[82.5,61.2,119.8,103.8],[78.6,62.7,147.6,93.1],[76.0,64.9,166.2,77.2],[75.1,67.5,172.7,58.4],[76.0,70.1,166.2,39.5],[78.6,72.3,147.6,23.6],[82.5,73.8,119.8,12.9],[87.0,74.3,87.0,9.2]],"hull":[[105.0,85.7],[96.6,87.7],[93.1,92.5],[96.6,97.3],[105.0,99.3]]},"step":6},"vtrain":{"file":"vtrain","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,1]},"rows5":1,"nc":1,"v":2,"pack":{"idle":{"f":"vtrain","x":0,"n":1}},"size":64},"vtruck":{"file":"vtruck","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"vtruck","x":0,"n":8},"idle":{"f":"vtruck","x":8,"n":1}},"size":40}});
@@ -6157,7 +6159,10 @@ try{(function(){
     for(const k in S.seg)GFX.seg3(S,k);
     const n=S.seg[s][1];let f=0;
     if(s==='walk')f=Math.floor(q.d/(S.step||1.6))%n;else if(s==='attack')f=Math.min(n-1,Math.floor(t/.9*n));
-    const d=dirOf(u),row=RM[d][0],mir=RM[d][1];
+    let d=dirOf(u);if(S.tt&&GFX.TANK_HULL!==false){/* hull keeps the way it last drove: the game turns u.face to the target while firing, the turret does the aiming */
+      if(q.lx!=null){const mx=x-q.lx,my=y-q.ly;if(mx*mx+my*my>.04&&u.moving)q.hd=Math.atan2(my,mx)}q.lx=x;q.ly=y;if(q.hd==null)q.hd=u.face||0;
+      d=((Math.round(q.hd/(Math.PI/4))%8)+8)%8}
+    const row=RM[d][0],mir=RM[d][1];
     c.save();c.fillStyle='rgba(15,20,8,.3)';ell(c,x,y+2,S.size*.38,S.size*.12);c.fill();c.restore();
     if(!blit(c,S,L,n,f,row,mir,x,y+3,u))return false;
     if(S.tt){turret(c,S,u,x,y+3,row,mir,now,u.cd>0&&t<.9,t);return true}
