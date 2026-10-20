@@ -9364,7 +9364,7 @@ const PUBTIP={off:false,gap:240,need:3};
     el.innerHTML='<img alt="" src="'+IMG[0]+'"><img alt="" src="'+IMG[1]+'"><div class="ptb"><b>Come on down for a pint!</b>Your soldiers look thirsty. Select them and tap <i>Round at the pub</i>: <b style="display:inline;font:inherit;font-weight:800;color:#2f6b12">+10% attack, +1 armor</b> for 2 minutes.<div class="ptr"><button class="ptgo">Send them</button><button class="ptx">Not now</button></div></div>';
     $('app').appendChild(el);
     el.querySelector('.ptx').addEventListener('click',e=>{e.stopPropagation();hide();});
-    el.querySelector('.ptgo').addEventListener('click',e=>{e.stopPropagation();const us=ids.map(id=>G.byId.get(id)).filter(u=>u&&!u.dead);hide();if(!us.length)return;
+    el.querySelector('.ptgo').addEventListener('click',e=>{e.stopPropagation();let us=ids.map(id=>G.byId.get(id)).filter(u=>u&&!u.dead);try{us=pubPick(us)}catch(err){}hide();if(!us.length)return;
       setSel(us);panelKeyLast='';let n=0;const go=()=>{const b=document.querySelector('#acts button[data-act="round"]');if(b){b.click();return;}if(++n<10)setTimeout(go,60);else toast('Select the soldiers and tap Round at the pub');};setTimeout(go,60);});}
   function hide(){if(el)el.hidden=true;}
   function idleSold(){const out=[];for(const u of G.ents){if(u.owner!==0||u.dead||u.kind!=='unit'||NONMIL.has(u.type)||u.air||DEF[u.type].animal||u.order)continue;
@@ -11997,6 +11997,22 @@ try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,argume
     if(dd<=rg+(t.r||0)){shoot(u,t,hitAmt(u,t),'bullet');u.cd=DEF[u.type].cd;u.fireOnMove=G.t}}
 }catch(err){}return r}})(updUnit)}catch(err){}
 window.__turret=TURRET;
+
+/* "Send them" to the pub (gameplay chat 1, Josh Oct 19: "shouldn't invite ALL soldiers that aren't doing anything. That's crazy"):
+   the barmaids' button now sends only idle soldiers within PUBPICK.r tiles of a pub with beer, nearest first, at most PUBPICK.max. */
+const PUBPICK={max:6,r:18};
+function pubPick(us){const pubs=G.ents.filter(b=>b.type==='pub'&&b.owner===0&&b.built&&!b.dead&&(b.beer||0)>=1);if(!pubs.length)return us.slice(0,PUBPICK.max);
+  const dP=u=>Math.min(...pubs.map(p=>Math.hypot(p.x-u.x,p.y-u.y)));return us.filter(u=>dP(u)<PUBPICK.r*TILE).sort((a,b)=>dP(a)-dP(b)).slice(0,PUBPICK.max)}
+/* Tank hull turning (Josh Oct 19: "the turret should first quickly aim at the thing and the rest of the tank should follow... a lot of swiveling
+   of the base and top"): the hull (u.face) no longer snaps: it turns at TURRET.hull rad/s. A tank turns on the spot before it drives off
+   (it only rolls when within ~35° of its heading), and when it stops to fire the hull swings round to the target after the turret.
+   The turret (u.tAim) turns faster (TURRET.rate). */
+TURRET.rate=4.2;TURRET.hull=1.7;
+try{updUnit=(function(prev){return function(u,dt){if(TURRET.off||!u||u.dead||!TURRET.types.has(u.type))return prev.apply(this,arguments);
+  const x0=u.x,y0=u.y;if(u.hullA===undefined)u.hullA=u.face||0;const r=prev.apply(this,arguments);try{
+    const want=u.face||0,d=angD(u.hullA,want),st=TURRET.hull*dt;u.hullA+=Math.abs(d)<=st?d:Math.sign(d)*st;
+    const moved=Math.hypot(u.x-x0,u.y-y0);if(moved>0&&Math.abs(angD(u.hullA,Math.atan2(u.y-y0,u.x-x0)))>.6){u.x=x0;u.y=y0;u.moving=true}
+    u.face=u.hullA;}catch(err){}return r}})(updUnit)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
