@@ -10768,8 +10768,18 @@ function cornersFinish(){const N=MW,T=G.terrain,O=OCEAN,fold=v=>v<N/2?v:N-1-v,ph
     /* the long beach: middle of each side, mirrored across the middle so it is 2x as long as the others */
     BE.push([N/2-bw,N/2+1]);
     if(R()<.5){const b=CORM.bMid0+R()*(CORM.bMid1-CORM.bMid0);if(b+bw<N/2-bw-4)BE.push([b,b+bw])}}
-  G.corners.beaches=BE;const isBeach=t=>BE.some(([a,b])=>t>=a&&t<=b);
-  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const {e,t}=geo(x,y),i=ti(x,y);if(T[i]!==0||islAt(x,y))continue;const w=wAt(t,x,y);if(isBeach(t))continue;
+  G.corners.beaches=BE;let isBeach=t=>BE.some(([a,b])=>t>=a&&t<=b);
+  /* beach variety (gameplay chat 1, Josh Oct 19: "make the map feel more unique, so there aren't always 2 identical beaches at your home base").
+     Each corner gets its own layout for its 2 coasts (side 's' / top-bottom 'b'): 0-2 short beaches on each, picked per game; ~1 in 5 corners has no short beach at all (only the long middle one). The two players'
+     corners share one layout (mirrored), the other two corners get another, so it stays fair. The long middle beach (2x) is on the
+     side edges OR the top/bottom edges (random), and the other pair sometimes gets a short middle beach. window.BEACHVAR=false = old layout. */
+  if(window.BEACHVAR!==false){const H=N/2,qk=(x,y)=>(x<H?0:1)+(y<H?0:2),bq=new Set(G.bases.map(([x,y])=>qk(x,y)));
+    const mk=()=>{const L=[];let t=CORM.bNear0-4+R()*10;const n=1+(R()<.5?1:0);for(let k=0;k<n;k++){const w=4+R()*6;if(t+w>H-14)break;L.push([t,t+w]);t+=w+8+R()*16}return L};
+    const LAY={};for(const g of[0,1]){LAY[g+'s']=mk();LAY[g+'b']=mk();const q=R();if(q<.22){LAY[g+'s']=[];LAY[g+'b']=[]}else if(q<.62)LAY[g+(R()<.5?'s':'b')]=[]}
+    const longS=R()<.5,bwL=CORM.bW+R()*3,sm2=R()<.5?[[H-3,H+1]]:[];LAY.ms=longS?[[H-bwL,H+1]]:sm2;LAY.mb=longS?sm2:[[H-bwL,H+1]];
+    G.corners.lay=LAY;G.corners.bq=[...bq];
+    isBeach=(t,x,y)=>{if(x===undefined)return false;const fx=fold(x),fy=fold(y),k=fx<fy?'s':'b',g=bq.has(qk(x,y))?0:1,inr=([a,b])=>t>=a&&t<=b;return LAY[g+k].some(inr)||LAY['m'+k].some(inr)}}
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const {e,t}=geo(x,y),i=ti(x,y);if(T[i]!==0||islAt(x,y))continue;const w=wAt(t,x,y);if(isBeach(t,x,y))continue;
     const ce=Math.max(cE(t),w+CORM.sideGap+CORM.sideT)+1.2*Math.sin(t*.37+ph)+.8*Math.sin(t*.9+ph*2);
     if(e>=w+CORM.sideGap&&e<ce&&!base10(x,y)){const id=G.occ[i];if(id){const q=G.byId.get(id);if(q&&q.kind==='res'){q.dead=true;G.occ[i]=0}else continue}if(nearPoi(x,y))continue;T[i]=3}}
   G.ents=G.ents.filter(e=>!e.dead);
