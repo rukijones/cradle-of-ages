@@ -12192,8 +12192,13 @@ const NOMAP={off:false,age:1,gold:100,r0:18,r1:28};
 function hasMap(o){if(NOMAP.off||!G||!G.players||!G.players[o])return true;const P=G.players[o];if(P.hasMap)return true;if(G.ais&&G.ais[o])return true;return false}
 function mapChests(){if(G.mapChests)return G.mapChests;G.mapChests=[];const own=[0,1];
   for(const o of own){const b=G.bases&&G.bases[o];if(!b)continue;let best=null;
-    for(let k=0;k<400&&!best;k++){const a=Math.random()*Math.PI*2,r=NOMAP.r0+Math.random()*(NOMAP.r1-NOMAP.r0),x=Math.round(b[0]+Math.cos(a)*r),y=Math.round(b[1]+Math.sin(a)*r);
-      if(!inB(x,y)||G.terrain[ti(x,y)]!==0||G.occ[ti(x,y)])continue;if(G.bases.some(([bx,by],j)=>j!==o&&Math.hypot(bx-x,by-y)<NOMAP.r1+6))continue;if(typeof walk==='function'&&!walk(x,y))continue;best={o,x,y,found:0}}
+    /* Josh Oct 20: the chest must be reachable on foot (not walled in by trees) and stand in the open: flood-fill from the town */
+    const W=(x,y)=>inB(x,y)&&G.terrain[ti(x,y)]===0&&!G.occ[ti(x,y)]&&(typeof walk!=='function'||walk(x,y)),R=new Set(),Q=[],lim=NOMAP.r1+4;
+    for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const x=Math.round(b[0])+dx,y=Math.round(b[1])+dy;if(W(x,y)&&!R.has(ti(x,y))){R.add(ti(x,y));Q.push([x,y])}}
+    while(Q.length){const[x,y]=Q.shift();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,j=ti(nx,ny);if(!inB(nx,ny)||R.has(j)||Math.hypot(nx-b[0],ny-b[1])>lim||!W(nx,ny))continue;R.add(j);Q.push([nx,ny])}}
+    const open=(x,y)=>{for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(!W(x+dx,y+dy))return false;return true};
+    for(let k=0;k<800&&!best;k++){const a=Math.random()*Math.PI*2,r=NOMAP.r0+Math.random()*(NOMAP.r1-NOMAP.r0),x=Math.round(b[0]+Math.cos(a)*r),y=Math.round(b[1]+Math.sin(a)*r);
+      if(!inB(x,y)||G.terrain[ti(x,y)]!==0||G.occ[ti(x,y)])continue;if(G.bases.some(([bx,by],j)=>j!==o&&Math.hypot(bx-x,by-y)<NOMAP.r1+6))continue;if(typeof walk==='function'&&!walk(x,y))continue;if(!R.has(ti(x,y))||(k<600&&!open(x,y)))continue;if(k<400){let tr=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const e=inB(x+dx,y+dy)&&G.byId.get(G.occ[ti(x+dx,y+dy)]);if(e&&e.type==='tree')tr++}if(tr>2)continue}best={o,x,y,found:0}}
     if(best)G.mapChests.push(best)}
   return G.mapChests}
 function getMap(o,how){const P=G.players[o];if(P.hasMap)return;P.hasMap=1;if((MPHU(o)&&!(G.ais&&G.ais[0]))&&MPTW(o)){toast(how==='chest'?'📜 You found a map and '+NOMAP.gold+' gold! The minimap now shows everywhere you have explored':how==='age'?'🗺️ Bronze Age: your scribes drew a map. The minimap now shows everywhere you have explored':'🗺️ Your scouts sketched a map: the minimap now shows everywhere you have explored');try{sfx('done')}catch(e){}}}
@@ -12209,6 +12214,7 @@ try{drawMini=(function(prev){return function(){if(hasMap(0))return prev.apply(th
 try{miniJump=(function(prev){return function(e){if(hasMap(0))return prev.apply(this,arguments);if(G.t-(G.nmT||-9)>3){G.nmT=G.t;toast('📜 No map yet: a map chest is hidden somewhere near your town. Explore to find it: it also holds 100 gold. You get a map anyway when you reach the Bronze Age')}}})(miniJump)}catch(err){}
 /* the chest on the ground (only where you can see it) */
 try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(NOMAP.off||!G.mapChests)return r;for(const q of G.mapChests){if(q.found||q.o!==0)continue;const x=(q.x+.5)*TILE,y=(q.y+.5)*TILE;if(!G.vis[0][ti(q.x,q.y)])continue;
+  try{if(GFX.mapChest&&GFX.mapChest(c,x,y,now))continue;}catch(err){}/* art hook: art chat 1's 3D map chest */
   const bob=Math.sin(now/350)*2;c.save();c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y+6,12,4,0,0,7);c.fill();
   c.fillStyle='#6b4423';c.fillRect(x-11,y-8,22,13);c.fillStyle='#8a5a2b';c.fillRect(x-11,y-12,22,5);c.strokeStyle='#e3ab3f';c.lineWidth=1.5;c.strokeRect(x-11,y-12,22,17);
   const g=c.createRadialGradient(x,y-22+bob,2,x,y-22+bob,16);g.addColorStop(0,'rgba(255,230,140,.7)');g.addColorStop(1,'rgba(255,230,140,0)');c.fillStyle=g;c.beginPath();c.arc(x,y-22+bob,16,0,7);c.fill();
