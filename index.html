@@ -12152,6 +12152,71 @@ try{(function(){if(typeof PZ==='undefined'||GUARD.off)return;if(!PZ.kinds.includ
   window.__guard=GUARD;window.__guardKinds=KIND;
 })()}catch(err){}
 /* ===== END the guardian ===== */
+/* ===== Cliff thickness (gameplay chat 1, Josh Oct 19: "the cliff should never be so thin that there isn't anything on top of it... the cliff goes
+   right up to the water and it looks like the water is above the cliff"). After the cliff coast is made, every run of cliff measured from the sea
+   straight inland must be at least CLIFFMIN tiles deep, so the rock face leaves a plateau on top. A thin run is thickened inland (through trees)
+   or, if a building spot, base or point of interest is in the way, turned into a bit of shore. ===== */
+const CLIFFMIN=3;
+function cliffThicken(){const T=G.terrain,N=MW,Hh=N/2,fold=v=>v<Hh?v:N-1-v;const base10=(x,y)=>G.bases.some(([bx,by])=>Math.hypot(x-bx,y-by)<10.5);
+  const pois=G.ents.filter(p=>p.kind==='poi');const nearPoi=(x,y)=>pois.some(p=>Math.abs(p.tx-x)<2&&Math.abs(p.ty-y)<2);let fixed=0,cut=0;
+  for(let pass=0;pass<2;pass++)for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=ti(x,y);if(T[i]!==3)continue;const side=fold(x)<fold(y);
+    const dx=side?(x<Hh?1:-1):0,dy=side?0:(y<Hh?1:-1),sx=x-dx,sy=y-dy;if(!inB(sx,sy)||T[ti(sx,sy)]!==1)continue;
+    let n=0,cx=x,cy=y;while(inB(cx,cy)&&T[ti(cx,cy)]===3){n++;cx+=dx;cy+=dy}if(n>=CLIFFMIN)continue;
+    let ok=true;const add=[];let ex=cx,ey=cy;for(let k=n;k<CLIFFMIN;k++){if(!inB(ex,ey)){ok=false;break}const j=ti(ex,ey);if(T[j]!==0||base10(ex,ey)||nearPoi(ex,ey)||(G.islands&&islAt(ex,ey))){ok=false;break}
+      const id=G.occ[j];if(id){const q=G.byId.get(id);if(!(q&&q.kind==='res'&&(q.type==='tree'||q.type==='berry'))){ok=false;break}}add.push(j);ex+=dx;ey+=dy}
+    if(ok){for(const j of add){const id=G.occ[j];if(id){const q=G.byId.get(id);if(q)q.dead=true;G.occ[j]=0}T[j]=3}fixed++}
+    else{let kx=x,ky=y;for(let k=0;k<n;k++){T[ti(kx,ky)]=0;kx+=dx;ky+=dy}cut++}}
+  G.ents=G.ents.filter(e=>!e.dead);G.cliffFix=[fixed,cut]}
+try{cornersFinish=(function(prev){return function(){const r=prev.apply(this,arguments);try{cliffThicken()}catch(err){console.warn(err)}return r}})(cornersFinish)}catch(err){}
+
+/* ===== No map at the start (gameplay chat 1, Josh Oct 19: "the map is black until you find a map... once you find/obtain the map, it highlights all
+   the areas you've explored"). The minimap is black with a "?" until you have a map: a map chest (📜) is hidden 18-28 tiles from each town;
+   walk any of your units onto it. If you haven't found it by 5:00, your scouts sketch one. Exploring is still remembered the whole time, so
+   everything you have seen appears the moment you get the map. Tapping the black minimap explains how to get it. NOMAP.off=true turns it off. ===== */
+const NOMAP={off:false,t:300,r0:18,r1:28};
+function hasMap(o){if(NOMAP.off||!G||!G.players||!G.players[o])return true;const P=G.players[o];if(P.hasMap)return true;if(G.ais&&G.ais[o])return true;return false}
+function mapChests(){if(G.mapChests)return G.mapChests;G.mapChests=[];const own=[0,1];
+  for(const o of own){const b=G.bases&&G.bases[o];if(!b)continue;let best=null;
+    for(let k=0;k<400&&!best;k++){const a=Math.random()*Math.PI*2,r=NOMAP.r0+Math.random()*(NOMAP.r1-NOMAP.r0),x=Math.round(b[0]+Math.cos(a)*r),y=Math.round(b[1]+Math.sin(a)*r);
+      if(!inB(x,y)||G.terrain[ti(x,y)]!==0||G.occ[ti(x,y)])continue;if(G.bases.some(([bx,by],j)=>j!==o&&Math.hypot(bx-x,by-y)<NOMAP.r1+6))continue;if(typeof walk==='function'&&!walk(x,y))continue;best={o,x,y,found:0}}
+    if(best)G.mapChests.push(best)}
+  return G.mapChests}
+function getMap(o,how){const P=G.players[o];if(P.hasMap)return;P.hasMap=1;if(o===0&&!(G.ais&&G.ais[0])){toast(how==='chest'?'📜 You found a map! The minimap now shows everywhere you have explored':'🗺️ Your scouts sketched a map: the minimap now shows everywhere you have explored');try{sfx('done')}catch(e){}}}
+function mapTick(){if(NOMAP.off||!G||!G.players||G.over)return;if(!G.mapChests&&G.t<2&&!G.players[0].hasMap)mapChests();
+  for(let o=0;o<2;o++){const P=G.players[o];if(!P||P.hasMap)continue;if(G.t>=NOMAP.t){getMap(o,'time');continue}
+    const c=(G.mapChests||[]).find(q=>q.o===o&&!q.found);if(!c){if(G.t>2)getMap(o,'time');continue}
+    if(G.ents.some(u=>u.owner===o&&u.kind==='unit'&&!u.dead&&Math.hypot(u.x-(c.x+.5)*TILE,u.y-(c.y+.5)*TILE)<1.3*TILE)){c.found=1;getMap(o,'chest');
+      if(o===0)G.fx.push({type:'float',x:(c.x+.5)*TILE,y:(c.y+.5)*TILE-20,t:2,text:'📜 Map found!',col:'#ffe08a'})}}}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{mapTick()}catch(err){}return r}})(railTick)}catch(err){}
+try{drawMini=(function(prev){return function(){if(hasMap(0))return prev.apply(this,arguments);const m=mctx,w=mini.width;m.setTransform(1,0,0,1,0,0);m.fillStyle='#0b0805';m.fillRect(0,0,w,w);
+  m.fillStyle='rgba(227,171,63,.85)';m.font='bold '+Math.round(w*.42)+'px system-ui,sans-serif';m.textAlign='center';m.textBaseline='middle';m.fillText('?',w/2,w*.44);
+  m.font='bold '+Math.round(w*.1)+'px system-ui,sans-serif';m.fillStyle='rgba(243,230,201,.8)';m.fillText('No map yet',w/2,w*.82)}})(drawMini)}catch(err){}
+try{miniJump=(function(prev){return function(e){if(hasMap(0))return prev.apply(this,arguments);if(G.t-(G.nmT||-9)>3){G.nmT=G.t;toast('📜 No map yet: a map chest is hidden somewhere near your town. Explore to find it. By 5:00 your scouts will sketch one anyway')}}})(miniJump)}catch(err){}
+/* the chest on the ground (only where you can see it) */
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(NOMAP.off||!G.mapChests)return r;for(const q of G.mapChests){if(q.found||q.o!==0)continue;const x=(q.x+.5)*TILE,y=(q.y+.5)*TILE;if(!G.vis[0][ti(q.x,q.y)])continue;
+  const bob=Math.sin(now/350)*2;c.save();c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y+6,12,4,0,0,7);c.fill();
+  c.fillStyle='#6b4423';c.fillRect(x-11,y-8,22,13);c.fillStyle='#8a5a2b';c.fillRect(x-11,y-12,22,5);c.strokeStyle='#e3ab3f';c.lineWidth=1.5;c.strokeRect(x-11,y-12,22,17);
+  const g=c.createRadialGradient(x,y-22+bob,2,x,y-22+bob,16);g.addColorStop(0,'rgba(255,230,140,.7)');g.addColorStop(1,'rgba(255,230,140,0)');c.fillStyle=g;c.beginPath();c.arc(x,y-22+bob,16,0,7);c.fill();
+  c.font='16px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('📜',x,y-22+bob);c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
+window.__nomap=NOMAP;
+
+/* ===== Age-up / upgrade buttons say what is missing (gameplay chat 1, Josh Oct 19: "Iron age upgrade doesn't show all the text of what you need
+   for the next age"). When buildings are missing, the button hides its long description and shows "Build: Forge, Archery range" next to the grey icons. ===== */
+const RQN_CSS=document.createElement('style');RQN_CSS.textContent='.b.tech.needs .tfx{display:none}.rqn{font-size:10px;line-height:1.15;color:#ffb36b;font-weight:700;white-space:normal;margin-left:3px;text-align:left}#upop .rqn{font-size:11px}';document.head.appendChild(RQN_CSS);
+try{reqIcons=(function(prev){return function(req,miss){const h=prev(req,miss);try{if(miss&&miss.length){const nm=miss.map(t=>(DEF[t]&&DEF[t].name)||t).join(', ');
+  return h.replace(/<\/span>$/,'<span class="rqn">Build: '+nm+'</span></span>')}}catch(err){}return h}})(reqIcons)}catch(err){}
+
+/* ===== Gold/stone tap (Josh Oct 19: "When I clicked a villager to mine gold, it took a few tries before it registered"). Workers already mining stand
+   on the rock, so a tap there picked a worker. With your villagers selected, a tap on a rock now means the rock, even if another villager stands on it.
+   The tap zone round the side of a rock is also a little wider. ===== */
+const ROCKTAP={side:.42};
+function rockAt(wx,wy){let best=null,bd=1e9;const up=(GFX.ROCK_TAP_UP||0)*TILE,sd=ROCKTAP.side*TILE;
+  for(const e of G.ents){if(e.kind!=='res'||e.dead||!RES[e.type]||!ROCKR.has(RES[e.type].r)||e.type==='goldmine'||e.type==='stonemine')continue;if(!G.exp[0][ti(e.tx,e.ty)])continue;
+    const sz=(e.size||1)*TILE,x0=e.tx*TILE,y0=e.ty*TILE;if(wx<x0-sd||wx>x0+sz+sd||wy<y0-up||wy>y0+sz+sd)continue;const d=Math.hypot(wx-e.x,(wy-(e.y-sz*.4))*.8);if(d<bd){bd=d;best=e}}return best}
+try{pick=(function(prev){return function(wx,wy){const r=prev(wx,wy);try{if(G&&!G.place&&(!r||(r.kind==='unit'&&r.owner===0&&r.type==='villager'))){
+  const vs=(G.sel||[]).map(id=>G.byId.get(id)).filter(u=>u&&!u.dead&&u.owner===0&&u.type==='villager');
+  if(!r||(vs.length&&!vs.includes(r))){const k=rockAt(wx,wy);if(k)return k}}}catch(err){}return r}})(pick)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
