@@ -11196,6 +11196,25 @@ try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,argume
 /* wet troops: little water drops over their heads */
 try{drawUnit=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);try{if(isWet(u)){const k=(u.wetT-G.t)/WET.dur;c.save();c.globalAlpha=.5+.5*k;c.fillStyle='#7cc4ec';for(let i=0;i<3;i++){const px=x-7+i*7,py=y-24-((now/120+i*3)%6);c.beginPath();c.moveTo(px,py-3.5);c.quadraticCurveTo(px+2.6,py+.5,px,py+1.8);c.quadraticCurveTo(px-2.6,py+.5,px,py-3.5);c.fill()}c.restore()}}catch(e){}return r}})(drawUnit)}catch(err){}
 try{GFX.ARTV=String(Math.max(+GFX.ARTV||0,26))}catch(err){}/* sm3d re-baked: broader shoulders (art chat 1, Oct 20) */
+/* ===== Wet landing look (art chat 1, Oct 20): splash + spray where troops come ashore from a transport, damp footprints and drips
+   while wet. G.fx types a1spl / a1fp (ground pass). GFX.SPLASH=false = off. ===== */
+try{(function(){GFX._beachUnload=()=>beachUnload;GFX._drawFx=()=>drawFx;
+  const bu=beachUnload;beachUnload=function(b,L0){const n=bu.apply(this,arguments);try{if(n&&GFX.SPLASH!==false&&G.fx){
+    G.fx.push({type:'a1spl',x:b.x,y:b.y+4,t:.9,d:.9,big:1,s:Math.random()*9});
+    for(const u of G.ents)if(u.kind==='unit'&&!u.dead&&isWet(u)&&G.t+WET.dur-u.wetT<.05&&Math.hypot(u.x-b.x,u.y-b.y)<TILE*5)G.fx.push({type:'a1spl',x:u.x,y:u.y+3,t:.75+Math.random()*.15,d:.9,big:0,s:Math.random()*9})}}catch(e){}return n};
+  const df=drawFx;drawFx=function(c,f,now){if(f.type==='a1fp'){const k=f.t/4.5;c.save();c.translate(f.x,f.y);c.rotate(f.a);c.fillStyle='rgba(28,22,12,'+(.42*Math.min(1,k*1.5)).toFixed(3)+')';c.beginPath();c.ellipse(0,0,2.5,1.35,0,0,7);c.fill();c.restore();return}
+    if(f.type!=='a1spl')return df.apply(this,arguments);const k=1-f.t/f.d;if(k<0)return;c.save();
+    const R=(f.big?16:9)+(f.big?30:20)*k;c.strokeStyle='rgba(190,230,250,'+(.9*(1-k*k)).toFixed(3)+')';c.lineWidth=f.big?3:2.2;c.setLineDash([5,4]);c.lineDashOffset=-k*20;c.beginPath();c.ellipse(f.x,f.y,R,R*.38,0,0,7);c.stroke();c.setLineDash([]);
+    if(k<.6){const R2=R*.55;c.strokeStyle='rgba(240,250,255,'+(.6*(1-k/.6)).toFixed(3)+')';c.lineWidth=1;c.beginPath();c.ellipse(f.x,f.y,R2,R2*.38,0,0,7);c.stroke()}
+    if(k<.45){const q=k/.45,ph=(f.big?26:16)*Math.sin(q*Math.PI),pw=(f.big?9:5)*(1-q*.4);const g=c.createLinearGradient(f.x,f.y-ph,f.x,f.y);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.4,'rgba(240,250,255,.85)');g.addColorStop(1,'rgba(200,235,255,.6)');c.fillStyle=g;c.beginPath();c.ellipse(f.x,f.y-ph/2,pw,ph/2+1,0,0,7);c.fill()}
+    const N=f.big?20:12,H=f.big?42:28;for(let j=0;j<N;j++){const a=(j/N)*Math.PI*2+f.s,sp=(f.big?34:20)*(.55+.45*(((j*37)%10)/10)),px=f.x+Math.cos(a)*sp*k,py=f.y+Math.sin(a)*sp*.4*k-H*4*k*(1-k)*(.7+.3*((j*13)%5)/5);
+      c.fillStyle='rgba(236,248,255,'+(.95*(1-k)).toFixed(3)+')';c.beginPath();c.arc(px,py,(f.big?3:2.4)*(1-k*.4),0,7);c.fill()}
+    c.restore()};
+  const sk=new WeakMap();
+  drawUnit=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);try{if(GFX.SPLASH!==false&&u&&isWet(u)&&G.fx){let s=sk.get(u);if(!s){s={x,y,n:0};sk.set(u,s)}
+      const d=Math.hypot(x-s.x,y-s.y);if(d>30){s.x=x;s.y=y}else if(d>7){const a=Math.atan2(y-s.y,x-s.x),side=(s.n++%2)?1:-1;G.fx.push({type:'a1fp',x:x-Math.sin(a)*2.3*side,y:y+3+Math.cos(a)*1.3*side,a,t:4.5});s.x=x;s.y=y}
+      const k=(u.wetT-G.t)/WET.dur,t=now/1000+(u.id||0);c.save();c.fillStyle='rgba(150,205,240,.85)';for(let i=0;i<2;i++){const ph=(t*1.6+i*.5)%1;if(ph>k+.2)continue;c.globalAlpha=1-ph;c.beginPath();c.arc(x+(i?4:-4),y-8+ph*10,1.1,0,7);c.fill()}c.restore()}}catch(e){}return r}})(drawUnit);
+})()}catch(err){}
 /* beach alarm */
 function beachAlarm(){for(const b of G.ents){if(b.type!=='transport'||b.dead||!b.cargo||!b.cargo.length)continue;const d=1-b.owner;if(d<0||d>1||!MPHU(d))continue;
     b._al=b._al||{};if(G.t-(b._al[d]||-99)<WET.alarmGap)continue;const E=G.exp&&G.exp[d];if(!E)continue;const bx=tl(b.x),by=tl(b.y),R=WET.alarmR;let hit=null;
@@ -13536,7 +13555,7 @@ const _rg=renderGround;renderGround=function(){const r=_rg.apply(this,arguments)
 const _dw=drawWater;drawWater=function(c,now,inView){const r=_dw.apply(this,arguments);try{if(FO.on&&G&&G.mapType==='river')edgeTrees(c,inView)}catch(err){}return r};
 })()}catch(err){}
 /* ===== END art chat 1: cliffs + forest ===== */
-window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
+window.__GFX=GFX;window.__bs=(e)=>bldSpr(e);window.__pw=placeWhy;window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
 })();
