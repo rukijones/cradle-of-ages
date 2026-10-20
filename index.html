@@ -11625,7 +11625,7 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
     let h='<h3>The Ancients\' Mystery</h3><div class="ms">Ruins explored: you '+mine+' · enemy '+theirs+' · '+left+' left</div>';
     if(win===0){const wp=wonderPOI(),wb=wonderBld();h+='<div style="color:#bff5a8;font-weight:700">You solved the mystery! The relic is the '+MYS_REL[M.ans[2]]+': while your Wonder stands it '+POWTXT[relPow()]+'.</div>';
       if(wb&&wb.owner===0)h+='<div class="ms">Your Wonder stands. Hold it to win.</div>';else if(wp&&wp.wst==='restoring')h+='<div class="ms">Restoring: '+Math.round((wp.wp||0)*100)+'%. Tap the Wonder with villagers selected to help.</div>';
-      else if(wp){const c=wCost(0);h+='<div class="row2"><button class="mb" data-m="restore">🏛 Restore the Wonder ('+Object.entries(c).map(([k,v])=>v+' '+({s:'stone',g:'gold',w:'wood'})[k]).join(', ')+')</button></div><div class="ms">Then send villagers to it. Hold it '+Math.round(WONDER.hold/60)+' minutes to win.</div>';}}
+      else if(wp&&(G.players[0].age|0)<WONDER.minAge)h+='<div class="ms" style="color:#ffd27a">🏛 You can restore the Wonder from the Medieval Age.</div>';else if(wp){const c=wCost(0);h+='<div class="row2"><button class="mb" data-m="restore">🏛 Restore the Wonder ('+Object.entries(c).map(([k,v])=>v+' '+({s:'stone',g:'gold',w:'wood'})[k]).join(', ')+')</button></div><div class="ms">Then send villagers to it. Hold it '+Math.round(WONDER.hold/60)+' minutes to win.</div>';}}
     else if(win===1)h+='<div style="color:#ffb4a4;font-weight:700">The enemy solved the mystery first.</div>';
     h+='<h4>Where is the vault?</h4>';const cl=[];for(const i of S.got){const R=M.ruins[i];if(!R)continue;cl.push(predText(R.map,0));if(R.extra)cl.push(predText(R.extra,0));}
     for(const d of S.digs.slice(-4))cl.push('You dug and found nothing: the vault is <b>'+BANDS[d[2]][2]+'</b> from that spot.');
@@ -11661,7 +11661,8 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
      buildings take 25% less damage, wind = your units move 12% faster. Everyone sees a countdown banner. The computer restores it if it
      solved the mystery, and sends its army against yours. POI fields: e.wst 'sealed'|'restoring', e.wp 0..1, e.owner = who restores.
      Per side: P.myst.wid (standing wonder id), P.myst.holdT, P.myst.wbuilt (times restored). Art: placeholder drawn here (art chats: please replace). */
-  const WONDER={cost:{s:1000,g:1000,w:500},work:600,hold:300,size:4,hp:3500,heal:3,boltDmg:28};
+  /* gameplay chat 1, Josh Oct 20 ("it ended too quickly, it was too easy" - the computer won with it in the Iron Age): restore only from the Medieval Age (minAge 3), hold 10 min (was 5). */
+  const WONDER={minAge:3,cost:{s:1000,g:1000,w:500},work:600,hold:600,size:4,hp:3500,heal:3,boltDmg:28};
   const RELPOW=['sun','storm','stone','wind','sun','stone','wind','storm'],POWTXT={sun:'heals your units near it',storm:'strikes nearby enemies with lightning',stone:'your buildings take 25% less damage',wind:'your units move 12% faster'};
   DEF.wonder={kind:'bld',name:"Ancients' Wonder",hp:WONDER.hp,size:WONDER.size,sight:9,arm:2,cost:{},time:0};
   const relPow=()=>G.myst?RELPOW[G.myst.ans[2]]:null;
@@ -11677,7 +11678,7 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
     G.ents=G.ents.filter(e=>!(e.dead&&e.type==='tree'));
     const e={kind:'poi',type:'wonder',owner:-1,tx,ty,size:S,x:(tx+S/2)*TILE,y:(ty+S/2)*TILE,wst:'sealed',wp:0};addEnt(e);occW(tx,ty,e.id);}
   function wCost(o){const S=PM(o),k=S&&S.wbuilt?.5:1,c={};for(const r in WONDER.cost)c[r]=Math.round(WONDER.cost[r]*k);return c;}
-  function startRestore(o){const S=PM(o),P=G.players[o],w=wonderPOI();if(!S||!S.solved||!w||w.wst!=='sealed'||wonderBld())return false;const c=wCost(o);
+  function startRestore(o){const S=PM(o),P=G.players[o],w=wonderPOI();if(!S||!S.solved||!w||w.wst!=='sealed'||wonderBld())return false;if((P.age|0)<WONDER.minAge){sayTo(o,'The Wonder can be restored from the Medieval Age');return false;}const c=wCost(o);
     if(!canAfford(P,c)){sayTo(o,'Restoring the Wonder needs '+Object.entries(c).map(([k,v])=>v+' '+({s:'stone',g:'gold',w:'wood',f:'food'})[k]).join(', '));return false;}
     for(const r in c)P[r]-=c[r];w.wst='restoring';w.wp=0;w.owner=o;
     sayTo(o,'Send villagers to the Ancients\' Wonder: tap it with villagers selected');
@@ -11735,7 +11736,7 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
   /* ---------- the computer and the Wonder ---------- */
   function wonderAI(o){const ai=G.ais&&G.ais[o];if(!ai||MYST.off||!G.myst)return;if((ai.wT=(ai.wT||0)-1)>0)return;ai.wT=8;const S=PM(o),P=G.players[o],w=wonderPOI(),en=1-o,SE=PM(en);
     const army=G.ents.filter(u=>u.owner===o&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&!u.naval&&!u.air);
-    if(S.solved&&w&&w.wst==='sealed'&&!S.wid&&canAfford(P,wCost(o)))startRestore(o);
+    if(S.solved&&w&&w.wst==='sealed'&&!S.wid&&(P.age|0)>=WONDER.minAge&&canAfford(P,wCost(o)))startRestore(o);
     if(w&&w.wst==='restoring'&&w.owner===o){const vs=G.ents.filter(u=>u.owner===o&&u.type==='villager'&&!u.dead);const on=vs.filter(u=>u.mwork===w.id).length;
       const free=vs.filter(u=>!u.mwork&&!u.mdig&&(!u.order||u.order.type==='gather')).sort((a,b)=>Math.hypot(a.x-w.x,a.y-w.y)-Math.hypot(b.x-w.x,b.y-w.y));
       for(const u of free.slice(0,Math.max(0,6-on))){const a=Math.random()*6.283,t=[tl(w.x+Math.cos(a)*(WONDER.size/2+.8)*TILE),tl(w.y+Math.sin(a)*(WONDER.size/2+.8)*TILE)];u.order={type:'move',x:t[0],y:t[1],mwk:1};u.path=null;u.mwork=w.id;}
