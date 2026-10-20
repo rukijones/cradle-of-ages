@@ -12362,6 +12362,65 @@ try{(function(){
   window.__vict={VICT,state,jump};
 })()}catch(err){}
 /* ===== END victory tracker ===== */
+/* ===== Glowmushrooms (gameplay chat 1, Josh Oct 20: "magic mushrooms hidden around and if you eat them, it revives your health" + "with the gold mushroom too").
+   MUSH.n clusters hide in forest edges, clearings and near ruins (placed in mirrored pairs so both sides get the same). A unit of yours that walks onto one
+   while hurt eats it: full health + green sparkle. Tap a unit, then tap the mushroom to send it (or just walk a hurt unit over it).
+   One rare GOLDEN mushroom near the middle heals every unit of yours within MUSH.goldR tiles. Eaten ones regrow somewhere else after MUSH.regrow s
+   (golden: MUSH.goldRegrow). The computer sends badly hurt units to nearby ones. Only drawn where you can see. G.mush = [{id,x,y,gold}] in tiles.
+   Art hook: GFX.mushDraw(c,x,y,gold,now) draws it and returns true (art chat 1); otherwise the code-drawn cluster below. MUSH.off=true = none. ===== */
+const MUSH={off:false,n:10,regrow:240,goldRegrow:480,goldR:4,eatR:.75,tapR:.9,aiHp:.5,aiR:12};
+function mushOK(x,y){if(!inB(x,y)||G.terrain[ti(x,y)]!==0||G.occ[ti(x,y)])return false;if(typeof walk==='function'&&!walk(x,y))return false;
+  if(G.bases.some(([bx,by])=>Math.hypot(bx-x,by-y)<11))return false;if((G.mush||[]).some(m=>Math.hypot(m.x-x,m.y-y)<8))return false;
+  if(G.ents.some(e=>(e.kind==='bld'||e.kind==='poi')&&!e.dead&&Math.abs(e.tx-x)<(e.size||1)+2&&Math.abs(e.ty-y)<(e.size||1)+2))return false;return true}
+function mushTrees(x,y){let n=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){if(!inB(x+dx,y+dy))continue;const e=G.byId.get(G.occ[ti(x+dx,y+dy)]);if(e&&e.type==='tree')n++}return n}
+function mushSpot(gold){const B=G.landBox||[0,0,MW,MH],cx=(B[0]+B[2])/2,cy=(B[1]+B[3])/2;
+  for(let k=0;k<600;k++){let x,y;if(gold){const a=Math.random()*6.283,r=Math.random()*12;x=Math.round(cx+Math.cos(a)*r);y=Math.round(cy+Math.sin(a)*r)}else{x=B[0]+3+((Math.random()*(B[2]-B[0]-6))|0);y=B[1]+3+((Math.random()*(B[3]-B[1]-6))|0)}
+    if(!mushOK(x,y))continue;const t=mushTrees(x,y),nearRuin=G.ents.some(e=>e.kind==='poi'&&!e.dead&&Math.hypot(e.tx-x,e.ty-y)<7);if(k<450&&!gold&&t<3&&!nearRuin)continue;return[x,y]}return null}
+let mushId=1;
+function mushAdd(x,y,gold){(G.mush=G.mush||[]).push({id:(G.mushN=(G.mushN||0)+1),x,y,gold:!!gold})}
+function mushInit(){if(G.mush)return;G.mush=[];const B=G.landBox||[0,0,MW,MH];
+  for(let i=0;i<MUSH.n/2;i++){const p=mushSpot(false);if(!p)continue;mushAdd(p[0],p[1],false);const b0=G.bases[0],b1=G.bases[1],sx=Math.abs(b0[0]-b1[0])<4,sy=Math.abs(b0[1]-b1[1])<4,mx=sx?p[0]:Math.round(b0[0]+b1[0]-p[0]),my=sy?p[1]:Math.round(b0[1]+b1[1]-p[1]);if(mushOK(mx,my))mushAdd(mx,my,false);else{const q=mushSpot(false);if(q)mushAdd(q[0],q[1],false)}}
+  const g=mushSpot(true);if(g)mushAdd(g[0],g[1],true)}
+function mushHurt(u){return u.maxHp&&u.hp<u.maxHp-.5}
+function mushEat(u,m){const P=u.owner,heal=v=>{const was=v.hp;v.hp=v.maxHp;return v.hp-was};let n=0;
+  if(m.gold){for(const v of G.ents)if(v.kind==='unit'&&!v.dead&&v.owner===P&&!(DEF[v.type]&&DEF[v.type].animal)&&v.maxHp&&Math.hypot(v.x-(m.x+.5)*TILE,v.y-(m.y+.5)*TILE)<=MUSH.goldR*TILE){if(heal(v)>0)n++;(G.mushFx=G.mushFx||[]).push({x:v.x,y:v.y,t:0,gold:1})}}
+  else{heal(u);n=1;(G.mushFx=G.mushFx||[]).push({x:u.x,y:u.y,t:0})}
+  G.mush=G.mush.filter(q=>q!==m);(G.mushWait=G.mushWait||[]).push({t:G.t+(m.gold?MUSH.goldRegrow:MUSH.regrow),gold:m.gold});
+  if(P===0){G.fx.push({type:'float',x:(m.x+.5)*TILE,y:(m.y+.5)*TILE-18,t:2.2,text:m.gold?'✨ Golden mushroom: '+n+' healed':'🍄 Healed!',col:m.gold?'#ffe08a':'#9dffb0'});try{sfx('done',u.x,u.y)}catch(e){}}
+  for(const v of G.ents)if(v.mushT===m.id)delete v.mushT}
+function mushTick(dt){if(MUSH.off||!G||!G.players||G.over||!G.bases)return;if(!G.mush){if(G.t>1)mushInit();return}
+  if(G.mushWait&&G.mushWait.length)for(const w of G.mushWait.slice())if(G.t>=w.t){const p=mushSpot(w.gold);G.mushWait.splice(G.mushWait.indexOf(w),1);if(p)mushAdd(p[0],p[1],w.gold)}
+  for(const m of G.mush.slice()){const mx=(m.x+.5)*TILE,my=(m.y+.5)*TILE;
+    for(const u of G.ents){if(u.kind!=='unit'||u.dead||u.owner>1||u.air||u.naval||(DEF[u.type]&&DEF[u.type].animal))continue;if(Math.abs(u.x-mx)>MUSH.eatR*TILE||Math.abs(u.y-my)>MUSH.eatR*TILE)continue;
+      const hurtNear=m.gold&&G.ents.some(v=>v.kind==='unit'&&!v.dead&&v.owner===u.owner&&mushHurt(v)&&Math.hypot(v.x-mx,v.y-my)<=MUSH.goldR*TILE);
+      if(mushHurt(u)||hurtNear){mushEat(u,m);break}
+      if(u.mushT===m.id){delete u.mushT;if(u.owner===0&&G.t-(G.mushMsgT||-9)>3){G.mushMsgT=G.t;toast('🍄 Already at full health: the mushroom is saved for later')}}}}
+  // the computer sends badly hurt units to a mushroom nearby
+  if((G.mushAiT=(G.mushAiT||0)-dt)<=0){G.mushAiT=3;for(const o of[0,1]){if(!(G.ais&&G.ais[o]))continue;
+    for(const u of G.ents){if(u.kind!=='unit'||u.dead||u.owner!==o||u.mushT||!u.maxHp||u.hp>u.maxHp*MUSH.aiHp||(DEF[u.type]&&DEF[u.type].animal)||u.naval||u.air)continue;
+      let best=null,bd=MUSH.aiR*TILE;for(const m of G.mush){const d=Math.hypot(u.x-(m.x+.5)*TILE,u.y-(m.y+.5)*TILE);if(d<bd){bd=d;best=m}}
+      if(best){u.mushT=best.id;try{orderMove([u],(best.x+.5)*TILE,(best.y+.5)*TILE)}catch(err){}}}}}}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{mushTick(dt||STEP)}catch(err){}return r}})(railTick)}catch(err){}
+/* tap a mushroom with your units selected = send them to it */
+function mushAt(wx,wy){if(!G.mush)return null;for(const m of G.mush){if(!G.vis[0][ti(m.x,m.y)])continue;if(Math.hypot(wx-(m.x+.5)*TILE,wy-(m.y+.5)*TILE)<MUSH.tapR*TILE)return m}return null}
+try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place&&!G.mirAim){const m=mushAt(wx,wy);const us=selEnts().filter(u=>u.owner===0&&u.kind==='unit'&&!u.naval&&!u.air&&!(DEF[u.type]&&DEF[u.type].animal));
+  if(m&&us.length){const hurt=us.filter(mushHurt),go=(hurt.length?hurt:us).slice(0,m.gold?99:1);for(const u of go)u.mushT=m.id;orderMove(go,(m.x+.5)*TILE,(m.y+.5)*TILE);mark((m.x+.5)*TILE,(m.y+.5)*TILE,m.gold?'#ffe08a':'#9dffb0');
+    toast(m.gold?'✨ Golden mushroom: heals all your units within '+MUSH.goldR+' tiles':(hurt.length?'🍄 Going to eat the mushroom: full health':'🍄 Nobody is hurt. A healing mushroom: send a hurt unit to it'));return}
+  if(m&&!us.length){toast(m.gold?'✨ Golden mushroom: select units, then tap it. Heals all your units within '+MUSH.goldR+' tiles':'🍄 Healing mushroom: select a hurt unit, then tap it for full health');return}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
+/* drawing (code stand-in until art chat 1 paints them) */
+function mushPaint(c,x,y,gold,now){const pul=.75+.25*Math.sin(now/420+x);const g=c.createRadialGradient(x,y-3,1,x,y-3,gold?22:15);g.addColorStop(0,gold?'rgba(255,220,110,'+(.55*pul)+')':'rgba(150,220,255,'+(.45*pul)+')');g.addColorStop(1,'rgba(150,220,255,0)');
+  c.fillStyle=g;c.beginPath();c.arc(x,y-3,gold?22:15,0,7);c.fill();
+  const caps=gold?[[0,0,6]]:[[-4,1,3.6],[3,0,4.4],[0,3,2.8]];
+  for(const[dx,dy,r]of caps){const sx=x+dx,sy=y+dy;c.fillStyle='#efe6cf';c.fillRect(sx-r*.28,sy-r*1.1,r*.56,r*1.1);
+    c.fillStyle=gold?'#f2c032':'#6fb8ff';c.beginPath();c.ellipse(sx,sy-r*1.1,r,r*.62,0,Math.PI,0);c.fill();
+    c.fillStyle='rgba(255,255,255,.85)';c.beginPath();c.arc(sx-r*.35,sy-r*1.35,r*.16,0,7);c.arc(sx+r*.3,sy-r*1.25,r*.13,0,7);c.fill()}}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(MUSH.off||!G.mush)return r;
+  for(const m of G.mush){if(!G.vis[0][ti(m.x,m.y)])continue;const x=(m.x+.5)*TILE,y=(m.y+.5)*TILE;let done=false;try{done=GFX.mushDraw&&GFX.mushDraw(c,x,y,m.gold,now)}catch(err){}if(!done)mushPaint(c,x,y,m.gold,now)}
+  if(G.mushFx)for(const f of G.mushFx){const k=f.t/1.2;c.save();c.globalAlpha=Math.max(0,1-k);c.strokeStyle=f.gold?'#ffe08a':'#9dffb0';c.lineWidth=2.5;c.beginPath();c.ellipse(f.x,f.y-4,8+k*22,(8+k*22)*.45,0,0,7);c.stroke();
+    for(let i=0;i<6;i++){const a=i*1.047+k*2;c.fillStyle=f.gold?'#fff2b0':'#c8ffd6';c.fillRect(f.x+Math.cos(a)*(6+k*14)-1,f.y-10-k*26+Math.sin(a)*4-1,2.4,2.4)}c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
+setInterval(()=>{try{if(G&&G.mushFx){for(const f of G.mushFx)f.t+=.05;G.mushFx=G.mushFx.filter(f=>f.t<1.2)}}catch(err){}},50);
+window.__mush=MUSH;
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -13555,7 +13614,7 @@ const _rg=renderGround;renderGround=function(){const r=_rg.apply(this,arguments)
 const _dw=drawWater;drawWater=function(c,now,inView){const r=_dw.apply(this,arguments);try{if(FO.on&&G&&G.mapType==='river')edgeTrees(c,inView)}catch(err){}return r};
 })()}catch(err){}
 /* ===== END art chat 1: cliffs + forest ===== */
-window.__GFX=GFX;window.__bs=(e)=>bldSpr(e);window.__pw=placeWhy;window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
+window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
 })();
