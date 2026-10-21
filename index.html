@@ -12422,6 +12422,27 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
 setInterval(()=>{try{if(G&&G.mushFx){for(const f of G.mushFx)f.t+=.05;G.mushFx=G.mushFx.filter(f=>f.t<1.2)}}catch(err){}},50);
 window.__mush=MUSH;
 
+/* ===== The computer works for its mystery clues (gameplay chat 1, Josh Oct 20 picked A + C: the computer solved the mystery too fast).
+   A) A computer unit must stay at a ruin for MYSTAI.study s to take its clues (you solve a puzzle; it searches). While any of your units stands within
+      MYSTAI.guard tiles, its search pauses: guard a ruin to deny it. You get a warning when it starts, and a red bar shows over the ruin.
+   C) It can't name the answer before a minimum time: Easy MYSTAI.min.gentle, Normal MYSTAI.min.easy, Hard none. MYSTAI.off=true = old rules. ===== */
+const MYSTAI={off:false,study:60,guard:4,min:{gentle:2400,easy:1800,normal:0}};
+const mysIsAI=o=>!!(G&&G.ais&&G.ais[o]);
+try{claimRuin=(function(prev){return function(r,o){try{if(!MYSTAI.off&&r&&!r.looted&&mysIsAI(o)&&(o===1||(G.aiPlayers||[]).includes(o))){
+  const st=r.aiS||(r.aiS={p:0,last:-9,warned:0});const gap=G.t-st.last;st.last=G.t;
+  const guard=G.ents.some(u=>u.kind==='unit'&&!u.dead&&u.owner===1-o&&!(DEF[u.type]&&DEF[u.type].animal)&&!mysIsAI(u.owner)&&Math.hypot(u.x-r.x,u.y-r.y)<MYSTAI.guard*TILE);
+  if(gap<1.5&&!guard)st.p+=gap;st.o=o;st.guard=guard;
+  if(!st.warned&&!mysIsAI(1-o)){st.warned=1;try{toast('⚠ The red tribe is searching an ancient ruin for clues! Send soldiers to guard it');G.ping={x:r.x,y:r.y,t:6}}catch(e){}}
+  if(st.p<MYSTAI.study)return}}catch(err){}return prev.apply(this,arguments)}})(claimRuin)}catch(err){}
+/* minimum time: hold the computer's vault lock (S.lock, which naming the answer already respects) until the minimum */
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!MYSTAI.off&&G&&G.players){const k=G.gentle?'gentle':(G.diff||'normal'),m=MYSTAI.min[k]||0;
+  if(m&&G.t<m)for(const o of[0,1]){if(!mysIsAI(o))continue;const S=G.players[o]&&G.players[o].myst;if(S&&!S.solved&&(S.lock||0)<m)S.lock=m}}}catch(err){}return r}})(railTick)}catch(err){}
+/* red search bar over a ruin the computer is searching */
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(MYSTAI.off)return r;for(const e of G.ents){if(e.kind!=='poi'||e.type!=='ruin'||e.looted||!e.aiS||!e.aiS.p)continue;if(G.t-e.aiS.last>2)continue;if(!G.vis[0][ti(tl(e.x),tl(e.y))])continue;
+  const k=Math.min(1,e.aiS.p/MYSTAI.study),w=46,x=e.x-w/2,y=e.y-50;c.save();c.fillStyle='rgba(20,12,8,.8)';c.fillRect(x-1,y-1,w+2,7);c.fillStyle=e.aiS.guard?'#9a8f80':'#e5402f';c.fillRect(x,y,w*k,5);
+  c.font='bold 9px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(20,14,8,.85)';const t=e.aiS.guard?'Search stopped: you guard it':'Red is searching '+Math.round(k*100)+'%';c.strokeText(t,e.x,y-3);c.fillStyle='#ffd0c8';c.fillText(t,e.x,y-3);c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
+window.__mystai=MYSTAI;
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
