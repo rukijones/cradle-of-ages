@@ -11730,7 +11730,7 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
   function wCost(o){const S=PM(o),k=S&&S.wbuilt?.5:1,c={};for(const r in WONDER.cost)c[r]=Math.round(WONDER.cost[r]*k);return c;}
   function startRestore(o){const S=PM(o),P=G.players[o],w=wonderPOI();if(!S||!S.solved||!w||w.wst!=='sealed'||wonderBld())return false;if((P.age|0)<WONDER.minAge){sayTo(o,'The Wonder can be restored from the Medieval Age');return false;}const c=wCost(o);
     if(!canAfford(P,c)){sayTo(o,'Restoring the Wonder needs '+Object.entries(c).map(([k,v])=>v+' '+({s:'stone',g:'gold',w:'wood',f:'food'})[k]).join(', '));return false;}
-    for(const r in c)P[r]-=c[r];w.wst='restoring';w.wp=0;w.owner=o;
+    for(const r in c)P[r]-=c[r];w.wst='restoring';w.wp=0;w.owner=o;S.wLost=0;S.wWork=[];
     sayTo(o,'Send villagers to the Ancients\' Wonder: tap it with villagers selected');
     const other=1-o;if(MPHU(other)&&MPTW(other))toast('⚠ '+(other===0?'The red tribe':'Your friend')+' is restoring the Ancients\' Wonder! Stop them');
     if(other===0&&!isClient())G.ping={x:w.x,y:w.y,t:8};return true;}
@@ -11786,10 +11786,25 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
   /* ---------- the computer and the Wonder ---------- */
   function wonderAI(o){const ai=G.ais&&G.ais[o];if(!ai||MYST.off||!G.myst)return;if((ai.wT=(ai.wT||0)-1)>0)return;ai.wT=8;const S=PM(o),P=G.players[o],w=wonderPOI(),en=1-o,SE=PM(en);
     const army=G.ents.filter(u=>u.owner===o&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&!u.naval&&!u.air);
-    if(S.solved&&w&&w.wst==='sealed'&&!S.wid&&(P.age|0)>=WONDER.minAge&&canAfford(P,wCost(o)))startRestore(o);
+    // save up for it (Oct 20 balance pass: the computer solved the mystery but spent its gold, so it never restored the Wonder). Gives up for 2 min after 10 min of saving.
+    {const ea=G.ents.filter(u=>u.owner===en&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&!u.naval&&!u.air).length,nv=G.ents.filter(u=>u.owner===o&&u.type==='villager'&&!u.dead).length;
+      const strong=army.length>=25&&nv>=35&&army.length>=ea*.9&&!ai.attacking;   // only when it can defend it (2 of 3 test games: it restored while weak and got wiped)
+      const want=strong&&S.solved&&w&&w.wst==='sealed'&&!S.wid&&!wonderBld()&&(P.age|0)>=WONDER.minAge,B=P.wBank||(P.wBank={s:0,g:0,w:0});
+      const refund=()=>{for(const k in B){P[k]=(P[k]||0)+B[k];B[k]=0;}};
+      if(!want||G.t<(ai.wSaveOff||0)){refund();ai.wSaveT=0;}
+      else if(canAfford(P,wCost(o))&&!B.s&&!B.g&&!B.w){startRestore(o);ai.wSaveT=0;}
+      else{if(!ai.wSaveT)ai.wSaveT=G.t;const need=wCost(o);let done=true;
+        for(const k in need){const miss=need[k]-B[k];if(miss<=0)continue;const take=Math.min(miss,Math.floor((P[k]||0)*.35));if(take>0){P[k]-=take;B[k]+=take;}if(B[k]<need[k])done=false;}
+        if(done){refund();startRestore(o);ai.wSaveT=0;}
+        else if(G.t-ai.wSaveT>600){refund();ai.wSaveOff=G.t+120;ai.wSaveT=0;}}}   // set a third of its stock aside each check; give up for 2 min after 10 min
     if(w&&w.wst==='restoring'&&w.owner===o){const vs=G.ents.filter(u=>u.owner===o&&u.type==='villager'&&!u.dead);const on=vs.filter(u=>u.mwork===w.id).length;
-      const free=vs.filter(u=>!u.mwork&&!u.mdig&&(!u.order||u.order.type==='gather')).sort((a,b)=>Math.hypot(a.x-w.x,a.y-w.y)-Math.hypot(b.x-w.x,b.y-w.y));
-      for(const u of free.slice(0,Math.max(0,6-on))){const a=Math.random()*6.283,t=[tl(w.x+Math.cos(a)*(WONDER.size/2+.8)*TILE),tl(w.y+Math.sin(a)*(WONDER.size/2+.8)*TILE)];u.order={type:'move',x:t[0],y:t[1],mwk:1};u.path=null;u.mwork=w.id;}
+      // Oct 20 balance pass: it kept sending 6 more villagers into the enemy army at the Wonder until none were left. Now: army first, workers only when it's safe, stop after 8 lost.
+      const R=10*TILE,near=(u)=>Math.hypot(u.x-w.x,u.y-w.y)<R,enN=G.ents.filter(u=>u.owner===en&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&near(u)).length,myN=army.filter(near).length;
+      const WK=S.wWork||(S.wWork=[]);S.wLost=(S.wLost||0)+WK.filter(id=>{const u=G.byId.get(id);return !u||u.dead;}).length;S.wWork=WK.filter(id=>{const u=G.byId.get(id);return u&&!u.dead;});
+      for(const u of army)if(!near(u)&&(!u.order||u.order.type==='move'||u.order.auto))orderMove([u],w.x+(Math.random()-.5)*6*TILE,w.y+(Math.random()-.5)*6*TILE);
+      const safe=S.wLost<8&&(enN===0||myN>=enN*1.3);
+      const free=safe?vs.filter(u=>!u.mwork&&!u.mdig&&(!u.order||u.order.type==='gather')).sort((a,b)=>Math.hypot(a.x-w.x,a.y-w.y)-Math.hypot(b.x-w.x,b.y-w.y)):[];
+      for(const u of free.slice(0,Math.max(0,6-on))){S.wWork.push(u.id);const a=Math.random()*6.283,t=[tl(w.x+Math.cos(a)*(WONDER.size/2+.8)*TILE),tl(w.y+Math.sin(a)*(WONDER.size/2+.8)*TILE)];u.order={type:'move',x:t[0],y:t[1],mwk:1};u.path=null;u.mwork=w.id;}
       for(const u of army)if(!u.order)orderMove([u],w.x+(Math.random()-.5)*5*TILE,w.y+(Math.random()-.5)*5*TILE);}   // guard the work
     const eb=SE.wid&&G.byId.get(SE.wid);
     if(eb&&!eb.dead){for(const u of army)if(!u.order||u.order.type==='move'||(u.order.auto&&u.order.id!==eb.id))if(Math.random()<.85){u.order={type:'attack',id:eb.id};u.path=null;}}   // all-out on the enemy's Wonder
@@ -12200,6 +12215,26 @@ try{(function(){if(typeof PZ==='undefined'||GUARD.off)return;if(!PZ.kinds.includ
       if(G2.st==='wait'){c.fillStyle='#8a2a1e';c.strokeStyle='#ffd25a';c.lineWidth=2;c.beginPath();c.roundRect?c.roundRect(120,220,100,26,8):c.rect(120,220,100,26);c.fill();c.stroke();c.fillStyle='#fff3d6';c.font='bold 14px system-ui';c.textAlign='center';c.fillText('⚔ FIGHT',170,238);}
       c.fillStyle='#f0c35a';c.font='bold 12px Cinzel,Georgia,serif';c.textAlign='center';c.fillText(K.n,170,22);
     }catch(err){}return r;};
+  /* computer: bring the right unit to guardian ruins (Oct 20 balance pass: its scout kept walking back to a guardian ruin it couldn't beat, so it stopped exploring ruins).
+     Every ~5 s per computer side: for each unexplored guardian ruin, send one unit that beats it (idle soldiers first, a gatherer for the swarm); if its ruin scout is
+     headed to a guardian ruin it can't beat, send the scout to the next ruin instead (or home). ai.gHelp = {ruinId: unitId}. */
+  const isIsl=r=>{try{return typeof islAt==='function'&&!!islAt(r.tx,r.ty)}catch(e){return false}};
+  function guardAI(o){const ai=G.ais&&G.ais[o];if(!ai||G.over)return;if((ai.gdT=(ai.gdT||0)-1)>0)return;ai.gdT=5;const H=ai.gHelp||(ai.gHelp={});
+    const GR=G.ents.filter(r=>r.type==='ruin'&&!r.dead&&!r.looted&&r.pz==='guardian'&&!isIsl(r));if(!GR.length)return;
+    const base=G.ents.find(e=>e.owner===o&&e.type==='towncenter'&&!e.dead);
+    for(const r of GR){const K=KIND[pickGuard(r,o)];const cur=H[r.id]&&G.byId.get(H[r.id]);if(cur&&!cur.dead&&cur.order&&cur.order.type==='move')continue;
+      if(base&&Math.hypot(r.x-base.x,r.y-base.y)>75*TILE)continue;
+      if(ai.attacking&&r.guard!=='swarm')continue;   // soldiers are busy attacking: wait
+      const busy=u=>u.mdig||u.mwork||u._board||(ai.fer&&ai.fer.ids&&ai.fer.ids.includes(u.id))||u.id===ai.scout;
+      const cand=G.ents.filter(u=>u.kind==='unit'&&u.owner===o&&!u.dead&&!u.naval&&!u.air&&K.ok(u)&&!busy(u)&&(!u.order||u.order.type==='move'||(u.type==='villager'&&u.order.type==='gather')));
+      if(!cand.length)continue;cand.sort((a,b)=>((a.order?1:0)-(b.order?1:0))||Math.hypot(a.x-r.x,a.y-r.y)-Math.hypot(b.x-r.x,b.y-r.y));
+      const u=cand[0];H[r.id]=u.id;try{orderMove([u],r.x,r.y);}catch(err){}}
+    // the ruin scout: don't let it camp at a guardian ruin it can't beat
+    const sc=ai.scout&&G.byId.get(ai.scout);if(sc&&!sc.dead){const tgt=GR.find(r=>sc.order&&Math.hypot(sc.order.x-r.x,sc.order.y-r.y)<2*TILE||Math.hypot(sc.x-r.x,sc.y-r.y)<3*TILE);
+      if(tgt&&!KIND[pickGuard(tgt,o)].ok(sc)){const blocked=new Set(GR.filter(r=>!KIND[pickGuard(r,o)].ok(sc)).map(r=>r.id));
+        let best=null,bd=70*TILE;for(const e of G.ents)if(e.type==='ruin'&&!e.dead&&!e.looted&&!blocked.has(e.id)&&!isIsl(e)){const d=Math.hypot(e.x-sc.x,e.y-sc.y);if(d<bd){bd=d;best=e;}}
+        try{if(best)orderMove([sc],best.x,best.y);else if(base)orderMove([sc],base.x+(Math.random()-.5)*4*TILE,base.y+3*TILE);}catch(err){}}}}
+  const _ait=aiTick;aiTick=function(o){const r=_ait.apply(this,arguments);try{if(!GUARD.off)guardAI(o);}catch(err){}return r;};
   window.__guard=GUARD;window.__guardKinds=KIND;
 })()}catch(err){}
 /* ===== END the guardian ===== */
@@ -13652,7 +13687,7 @@ const _rg=renderGround;renderGround=function(){const r=_rg.apply(this,arguments)
 const _dw=drawWater;drawWater=function(c,now,inView){const r=_dw.apply(this,arguments);try{if(FO.on&&G&&G.mapType==='river')edgeTrees(c,inView)}catch(err){}return r};
 })()}catch(err){}
 /* ===== END art chat 1: cliffs + forest ===== */
-window.__GFX=GFX;window.__bs=(e)=>bldSpr(e);window.__pw=placeWhy;window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
+window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
 })();
