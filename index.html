@@ -1734,11 +1734,12 @@ function updUnit(u,dt){
     if(t.type==='farm'&&G.players[u.owner].tech.harvesters){if(u.owner===0&&G.t-(G.lastHarvMsg||-99)>8){G.lastHarvMsg=G.t;toast('Machines work the farms now. Put this villager on another job');}u.order=null;return;}
     if(t.type==='vein'){if(u.owner===0&&G.t-(G.lastVeinMsg||-99)>8){G.lastVeinMsg=G.t;toast('This vein is underground. Build a mine shaft on it');}u.order=null;return;}
     if(t.type==='copper'){if(u.owner===0&&G.t-(G.lastCuMsg||-99)>8){G.lastCuMsg=G.t;toast('Copper can\'t be carried. Build a smelter next to it to discover bronze working');}u.order=null;return;}
-    if(t.type==='farm'&&u.type==='villager'&&!millFarmOK(u,t)){const nx=freeMillFarm(u,t);if(nx){o.id=nx.id;o.lx=nx.x;o.ly=nx.y;u.path=null;return;}if(u.carry.amt>=1){o.phase='drop';u.path=null;return;}u.order=null;u.path=null;if(u.owner===0&&G.t-(G.mfMsg||-99)>6){G.mfMsg=G.t;toast('Windmill farms take 1 farmer each, and every farm of this windmill has one');}return;}
+    if(t.type==='farm'&&u.type==='villager'&&!millFarmOK(u,t)){const oxRow=oxRowTaken(t,u);const nx=freeMillFarm(u,t);if(u.owner===0&&oxRow&&G.t-(G.oxRowMsg||-99)>6){G.oxRowMsg=G.t;toast('🐂 This oxen field is already worked: one farmer guides the oxen on up to 3 fields in a row. '+(nx?'Sent this villager to a free farm':'No free farm for this villager'))}if(nx){o.id=nx.id;o.lx=nx.x;o.ly=nx.y;u.path=null;return;}if(oxRow){if(u.carry.amt>=1){o.phase='drop';u.path=null;return;}u.order=null;u.path=null;return;}if(u.carry.amt>=1){o.phase='drop';u.path=null;return;}u.order=null;u.path=null;if(u.owner===0&&G.t-(G.mfMsg||-99)>6){G.mfMsg=G.t;toast('Windmill farms take 1 farmer each, and every farm of this windmill has one');}return;}
     const rt=t.type==='farm'&&t.millUse==='flax'?'g':RES[t.type].r;
     if(u.carry.amt>0&&u.carry.r!==rt)u.carry.amt=0;
     if(u.carry.amt>=capOf(u)){o.phase='drop';o.drop=0;u.path=null;return;}
     const r=approachWork(u,t,(t.type==='fish'&&u.type==='villager')?TILE*2.6:TILE*.8);/* Josh Oct 16: villagers cast a line up to ~3 tiles out, so pond fish can be reached from the shore */
+    if(r==='fail'&&t.type==='farm'&&(o.bad||0)<6){o.bad=(o.bad||0)+1;u.path=null;return;}/* gameplay chat 1 (Josh Oct 21, farmers on ox farms stopped): a farm the farmer can't reach this moment is retried, not given up at once */
     if(r==='fail'){
       const tooFar=()=>{if(t.type==='fish'&&u.owner===0&&G.t-(G.fishMsg||-99)>8){G.fishMsg=G.t;toast('That fish is too far from the shore to catch. Build a dock and send a fishing boat')}};
       o.bad++;if(o.bad>4){tooFar();u.order=null;return;}
@@ -8992,6 +8993,7 @@ function ranchGateTick(R,dt){
 /* ===== Windmill farms: 1 farmer each (Josh, Oct 15). t.mfB = the farmer who holds a windmill farm. ===== */
 function mfHolder(f){const v=f.mfB&&G.byId.get(f.mfB);return v&&!v.dead&&v.owner===f.owner&&v.order&&v.order.type==='gather'&&v.order.id===f.id?v:null;}
 function mfTaken(f,u){const h=mfHolder(f);if(h)return h!==u;if(oxAlive(f))for(const g of G.ents){if(g===f||g.type!=='farm'||g.dead||g.owner!==f.owner||!oxAlive(g)||!rowMate(g,f))continue;const hg=mfHolder(g);if(hg&&hg!==u)return true;}return false;}
+function oxRowTaken(f,u){if(!oxAlive(f)||mfHolder(f))return false;for(const g of G.ents){if(g===f||g.type!=='farm'||g.dead||g.owner!==f.owner||!oxAlive(g)||!rowMate(g,f))continue;const hg=mfHolder(g);if(hg&&hg!==u)return true;}return false;}
 function millFarmOK(u,f){if(!millOf(f))return true;if(mfTaken(f,u))return false;if(mfHolder(f)===u)return true;
   let best=null,bd=1e9;for(const v of G.ents)if(v.type==='villager'&&!v.dead&&v.owner===f.owner&&v.order&&v.order.type==='gather'&&v.order.id===f.id){const d=Math.hypot(v.x-f.x,v.y-f.y);if(d<bd){bd=d;best=v;}}
   f.mfB=(best||u).id;return f.mfB===u.id;}
@@ -12665,6 +12667,12 @@ function ringFight(e){if(RINGFIGHT.off)return true;if(!G)return true;if(G.t-RF_T
 /* remember when a unit last lost health (so a unit shot from far away still shows its ring for a few seconds) */
 try{tick=(function(prev){const last=new Map();return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.ents&&!RINGFIGHT.off)for(const u of G.ents){if(u.kind!=='unit'||u.dead||u.owner>1)continue;const p=last.get(u.id);if(p!=null&&u.hp<p-.01)RF_HIT.set(u.id,G.t);last.set(u.id,u.hp)}}catch(err){}return r}})(tick)}catch(err){}
 window.__ringfight=RINGFIGHT;
+
+/* ===== Donkeys stuck in the ranch gate (gameplay chat 1, Josh Oct 21: "The pack donkeys get stuck in the pen and I can't get them to do any work";
+   "they get stuck where the gate connects to the dairy"). A ranch animal leaving through the gate is walked along gate points by ranchGateTick
+   (u.gp); the pack-donkey job code re-issued a new walk order every tick, which reset the gate walk, so the donkey froze at the inner gate post.
+   While an animal is on its gate walk, its own unit update now waits until it is through. ===== */
+try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.gp&&u.gp.length&&CORRAL_AN.has(u.type))return;return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
