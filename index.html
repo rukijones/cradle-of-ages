@@ -1732,6 +1732,10 @@ function updUnit(u,dt){
       o.id=t.id;u.path=null;
     }
     if(t.type==='farm'&&G.players[u.owner].tech.harvesters){if(u.owner===0&&G.t-(G.lastHarvMsg||-99)>8){G.lastHarvMsg=G.t;toast('Machines work the farms now. Put this villager on another job');}u.order=null;return;}
+    if(t.type==='farm'&&t.built&&(typeof t.amt!=='number'||isNaN(t.amt))&&!t.fallow){try{t.amt=farmCap(t)}catch(err){t.amt=300}}/* gameplay chat 1 (Josh Oct 22): a farm with a broken amount never worked */
+    if(t.type==='farm'&&u.type==='villager'&&oxAlive(t)&&(t.fallow||!(t.amt>0))){/* gameplay chat 1 (Josh Oct 22: "they start farming for 3 seconds then stop and stand idle and I can't assign them again"): an oxen field that ran out rests ~20 s and the oxen replant it for free. The farmer now waits at the field and starts again by himself, with a message, instead of going idle */
+      if(u.carry.amt>=1){o.phase='drop';u.path=null;return;}t.lastFarmers=[...new Set([...(t.lastFarmers||[]),u.id])];u.path=null;u.working=false;
+      if(u.owner===0&&G.t-(G.oxRestMsg||-99)>8){G.oxRestMsg=G.t;const left=t.restT?Math.max(1,Math.ceil(20-(G.t-t.restT))):20;toast('🐂 This oxen field is resting: the oxen replant it in about '+left+' s. The farmer waits and starts again by himself');}return;}
     if(t.type==='vein'){if(u.owner===0&&G.t-(G.lastVeinMsg||-99)>8){G.lastVeinMsg=G.t;toast('This vein is underground. Build a mine shaft on it');}u.order=null;return;}
     if(t.type==='copper'){if(u.owner===0&&G.t-(G.lastCuMsg||-99)>8){G.lastCuMsg=G.t;toast('Copper can\'t be carried. Build a smelter next to it to discover bronze working');}u.order=null;return;}
     if(t.type==='farm'&&u.type==='villager'&&!millFarmOK(u,t)){const oxRow=oxRowTaken(t,u);const nx=freeMillFarm(u,t);if(u.owner===0&&oxRow&&G.t-(G.oxRowMsg||-99)>6){G.oxRowMsg=G.t;toast('🐂 This oxen field is already worked: one farmer guides the oxen on up to 3 fields in a row. '+(nx?'Sent this villager to a free farm':'No free farm for this villager'))}if(nx){o.id=nx.id;o.lx=nx.x;o.ly=nx.y;u.path=null;return;}if(oxRow){if(u.carry.amt>=1){o.phase='drop';u.path=null;return;}u.order=null;u.path=null;return;}if(u.carry.amt>=1){o.phase='drop';u.path=null;return;}u.order=null;u.path=null;if(u.owner===0&&G.t-(G.mfMsg||-99)>6){G.mfMsg=G.t;toast('Windmill farms take 1 farmer each, and every farm of this windmill has one');}return;}
@@ -1749,7 +1753,7 @@ function updUnit(u,dt){
       if(!u.working)u.face=Math.atan2(t.y-u.y,t.x-u.x);u.carry.r=rt;u.carry.meat=t.type==='carcass';if(t.type==='fish'){const U=G.players[u.owner].unlock||(G.players[u.owner].unlock={});U.fish=1;}u.working=true;u.face=Math.atan2(t.y-u.y,t.x-u.x);
       let g=gatherRate(u,t)*dt;g=Math.min(g,t.amt,capOf(u)-u.carry.amt);
       u.gacc=(u.gacc||0)+g;if((u.anim&&u.anim.impact)||u.gacc>=6){const ga=Math.min(u.gacc,t.amt);t.amt-=ga;u.carry.amt+=ga;u.gacc=0;}u.carry.src=t.type==='farm'&&t.millUse==='flax'?'flax':t.type;o.lx=t.x;o.ly=t.y;
-      if(t.amt<=.001){if(t.type==='farm'&&t.built&&t.owner>=0&&t.owner<2){t.amt=0;t.fallow=true;t.lastFarmers=[...new Set([...(t.lastFarmers||[]),u.id])];u.order=null;u.path=null;if(t.owner===0&&G.t-(G.lastFarmMsg||-99)>12){G.lastFarmMsg=G.t;const fm=oxAlive(t)?'':'A farm is harvested out. Select it and tap Replant ('+farmReplantW(t)+' wood)';if(fm)toast(fm);}}else{
+      if(t.amt<=.001){if(t.type==='farm'&&t.built&&t.owner>=0&&t.owner<2){t.amt=0;t.fallow=true;t.lastFarmers=[...new Set([...(t.lastFarmers||[]),u.id])];if(!oxAlive(t))u.order=null;u.path=null;if(t.owner===0&&G.t-(G.lastFarmMsg||-99)>12){G.lastFarmMsg=G.t;const fm=oxAlive(t)?'':'A farm is harvested out. Select it and tap Replant ('+farmReplantW(t)+' wood)';if(fm)toast(fm);}}else{
       if(t.type==='farm'&&t.owner===0&&G.t-(G.lastFarmMsg||-99)>15){G.lastFarmMsg=G.t;toast('A farm has run out and there was no wood to replant it');}if(t.type==='tree'){fellTree(t,u);if(t.grove||coppiceOwner(t)>=0){t.stump=true;t.copd=true;t.amt=0;t.growT=0;t.cop=coppiceOwner(t);}else{t.stump=true;t.deadStump=true;t.amt=0;t.growT=0;for(let yy=t.ty;yy<t.ty+(t.size||1);yy++)for(let xx=t.tx;xx<t.tx+(t.size||1);xx++)if(G.occ[ti(xx,yy)]===t.id)G.occ[ti(xx,yy)]=0;}}else if(t.type==='berry'||t.type==='fish'){t.bare=true;t.amt=0;}else kill(t);}}
     }
   }
@@ -11375,12 +11379,12 @@ function cliffNear(cx,cy,s){if(!G||!G.terrain)return false;const k=G.seed+':'+G.
   return S[y1*W+x1]-S[y0*W+x1]-S[y1*W+x0]+S[y0*W+x0]>0}
 function losBlocked(x0,y0,x1,y1){const dx=x1-x0,dy=y1-y0,n=Math.max(Math.abs(dx),Math.abs(dy));const T=G.terrain;
   for(let k=1;k<n;k++){const x=Math.round(x0+dx*k/n),y=Math.round(y0+dy*k/n);if(T[ti(x,y)]===3)return true}return false}
-const GOLDSH={w:62,h:34,dx:1,dy:8,f:0};let IM_GSH=null;
+const GOLDSH={w:78,h:40,dx:1,dy:10,f:0};let IM_GSH=null;
 /* gold ore sat on the grass with no contact shadow and looked like it floated (Josh, Oct 18): a soft dark dirt shadow under every
    gold pile, all drawn before the first pile each frame so the piles sit in one patch of earth */
 try{draw=(function(prev){return function(){GOLDSH.f=0;return prev.apply(this,arguments)}})(draw)}catch(err){}
 try{drawRes=(function(prev){return function(c,e){try{if(e&&e.type==='gold'&&!GOLDSH.f&&!(window.FXOFF&&FXOFF.shadows)){GOLDSH.f=1;const k=GOLDSH;
-  let g=IM_GSH;if(!g){g=document.createElement('canvas');g.width=g.height=64;const x=g.getContext('2d'),r=x.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(40,28,14,.7)');r.addColorStop(.6,'rgba(56,42,22,.42)');r.addColorStop(1,'rgba(56,42,22,0)');x.fillStyle=r;x.fillRect(0,0,64,64);IM_GSH=g}
+  let g=IM_GSH;if(!g){g=document.createElement('canvas');g.width=g.height=64;const x=g.getContext('2d'),r=x.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(34,24,12,.92)');r.addColorStop(.45,'rgba(70,52,28,.8)');r.addColorStop(.75,'rgba(84,64,36,.45)');r.addColorStop(1,'rgba(84,64,36,0)');/* Josh Oct 22: still floating: a darker, wider dirt bed */x.fillStyle=r;x.fillRect(0,0,64,64);IM_GSH=g}
   for(const q of G.ents)if(q.type==='gold'&&!q.dead)c.drawImage(g,q.x-k.w/2+k.dx,q.y-k.h/2+k.dy,k.w,k.h)}}catch(err){}return prev.apply(this,arguments)}})(drawRes)}catch(err){}
 /* ranch hands over the limit (Josh had 10/3 before the cap) go back to being idle villagers */
 try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&G.ents){G._rhT=(G._rhT||0)+dt;if(G._rhT>=2){G._rhT=0;const n={};for(const u of G.ents){if(u.dead||!u.shep||u.type!=='villager')continue;const R=G.byId.get(u.shep);if(!R||R.type!=='ranch')continue;n[u.shep]=(n[u.shep]||0)+1;if(n[u.shep]>RHAND_MAX){u.shep=0;u.order=null;u.path=null}}}}}catch(err){}return r}})(tick)}catch(err){}
@@ -12679,6 +12683,9 @@ window.__ringfight=RINGFIGHT;
    (u.gp); the pack-donkey job code re-issued a new walk order every tick, which reset the gate walk, so the donkey froze at the inner gate post.
    While an animal is on its gate walk, its own unit update now waits until it is through. ===== */
 try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.gp&&u.gp.length&&CORRAL_AN.has(u.type))return;return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+
+/* ===== Owned animals: no team ring unless in a fight (gameplay chat 1, Josh Oct 22: "The cows still have a blue ring under them"). ===== */
+try{const br=GFX.beastRing;if(br)GFX.beastRing=function(c,u){try{if(typeof ringFight==='function'&&!ringFight(u))return}catch(err){}return br.apply(this,arguments)}}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
