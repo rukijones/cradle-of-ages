@@ -13952,7 +13952,7 @@ function build(){const T=G.terrain,L=[],occ=(x,y)=>{const o=G.occ[ti(x,y)];retur
 function deco(c){if(S2.nodeco&&S2.noface)return;if(!GFX.SCENE2||!G||!G.terrain)return;const C=cvs();if(!C)return;const sig=(G.seed||0)+':'+G.terrain.length+':'+G.mapType;if(!S2.list||S2.sig!==sig){S2.list=build();S2.sig=sig;S2.runs=null}
   const z=cam.z,vx=cam.x-40,vy=cam.y-40,vw=W/z+80,vh=H/z+80;try{faces(c,vx,vy,vw,vh+100)}catch(err){S2.err=String(err)}
   if(!S2.nodeco)for(const d of S2.list){if(d.x<vx||d.y<vy||d.x>vx+vw||d.y>vy+vh)continue;
-    if(d.t==='foot'){const g=c.createLinearGradient(0,d.y,0,d.y+12);g.addColorStop(0,'rgba(12,16,10,.5)');g.addColorStop(1,'rgba(12,16,10,0)');c.fillStyle=g;c.fillRect(d.x-1,d.y,TILE+2,12);continue}
+    if(d.t==='foot'){if(S2.v3)continue;const g=c.createLinearGradient(0,d.y,0,d.y+12);g.addColorStop(0,'rgba(12,16,10,.5)');g.addColorStop(1,'rgba(12,16,10,0)');c.fillStyle=g;c.fillRect(d.x-1,d.y,TILE+2,12);continue}
     const o=G.occ[ti(tl(d.x),tl(d.y))];if(o){const e=G.byId.get(o);if(e&&e.kind==='bld'&&!e.dead)continue}
     if(d.t==='rock'){const s=C.rocks[d.v];c.save();c.translate(d.x,d.y);if(d.fl)c.scale(-1,1);c.drawImage(s,-s.w/2,-s.h+4,s.w,s.h);c.restore();continue}
     const s=C[d.t];c.drawImage(C.sh,d.x-s.w*.45+3,d.y-4,s.w*.95,9);c.save();c.translate(d.x,d.y);if(d.fl)c.scale(-1,1);c.drawImage(s,-s.w/2,-s.h+3,s.w,s.h);c.restore()}}
@@ -13976,18 +13976,21 @@ const FHD=new Image();FHD.src='data:image/webp;base64,UklGRg4VAABXRUJQVlA4IAIVAA
 function runs(){if(G.mapType!=='corners')return [];const T=G.terrain,LV=GFX.CLIFF&&GFX.CLIFF.LV,HT=(GFX.CLIFF&&GFX.CLIFF.HT)||[20,48,92];if(!LV)return null;
   const hOf=(x,y)=>HT[Math.max(1,Math.min(3,LV[ti(x,y)]||3))-1];
   /* south edges per column, then linked column to column into chains (stair steps of up to 2 tiles) */
-  const E=[];for(let x=0;x<MW;x++){E[x]=[];for(let y=1;y<MH-1;y++)if(T[ti(x,y)]===3&&T[ti(x,y+1)]!==3)E[x].push({y,used:0})}
-  const CH=[];for(let x=0;x<MW;x++)for(const e of E[x]){if(e.used)continue;const P=[];let cx=x,ce=e;
-    while(ce){ce.used=1;const wb=T[ti(cx,ce.y+1)]===1;let dd=0;while(ce.y-dd>=0&&T[ti(cx,ce.y-dd)]===3&&dd<8)dd++;const H0=hOf(cx,ce.y),Hc=Math.min(H0,Math.max(22,dd*TILE-46));P.push([cx*TILE+TILE/2,(ce.y+1)*TILE+(wb?8:0),Hc,H0]);
-      const nx=cx+1;if(nx>=MW)break;let best=null,bd=2;for(const f of E[nx]){if(f.used)continue;const d=Math.abs(f.y-ce.y);const sd=f.y-ce.y,ok2=d===0||(T[ti(nx,Math.min(f.y,ce.y))]===3&&nx+1<MW&&E[nx+1].some(g=>g.y===f.y||g.y===f.y+sd));if(d<bd&&ok2&&hOf(nx,f.y)===hOf(cx,ce.y)){bd=d;best=f}}cx=nx;ce=best}
+  /* (also the step faces between terrace tiers near beaches: where the tile below is a lower tier) */
+  const lv=(x,y)=>Math.max(1,Math.min(3,LV[ti(x,y)]||3));const E=[];for(let x=0;x<MW;x++){E[x]=[];for(let y=1;y<MH-1;y++)if(T[ti(x,y)]===3&&(T[ti(x,y+1)]!==3||lv(x,y+1)<lv(x,y)))E[x].push({y,used:0})}
+  const CH=[];for(let x=0;x<MW;x++)for(const e of E[x]){if(e.used)continue;const P=[];let cx=x,ce=e,ps=0;
+    while(ce){ce.used=1;const wb=T[ti(cx,ce.y+1)]===1;let dd=0;while(ce.y-dd>=0&&T[ti(cx,ce.y-dd)]===3&&dd<8)dd++;const H0=hOf(cx,ce.y),Hc=Math.min(H0,Math.max(22,dd*TILE-46));const by=(ce.y+1)*TILE+(wb?8:0),wn=ce.y-dd>=0&&T[ti(cx,ce.y-dd)]===1,L0=lv(cx,ce.y);let dt=0;while(ce.y-dt>=0&&T[ti(cx,ce.y-dt)]===3&&lv(cx,ce.y-dt)<=L0&&dt<8)dt++;const tt=(ce.y-dt>=0&&(T[ti(cx,ce.y-dt)]!==3||lv(cx,ce.y-dt)>L0))?(ce.y-dt+1)*TILE-(T[ti(cx,ce.y-dt)]===1?4:0):by-H0-6,tp=dd<=4?tt:by-H0-6;P.push([cx*TILE+TILE/2,by,Hc,H0,tp,tt]);
+      const nx=cx+1;if(nx>=MW)break;let best=null,bd=2;for(const f of E[nx]){if(f.used)continue;const d=Math.abs(f.y-ce.y);const sd=f.y-ce.y,ok2=d===0||(Math.sign(sd)!==-ps&&!(cx>0&&E[cx-1].some(g=>g.y===f.y&&hOf(cx-1,g.y)===hOf(cx,ce.y)))&&T[ti(nx,Math.min(f.y,ce.y))]===3&&nx+1<MW&&E[nx+1].some(g=>(g.y===f.y||g.y===f.y+sd)&&hOf(nx+1,g.y)===hOf(cx,ce.y)));if(d<bd&&ok2&&hOf(nx,f.y)===hOf(cx,ce.y)){bd=d;best=f}}ps=best?Math.sign(best.y-ce.y):0;cx=nx;ce=best}
+    /* V-notches: where a column's face top sits lower than its neighbours', upland ground fills the dip up to the neighbours' line (never past the real plateau top) */
+    for(let i=0;i<P.length;i++){let env=1e9;for(let j=Math.max(0,i-2);j<=Math.min(P.length-1,i+2);j++)env=Math.min(env,P[j][1]-P[j][2],j===i?1e9:P[j][4]);P[i][4]=Math.min(P[i][4],Math.max(P[i][5],env-6))}
     /* run ends: half a tile out, rounded */
-    const a=P[0],b=P[P.length-1];P.unshift([a[0]-TILE/2,a[1],a[2],a[3]]);P.push([b[0]+TILE/2,b[1],b[2],b[3]]);
+    const a=P[0],b=P[P.length-1];P.unshift([a[0]-TILE/2,a[1],a[2],a[3],a[4]]);P.push([b[0]+TILE/2,b[1],b[2],b[3],b[4]]);
     /* smooth bottom + height (Catmull-Rom, 4 px steps) */
     const S=[];for(let i=0;i<P.length-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)],n=Math.max(2,Math.round((p2[0]-p1[0])/4));
-      for(let k=0;k<n;k++){const t=k/n,t2=t*t,t3=t2*t,f=(q)=>.5*(2*p1[q]+(-p0[q]+p2[q])*t+(2*p0[q]-5*p1[q]+4*p2[q]-p3[q])*t2+(-p0[q]+3*p1[q]-3*p2[q]+p3[q])*t3);S.push([f(0),f(1),f(2),f(3)])}}S.push(P[P.length-1]);
-    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const[u,v,h,h0]of S){x0=Math.min(x0,u);x1=Math.max(x1,u);y0=Math.min(y0,v-Math.max(h,h0||0)-4);y1=Math.max(y1,v)}
-    CH.push({S,x0,x1,y0,y1})}
-  CH.sort((p,q)=>p.y1-q.y1);return CH}
+      for(let k=0;k<n;k++){const t=k/n,t2=t*t,t3=t2*t,f=(q)=>.5*(2*p1[q]+(-p0[q]+p2[q])*t+(2*p0[q]-5*p1[q]+4*p2[q]-p3[q])*t2+(-p0[q]+3*p1[q]-3*p2[q]+p3[q])*t3);S.push([f(0),f(1),f(2),f(3),t<.5?p1[4]:p2[4]])}}S.push(P[P.length-1]);
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const[u,v,h,h0,tp]of S){x0=Math.min(x0,u);x1=Math.max(x1,u);y0=Math.min(y0,v-Math.max(h,h0||0)-4,tp-4);y1=Math.max(y1,v)}
+    CH.push({S,x0,x1,y0,y1,tier:lv(x,e.y)})}
+  CH.sort((p,q)=>(p.tier-q.tier)||(p.y1-q.y1));return CH}
 let LIPC=null;function lipStrip(){if(LIPC)return LIPC;const K=4,c=document.createElement('canvas');c.width=96*K;c.height=14*K;const g=c.getContext('2d');g.scale(K,K);
   g.fillStyle='rgba(14,20,8,.28)';for(let i=0;i<40;i++){const x=i*2.4+hr(i,1,401)*1.8,l=1+hr(i,2,401)*5;g.beginPath();g.moveTo(x-1.5,1.5);g.lineTo(x+1.5,1.5);g.lineTo(x+.7,3.5+l);g.closePath();g.fill()}
   for(let i=0;i<44;i++){const x=i*2.2+hr(i,5,401)*1.8,l=hr(i,6,401)<.35?.5+hr(i,10,401)*1.5:1.5+hr(i,6,401)*4.5,w=.9+hr(i,7,401)*1.3,gr=g.createLinearGradient(0,-1,0,1+l);gr.addColorStop(0,'#8fab3c');gr.addColorStop(1,hr(i,8,401)<.5?'#5d7c26':'#6e8c2d');
@@ -13996,26 +13999,60 @@ let LIPC=null;function lipStrip(){if(LIPC)return LIPC;const K=4,c=document.creat
 /* each chain is cut into pieces about 240 px wide; a piece is painted once into a small canvas (2.5x) when it first comes on screen
    and kept in a small cache, so a frame only does one drawImage per visible piece */
 function pieces(){const out=[];for(const r of S2.runs){const S=r.S;let a=0,off=0;while(a<S.length-1){let b=a;while(b<S.length-1&&S[b][0]-S[a][0]<240)b++;
-      const P=S.slice(a,b+1);let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const[u,v,h,h0]of P){x0=Math.min(x0,u);x1=Math.max(x1,u);y0=Math.min(y0,v-Math.max(h,h0||0)-6-(r.north?34:0));y1=Math.max(y1,v+(r.north?8:0))}
+      const P=S.slice(a,b+1);let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const[u,v,h,h0,tp]of P){x0=Math.min(x0,u);x1=Math.max(x1,u);y0=Math.min(y0,v-Math.max(h,h0||0)-6-(r.north?34:0),(tp==null?1e9:tp)-6);y1=Math.max(y1,v+(r.north?8:0))}
       out.push({P,north:r.north,first:a===0,last:b>=S.length-1,off,bx:Math.floor(x0-20),by:Math.floor(y0-4),bw:Math.ceil(x1-x0+40),bh:Math.ceil(y1-y0+20),cv:null,t:0});
       for(let k=a;k<b;k++)off+=Math.hypot(S[k+1][0]-S[k][0],(S[k+1][1]-S[k+1][2])-(S[k][1]-S[k][2]));a=b}}return out}
 const KP=2.5;let CACHE=[];
-function paint(q){const lp=lipStrip(),cv=document.createElement('canvas');cv.width=Math.ceil(q.bw*KP);cv.height=Math.ceil(q.bh*KP);const c=cv.getContext('2d');c.scale(KP,KP);c.translate(-q.bx,-q.by);if(q.north){npaint(q,c);return cv}
-  const S=q.P;
-  /* where the plateau is shallow, the baked face is cut down: upland ground fills the space above the shorter face */
-  if(S.some(p=>p[3]>p[2]+1)){c.save();c.beginPath();for(const[u,v,h]of S)c.lineTo(u,v-h+1);for(let i=S.length-1;i>=0;i--)c.lineTo(S[i][0],S[i][1]-S[i][3]-6);c.closePath();c.clip();
-    c.fillStyle=GFX.pat(c,'grass');c.fillRect(q.bx,q.by,q.bw,q.bh);c.fillStyle='rgba(70,60,30,.28)';c.fillRect(q.bx,q.by,q.bw,q.bh);
-    c.lineJoin='round';c.strokeStyle='rgba(30,26,14,.18)';c.lineWidth=10;c.beginPath();for(const[u,v,h]of S)c.lineTo(u,v-h+4);c.stroke();c.restore()}
-  c.save();c.beginPath();for(const[u,v]of S)c.lineTo(u,v);for(let i=S.length-1;i>=0;i--)c.lineTo(S[i][0],S[i][1]-S[i][2]);c.closePath();c.clip();
+let RIMC=null;function rimStrip(){if(RIMC)return RIMC;const K=4,c=document.createElement('canvas');c.width=96*K;c.height=12*K;const g=c.getContext('2d');g.scale(K,K);
+  /* short grass tufts standing up on the clifftop (no fringe hanging over the face) */
+  for(let i=0;i<26;i++){if(hr(i,3,411)<.3)continue;const x=i*3.7+hr(i,1,411)*2.5,l=1.6+hr(i,2,411)*3.2,w=.8+hr(i,4,411)*.9,col=hr(i,5,411)<.5?'#7f9c34':'#8fae3e';
+    g.fillStyle=col;g.beginPath();g.moveTo(x-w,11);g.lineTo(x+w,11);g.lineTo(x+(hr(i,6,411)-.5)*1.6,11-l);g.closePath();g.fill();
+    if(hr(i,7,411)<.5){g.beginPath();g.moveTo(x+w*.4,11);g.lineTo(x+w*1.8,11);g.lineTo(x+w*1.6+1.2,11-l*.7);g.closePath();g.fill()}}
+  return RIMC=c}
+/* round convex corners of a top line (lower y = higher): min over neighbours lifted by a circle of radius r */
+function roundTop(S,top,r){const out=top.slice();for(let i=0;i<S.length;i++){let m=top[i];for(let j=i-1;j>=0&&S[i][0]-S[j][0]<r;j--){const dx=S[i][0]-S[j][0];m=Math.min(m,top[j]+r-Math.sqrt(r*r-dx*dx))}
+  for(let j=i+1;j<S.length&&S[j][0]-S[i][0]<r;j++){const dx=S[j][0]-S[i][0];m=Math.min(m,top[j]+r-Math.sqrt(r*r-dx*dx))}out[i]=m}return out}
+function paint(q){const rs=rimStrip(),cv=document.createElement('canvas');cv.width=Math.ceil(q.bw*KP);cv.height=Math.ceil(q.bh*KP);const c=cv.getContext('2d');c.scale(KP,KP);c.translate(-q.bx,-q.by);if(q.north){npaint(q,c);return cv}
+  const S=q.P.map(p=>p.slice());if(!q.first)S[0][0]-=1;if(!q.last)S[S.length-1][0]+=1;
+  /* a slightly uneven clifftop (never lower than the tile line, so nothing baked shows through) */
+  for(const p of S){const x=p[0];p[2]+=1.6+.95*Math.sin(x/23+1.3)+.6*Math.sin(x/9.3+4.1)}
+  const n=S.length,A=S[0],B=S[n-1],E=7;
+  /* upland ground above shorter faces (terraces, notches), with rounded corners instead of tile steps */
+  if(S.some(p=>p[4]<p[1]-p[2]-2)){const top=roundTop(S,S.map(p=>Math.min(p[4],p[1]-p[2])),14);c.save();c.beginPath();
+    for(const[u,v,h]of S)c.lineTo(u,v-h+1);
+    if(q.last){const t=top[n-1],R=Math.min(14,(B[1]-B[2])-t);c.lineTo(B[0]+E,B[1]-B[2]+1);c.lineTo(B[0]+E,t+R);c.quadraticCurveTo(B[0]+E,t,B[0]+E-R,t)}
+    for(let i=n-1;i>=0;i--)c.lineTo(S[i][0],top[i]);
+    if(q.first){const t=top[0],R=Math.min(14,(A[1]-A[2])-t);c.lineTo(A[0]-E+R,t);c.quadraticCurveTo(A[0]-E,t,A[0]-E,t+R);c.lineTo(A[0]-E,A[1]-A[2]+1)}
+    c.closePath();c.clip();
+    c.fillStyle=GFX.pat(c,'grass');c.fillRect(q.bx,q.by,q.bw,q.bh);c.fillStyle='rgba(70,60,30,.28)';c.fillRect(q.bx,q.by,q.bw,q.bh);c.restore()}
+  /* face outline: chain ends get a rounded shoulder that wraps a little past the tile edge instead of a straight cut */
+  const RA=Math.min(10,A[2]*.4),RB=Math.min(10,B[2]*.4);
+  /* chain ends: 'rock' = a broken, slightly flared rock edge; 'round' = a rounded shoulder */
+  const side=(u,v,h,dir)=>{const pts=[],K=5;for(let k=0;k<=K;k++){const t=k/K,y=v-h+t*h,j=k===0||k===K?0:(hr(Math.round(u),k,431)-.5)*6;pts.push([u+dir*(E-2+t*6+j+(k===0?-3:0)),y])}return pts};
+  const face=()=>{const rock=(S2.endStyle||'rock')==='rock';c.beginPath();
+    if(q.first){if(rock){const sd=side(A[0],A[1],A[2],-1);c.moveTo(sd[sd.length-1][0],sd[sd.length-1][1])}else{c.moveTo(A[0]-E-4,A[1]-8);c.quadraticCurveTo(A[0]-E-4,A[1],A[0]+4,A[1])}}else c.moveTo(A[0],A[1]);
+    for(const[u,v]of S)if((!q.first||u>A[0]+4)&&(!q.last||u<B[0]-4))c.lineTo(u,v);
+    if(q.last){if(rock){const sd=side(B[0],B[1],B[2],1);for(let k=sd.length-1;k>=0;k--)c.lineTo(sd[k][0],sd[k][1]);c.lineTo(B[0]+2,B[1]-B[2])}
+      else{c.lineTo(B[0]-4,B[1]);c.quadraticCurveTo(B[0]+E+4,B[1],B[0]+E+4,B[1]-8);c.lineTo(B[0]+E,B[1]-B[2]+RB);c.quadraticCurveTo(B[0]+E-1,B[1]-B[2],B[0]+E-RB-1,B[1]-B[2])}}else c.lineTo(B[0],B[1]);
+    for(let i=n-1;i>=0;i--)if((!q.first||i>0)&&(!q.last||i<n-1))c.lineTo(S[i][0],S[i][1]-S[i][2]);
+    if(q.first){if(rock){const sd=side(A[0],A[1],A[2],-1);c.lineTo(A[0]-2,A[1]-A[2]);for(const p of sd)c.lineTo(p[0],p[1])}
+      else{c.lineTo(A[0]-E+RA+1,A[1]-A[2]);c.quadraticCurveTo(A[0]-E+1,A[1]-A[2],A[0]-E,A[1]-A[2]+RA)}}else c.lineTo(A[0],A[1]-A[2]);
+    c.closePath()};
+  c.save();face();c.clip();
   const fp=c.createPattern(FHD,'repeat');if(fp.setTransform)fp.setTransform(new DOMMatrix().scale(288/FHD.naturalWidth));c.fillStyle=fp;c.fillRect(q.bx,q.by,q.bw,q.bh);
   /* shading: lit just under the lip, darker and wetter at the foot (soft strokes along the curves, no seams) */
   c.lineJoin='round';c.lineCap='round';const line=(dy,w,col)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();for(const[u,v,h]of S)c.lineTo(u,dy<0?v-h-dy:v-dy);c.stroke()};
   line(-3,8,'rgba(255,240,210,.10)');line(2,14,'rgba(8,10,14,.30)');line(4,26,'rgba(10,14,20,.16)');line(8,44,'rgba(10,14,20,.10)');
-  if(q.first){const[u,v,h]=S[0],g2=c.createLinearGradient(u,0,u+14,0);g2.addColorStop(0,'rgba(240,225,190,.22)');g2.addColorStop(1,'rgba(240,225,190,0)');c.fillStyle=g2;c.fillRect(u,v-h-30,14,h+40)}
-  if(q.last){const[u,v,h]=S[S.length-1],g2=c.createLinearGradient(u-16,0,u,0);g2.addColorStop(0,'rgba(6,8,12,0)');g2.addColorStop(1,'rgba(6,8,12,.45)');c.fillStyle=g2;c.fillRect(u-16,v-h-30,16,h+40)}
+  /* the rounded shoulders: lit on the left end, in shade on the right end */
+  if(q.first){const[u,v,h]=A,g2=c.createLinearGradient(u-E,0,u+18,0);g2.addColorStop(0,'rgba(240,225,190,.26)');g2.addColorStop(1,'rgba(240,225,190,0)');c.fillStyle=g2;c.fillRect(u-E,v-h-4,E+18,h+8)}
+  if(q.last){const[u,v,h]=B,g2=c.createLinearGradient(u-20,0,u+E,0);g2.addColorStop(0,'rgba(6,8,12,0)');g2.addColorStop(1,'rgba(6,8,12,.5)');c.fillStyle=g2;c.fillRect(u-20,v-h-4,20+E,h+8)}
   c.restore();
-  let off=q.off;for(let i=0;i<S.length-1;i++){const[u,v,h]=S[i],[u2,v2,h2]=S[i+1],dx=u2-u,dy=(v2-h2)-(v-h),L=Math.hypot(dx,dy);if(L<.01)continue;
-    c.save();c.translate(u,v-h-1);c.rotate(Math.atan2(dy,dx));const sx=(off%90);c.drawImage(lp,sx*4,0,Math.min(L+.6,96-sx)*4,lp.height,0,0,Math.min(L+.6,96-sx),14);c.restore();off+=L}
+  /* clean rim: a thin shadow under the edge, a lit edge line, short tufts standing on top */
+  c.save();c.lineJoin='round';c.lineCap='round';
+  const rim=(dy,w,col)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();if(q.first)c.moveTo(A[0]-E+RA+1,A[1]-A[2]+dy);for(const[u,v,h]of S)c.lineTo(u,v-h+dy);if(q.last)c.lineTo(B[0]+E-RB-1,B[1]-B[2]+dy);c.stroke()};
+  rim(2.2,2.4,'rgba(12,14,10,.35)');rim(.3,1.2,'rgba(196,210,140,.32)');c.restore();
+  let off=q.off;for(let i=0;i<n-1;i++){const[u,v,h]=S[i],[u2,v2,h2]=S[i+1],dx=u2-u,dy=(v2-h2)-(v-h),L=Math.hypot(dx,dy);if(L<.01)continue;
+    c.save();c.translate(u,v-h-.5);c.rotate(Math.atan2(dy,dx));const sx=(off%90);c.drawImage(rs,sx*4,0,Math.min(L+.6,96-sx)*4,rs.height,0,-11,Math.min(L+.6,96-sx),12);c.restore();off+=L}
   return cv}
 /* ---- north-facing sea cliffs (Josh, Oct 21: "the water is on top, waiting to splash down"): along every cliff edge with water to the
    north: a dark band of shadow on the water, foam a little way out, a sliver of dark rock and a grassy rim that points out over the drop,
@@ -14039,6 +14076,7 @@ function npaint(q,c){const S=q.P,tu=tuftUp();
   /* foam line a little way out */
   c.save();c.strokeStyle='rgba(236,248,250,.55)';c.lineWidth=1.6;c.lineCap='round';c.setLineDash([7,4,3,5]);c.beginPath();for(let i=0;i<S.length;i++){const[u,v]=S[i];const yy=v-15-2*Math.sin(u*.09);i?c.lineTo(u,yy):c.moveTo(u,yy)}c.stroke();
   c.strokeStyle='rgba(236,248,250,.28)';c.lineWidth=1;c.setLineDash([4,6]);c.beginPath();for(let i=0;i<S.length;i++){const[u,v]=S[i];const yy=v-22-2*Math.sin(u*.07+1);i?c.lineTo(u,yy):c.moveTo(u,yy)}c.stroke();c.restore();
+  if(S2.v3)return;
   /* sliver of dark rock (the edge's thickness) */
   c.save();c.beginPath();for(const[u,v]of S)c.lineTo(u,v+5);for(let i=S.length-1;i>=0;i--)c.lineTo(S[i][0],S[i][1]-4);c.closePath();c.clip();
   const fp=c.createPattern(FHD,'repeat');if(fp.setTransform)fp.setTransform(new DOMMatrix().scale(288/FHD.naturalWidth));c.fillStyle=fp;c.fillRect(q.bx,q.by,q.bw,q.bh);c.fillStyle='rgba(10,12,18,.35)';c.fillRect(q.bx,q.by,q.bw,q.bh);c.restore();
@@ -14046,11 +14084,98 @@ function npaint(q,c){const S=q.P,tu=tuftUp();
   let off=q.off;for(let i=0;i<S.length-1;i++){const[u,v]=S[i],[u2,v2]=S[i+1],dx=u2-u,dy=v2-v,L=Math.hypot(dx,dy);if(L<.01)continue;
     c.save();c.translate(u,v+5);c.rotate(Math.atan2(dy,dx));const sx=(off%90);c.drawImage(tu,sx*4,0,Math.min(L+.6,96-sx)*4,tu.height,0,-12,Math.min(L+.6,96-sx),12);c.restore();off+=L}
   c.strokeStyle='rgba(255,246,210,.45)';c.lineWidth=1;c.beginPath();for(let i=0;i<S.length;i++){const[u,v]=S[i];i?c.lineTo(u,v+5):c.moveTo(u,v+5)}c.stroke()}
-function faces(c,vx,vy,vw,vh){if(S2.noface||!FHD.complete||!FHD.naturalWidth)return;if(!S2.runs){const r0=runs();S2.runs=r0?r0.concat(nruns()):null;S2.pcs=null;for(const q of CACHE)q.cv=null;CACHE=[]}if(!S2.runs)return;if(!S2.pcs)S2.pcs=pieces();
+/* ---- cliffs v3 (Josh, Oct 22: "needs an overhaul … the perspective doesn't look good"): every cliff mass is drawn as one solid
+   block: a smooth outline (no tile steps), a raised top, a rock wall along its south side that wraps round the corners, a lit lip,
+   a cast shadow and a dark contact line on the ground. Tiers (the beach ramps) are stacked slabs, drawn back to front. ---- */
+const V3={};S2.v3=true;
+function v3build(){const T=G.terrain,LV=GFX.CLIFF&&GFX.CLIFF.LV,HT=(GFX.CLIFF&&GFX.CLIFF.HT)||[20,48,92];if(!LV)return null;
+  const lv=i=>Math.max(1,Math.min(3,LV[i]||3)),isC=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&T[ti(x,y)]===3;
+  /* connected cliff masses */
+  const comp=new Int32Array(MW*MH).fill(-1);let nc=0;const cy1=[];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(!isC(x,y)||comp[ti(x,y)]>=0)continue;const st=[[x,y]];comp[ti(x,y)]=nc;let my=0;
+    while(st.length){const[a,b]=st.pop();my=Math.max(my,b);for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=a+dx,yy=b+dy;if(isC(xx,yy)&&comp[ti(xx,yy)]<0){comp[ti(xx,yy)]=nc;st.push([xx,yy])}}}cy1.push(my);nc++}
+  const slabs=[];
+  /* one solid mass per cliff; near beaches the wall just gets lower (the old terraces left grass ledges halfway up the rock) */
+  for(let k=1;k<=(S2.v3tiers?3:1);k++){const M=(x,y)=>isC(x,y)&&lv(ti(x,y))>=k;
+    /* boundary edges, clockwise on screen (inside on the right) */
+    const E=new Map(),add=(x0,y0,x1,y1,tx,ty)=>{const key=x0*4096+y0;let a=E.get(key);if(!a)E.set(key,a=[]);a.push({x0,y0,x1,y1,tx,ty,u:0})};
+    for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(!M(x,y))continue;
+      if(!M(x,y-1))add(x,y,x+1,y,x,y);if(!M(x+1,y))add(x+1,y,x+1,y+1,x,y);if(!M(x,y+1))add(x+1,y+1,x,y+1,x,y);if(!M(x-1,y))add(x,y+1,x,y,x,y)}
+    const byC=new Map();
+    for(const arr of E.values())for(const e0 of arr){if(e0.u)continue;const L=[];let e=e0;
+      while(e&&!e.u){e.u=1;L.push([e.x0,e.y0]);const cand=(E.get(e.x1*4096+e.y1)||[]).filter(f=>!f.u);if(!cand.length)break;
+        const dx=e.x1-e.x0,dy=e.y1-e.y0;cand.sort((p,q)=>((dx*(q.y1-q.y0)-dy*(q.x1-q.x0))-(dx*(p.y1-p.y0)-dy*(p.x1-p.x0))));e=cand[0]}
+      if(L.length<3)continue;const ci=comp[ti(e0.tx,e0.ty)];if(!byC.has(ci))byC.set(ci,[]);byC.get(ci).push(L)}
+    for(const[ci,loops]of byC){const out=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      for(const L of loops){const P=v3loop(L,k,M,HT,lv);if(!P)continue;out.push(P);for(const p of P.b){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}}
+      if(out.length)slabs.push({ci,k,loops:out,x0:x0-24,y0:y0-24,x1:x1+24,y1:y1+24,ord:cy1[ci]})}}
+  slabs.sort((a,b)=>(a.ord-b.ord)||(a.k-b.k));return slabs}
+function v3loop(L,k,M,HT,lv){const T=G.terrain;
+  /* tile corners -> world px, drop straight-run corners */
+  let P=L.map(([x,y])=>[x*TILE,y*TILE]);P=P.filter((p,i)=>{const a=P[(i-1+P.length)%P.length],b=P[(i+1)%P.length];return(p[0]-a[0])*(b[1]-p[1])-(p[1]-a[1])*(b[0]-p[0])!==0});if(P.length<3)return null;
+  /* push out 6 px (so the tile footprint stays covered), then round with Chaikin */
+  const n=P.length,R=6,Q=[];for(let i=0;i<n;i++){const a=P[(i-1+n)%n],p=P[i],b=P[(i+1)%n];let d1=[p[0]-a[0],p[1]-a[1]],d2=[b[0]-p[0],b[1]-p[1]];const l1=Math.hypot(...d1),l2=Math.hypot(...d2);
+    const n1=[d1[1]/l1,-d1[0]/l1],n2=[d2[1]/l2,-d2[0]/l2],dd=1+n1[0]*n2[0]+n1[1]*n2[1];Q.push([p[0]+R*(n1[0]+n2[0])/dd,p[1]+R*(n1[1]+n2[1])/dd])}
+  let C=Q;for(let it=0;it<3;it++){const N=[];for(let i=0;i<C.length;i++){const p=C[i],q=C[(i+1)%C.length];N.push([.75*p[0]+.25*q[0],.75*p[1]+.25*q[1]],[.25*p[0]+.75*q[0],.25*p[1]+.75*q[1]])}C=N}
+  /* resample every ~5 px */
+  const S=[];for(let i=0;i<C.length;i++){const p=C[i],q=C[(i+1)%C.length],l=Math.hypot(q[0]-p[0],q[1]-p[1]),m=Math.max(1,Math.round(l/5));for(let j=0;j<m;j++)S.push([p[0]+(q[0]-p[0])*j/m,p[1]+(q[1]-p[1])*j/m])}
+  const m=S.length;if(m<4)return null;const nr=[];for(let i=0;i<m;i++){const a=S[(i-1+m)%m],b=S[(i+1)%m],tx=b[0]-a[0],ty=b[1]-a[1],l=Math.hypot(tx,ty)||1;nr.push([ty/l,-tx/l])}
+  /* a slightly uneven edge, always outward */
+  for(let i=0;i<m;i++){const[x,y]=S[i],w=1.4+1.4*(.6*Math.sin(x*.09+y*.05+k)+.4*Math.sin(x*.23-y*.17));S[i]=[x+nr[i][0]*w,y+nr[i][1]*w]}
+  /* wall height at each point: this tier's height over whatever lies just south, capped by how deep the mass is there */
+  /* which way a stretch of edge faces is judged over ~70 px, so one-tile steps don't pull the wall top down into a V */
+  const sy=[];for(let i=0;i<m;i++){let a=0;for(let j=-7;j<=7;j++)a+=nr[(i+j+m)%m][1];sy.push(a/15)}
+  const H=[],ws=[];for(let i=0;i<m;i++){const[x,y]=S[i],[nx,ny]=nr[i];ws.push(Math.max(0,Math.min(1,(sy[i]-.15)/.6)));
+    let tx=Math.floor((x-nx*14)/TILE),ty=Math.floor((y-ny*14)/TILE);if(!M(tx,ty)){tx=Math.floor((x-nx*26)/TILE);ty=Math.floor((y-ny*26)/TILE)}
+    let hs=0,hk=HT[k-1];if(S2.v3tiers){if(ty+1<MH&&T[ti(tx,ty+1)]===3&&lv(ti(tx,ty+1))<k)hs=HT[lv(ti(tx,ty+1))-1]}else if(M(tx,ty))hk=HT[lv(ti(tx,ty))-1];hk*=(S2.v3hm||1.5);let D=0;while(D<8&&M(tx,ty-D))D++;
+    H.push(Math.max(0,Math.min(hk-hs,Math.max(14,D*TILE-12))))}
+  const Hs=H.map((h,i)=>{let s=0,w=0;for(let j=-8;j<=8;j++){const f=9-Math.abs(j);s+=H[(i+j+m)%m]*f;w+=f}return s/w});
+  const s3=t=>t*t*(3-2*t);const top0=S.map((p,i)=>p[1]-Hs[i]*s3(ws[i]));
+  /* soften the lip line itself so tile steps in the footprint become gentle slopes, not spikes */
+  const top=S.map((p,i)=>{let a=0,w=0;for(let j=-9;j<=9;j++){const f=10-Math.abs(j);a+=top0[(i+j+m)%m]*f;w+=f}const ww=s3(ws[i]);return[p[0],Math.min(p[1],top0[i]*(1-ww)+(a/w)*ww)]});
+  return{b:S,t:top,n:nr,w:ws.map(s3),h:Hs}}
+const V3C=new Map();let V3K=0;
+function v3path(c,s,key,dx,dy){c.beginPath();for(const L of s.loops){const A=L[key];c.moveTo(A[0][0]+(dx||0),A[0][1]+(dy||0));for(let i=1;i<A.length;i++)c.lineTo(A[i][0]+(dx||0),A[i][1]+(dy||0));c.closePath()}}
+function v3slab(c,s){const fp=c.createPattern(FHD,'repeat');if(fp.setTransform)fp.setTransform(new DOMMatrix().scale((S2.v3ts||220)/FHD.naturalWidth));
+  /* ground: cast shadow to the south-east and a dark contact line all round */
+  c.fillStyle=s.k===1?'rgba(12,18,10,.12)':'rgba(12,18,10,.07)';v3path(c,s,'b',20,9);c.fill();v3path(c,s,'b',11,5);c.fill();
+  c.lineJoin='round';if(s.k===1){c.strokeStyle='rgba(10,14,8,.28)';c.lineWidth=7;v3path(c,s,'b');c.stroke()}
+  /* wall: the whole footprint in rock, the top goes over it */
+  c.save();v3path(c,s,'b');c.clip();c.fillStyle=fp;c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);
+  for(const L of s.loops){const m=L.b.length;
+    for(let i=0;i<m;i++){const j=(i+1)%m;if(L.w[i]<.02&&L.w[j]<.02)continue;const nx=(L.n[i][0]+L.n[j][0])/2;
+      const j2=(i+2)%m;c.fillStyle=nx>0?'rgba(6,8,14,'+(.21*nx).toFixed(3)+')':'rgba(255,238,205,'+(-.08*nx).toFixed(3)+')';
+      c.beginPath();c.moveTo(L.b[i][0],L.b[i][1]+1);c.lineTo(L.b[j][0],L.b[j][1]+1);c.lineTo(L.b[j2][0],L.b[j2][1]+1);c.lineTo(L.t[j2][0],L.t[j2][1]);c.lineTo(L.t[j][0],L.t[j][1]);c.lineTo(L.t[i][0],L.t[i][1]);c.closePath();c.fill()}
+    /* darker, damp foot; light just under the lip */
+    c.lineCap='round';const band=(off,w,col,key)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();for(let i=0;i<=m;i++){const p=L[key][i%m];if(L.w[i%m]<.3){c.moveTo(p[0],p[1]+off);continue}c.lineTo(p[0],p[1]+off)}c.stroke()};
+    band(-3,10,'rgba(6,8,12,.38)','b');band(-9,20,'rgba(6,8,12,.16)','b');band(5,8,'rgba(255,240,210,.10)','t')}
+  c.restore();
+  /* top: raised upland, a touch lighter and warmer than the ground below */
+  c.save();v3path(c,s,'t');c.clip();c.fillStyle=GFX.pat(c,'grass');c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);c.fillStyle='rgba(232,222,150,.16)';c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);
+  /* soft inner shade along the back edge so the top reads as a surface */
+  if(s.k===1){c.strokeStyle='rgba(30,40,10,.18)';c.lineWidth=12;v3path(c,s,'t');c.stroke()}c.restore();
+  /* the lip: a crisp dark line where the top breaks over, a lit edge on it */
+  c.lineCap='round';for(const L of s.loops){const m=L.t.length;const run=(off,w,col,min)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();let on=false;for(let i=0;i<=m;i++){const p=L.t[i%m],ww=L.w[i%m];if(ww<min){on=false;continue}if(!on){c.moveTo(p[0],p[1]+off);on=true}else c.lineTo(p[0],p[1]+off)}c.stroke()};
+    run(1.6,2,'rgba(16,16,10,.55)',.3);run(-.2,1.6,'rgba(236,240,186,.65)',.3);if(s.k===1){run(0,1.3,'rgba(24,30,12,.45)',-1);run(1.6,1.1,'rgba(232,238,182,.30)',-1)}}}
+function v3chunk(cx,cy,K){const CS=256,cv=document.createElement('canvas');cv.width=CS*K;cv.height=CS*K;const c=cv.getContext('2d');c.scale(K,K);c.translate(-cx*CS,-cy*CS);
+  c.beginPath();c.rect(cx*CS,cy*CS,CS,CS);c.clip();const x0=cx*CS,y0=cy*CS;
+  for(const s of V3.slabs){if(s.x1<x0||s.x0>x0+CS||s.y1<y0||s.y0>y0+CS)continue;v3slab(c,s)}return cv}
+function v3draw(c,vx,vy,vw,vh){if(!FHD.complete||!FHD.naturalWidth)return false;const sig=(G.seed||0)+':'+G.mapType+':'+G.terrain.length;
+  if(V3.sig!==sig){V3.sig=sig;V3.slabs=v3build();for(const v of V3C.values())v.cv.width=0;V3C.clear();V3.has=null}
+  if(!V3.slabs)return false;const CS=256;
+  if(!V3.has){V3.has=new Set();for(const s of V3.slabs)for(let y=Math.floor(s.y0/CS);y<=Math.floor(s.y1/CS);y++)for(let x=Math.floor(s.x0/CS);x<=Math.floor(s.x1/CS);x++)V3.has.add(x+','+y)}
+  const dpr=window.devicePixelRatio||1,K=Math.max(1,Math.min(3,Math.ceil(cam.z*dpr*2)/2));let made=0;const now=performance.now();
+  for(let y=Math.floor(vy/CS);y<=Math.floor((vy+vh)/CS);y++)for(let x=Math.floor(vx/CS);x<=Math.floor((vx+vw)/CS);x++){const id=x+','+y;if(!V3.has.has(id))continue;
+    let e=V3C.get(id);if((!e&&made<4)||(e&&e.K!==K&&made<1)){const cv=v3chunk(x,y,K);made++;if(e)e.cv.width=0;e={cv,K,t:now};V3C.set(id,e)}if(!e)continue;
+    e.t=now;c.drawImage(e.cv,x*CS,y*CS,CS,CS)}
+  if(V3C.size>(S2.V3MAX||36)){const a=[...V3C.entries()].sort((p,q)=>p[1].t-q[1].t);while(V3C.size>(S2.V3MAX||36)){const[k,v]=a.shift();v.cv.width=0;V3C.delete(k)}}
+  return true}
+function faces(c,vx,vy,vw,vh){if(S2.noface||!FHD.complete||!FHD.naturalWidth)return;V3.ok=!!S2.v3;if(!S2.runs){const r0=runs();S2.runs=r0?r0.concat(nruns()):null;S2.pcs=null;for(const q of CACHE)q.cv=null;CACHE=[]}if(!S2.runs)return;if(!S2.pcs)S2.pcs=pieces();
   const now=performance.now();
-  for(const q of S2.pcs){if(q.bx>vx+vw||q.bx+q.bw<vx||q.by>vy+vh||q.by+q.bh<vy)continue;
+  for(const q of S2.pcs){if(V3.ok&&!q.north)continue;if(q.bx>vx+vw||q.bx+q.bw<vx||q.by>vy+vh||q.by+q.bh<vy)continue;
     if(!q.cv){q.cv=paint(q);CACHE.push(q);if(CACHE.length>(S2.CMAX||60)){CACHE.sort((a,b)=>a.t-b.t);const o=CACHE.shift();o.cv.width=0;o.cv=null}}
-    q.t=now;c.drawImage(q.cv,q.bx,q.by,q.bw,q.bh)}}
+    q.t=now;c.drawImage(q.cv,q.bx,q.by,q.bw,q.bh)}
+  if(S2.v3){try{v3draw(c,vx,vy,vw,vh)}catch(err){S2.err3=String(err&&err.stack||err)}}}
 GFX.scene2=function(on){GFX.SCENE2=!!on;S2.list=null;S2.runs=null;try{if(typeof renderGround==='function'&&G&&G.ground)renderGround()}catch(err){}return GFX.SCENE2};
 })()}catch(err){}
 /* ===== END art chat 1: scenery pilot ===== */
