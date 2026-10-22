@@ -12687,6 +12687,17 @@ try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.gp&&u.gp.leng
 /* ===== Owned animals: no team ring unless in a fight (gameplay chat 1, Josh Oct 22: "The cows still have a blue ring under them"). ===== */
 try{const br=GFX.beastRing;if(br)GFX.beastRing=function(c,u){try{if(typeof ringFight==='function'&&!ringFight(u))return}catch(err){}return br.apply(this,arguments)}}catch(err){}
 
+/* ===== gameplay chat 1 r171 (Josh, Oct 22: "a villager was able to walk right through the ranch"). The ranch's 7x7 ground square is
+   bigger than its fence; a person standing on one of the square's corner tiles (outside the fence: a builder, someone passing by)
+   counted as "already in that ranch", so his next path was allowed straight across it, through the fence. Now a ranch is only
+   opened for a path when the person is really inside its fence, the goal is inside it, or he is going to the ranch / its dairy / its
+   fold. Going in or out still uses the gates (gateFix). Ranch animals are unchanged. ===== */
+try{wkFor=(function(prev){return function(u,gx,gy,t){const w=prev.apply(this,arguments);
+  try{if(u&&!(DEF[u.type]&&DEF[u.type].animal)&&RANCH_OK&&RANCH_OK.size){
+    const keepT=new Set();if(t){if(t.type==='ranch')keepT.add(t.id);if(t.type==='dairy'&&t.ranch)keepT.add(t.ranch);if(t.type==='pen'&&t.sranch)keepT.add(t.sranch);}
+    for(const r of Array.from(RANCH_OK)){if(keepT.has(r))continue;const R=G.byId.get(r);if(!R||R.type!=='ranch')continue;const F=ranchFence(R);if(!F)continue;
+      if(inPolyG(F,u.x,u.y)||inPolyG(F,(gx+.5)*TILE,(gy+.5)*TILE))continue;RANCH_OK.delete(r);}}}catch(err){}
+  return w}})(wkFor)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
