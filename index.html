@@ -890,7 +890,7 @@ function rKind(e){return e&&CORRAL_AN.has(e.type)?'a':e&&e.type==='cow'?'c':'s';
 /* ---- Ranch panel in 3 tabs (Josh, Oct 14): Sheep / Cows / Work animals, each with one status line and only its own buttons ---- */
 function ranchActs(one,P){
   const PL=penLead(one),own=e=>e.owner===0&&!e.dead;
-  const sheep=G.ents.filter(e=>e.type==='sheep'&&own(e)&&inPenArea(PL,e,0,'s')),lambs=sheep.filter(e=>e.born&&G.t-e.born<60).length,sh=G.ents.filter(e=>e.shep===PL.id&&!e.dead).length;
+  const sheep=G.ents.filter(e=>e.type==='sheep'&&own(e)&&inPenArea(PL,e,0,'s')),lambs=sheep.filter(e=>e.born&&G.t-e.born<60).length,sh=G.ents.filter(e=>e.shep===PL.id&&!e.dead).length+rhMilk(PL);
   const anySheep=G.ents.some(e=>e.type==='sheep'&&own(e)),cows=one.cFlock||0,dairy=ranchDairy(one);
   const sickS=one.sickN||0,sickC=G.ents.some(e=>e.type==='cow'&&own(e)&&e.sick&&Math.hypot(e.x-one.x,e.y-one.y)<5*TILE);
   const qTab=one.queue.length?(one.queue[0]==='dairyfarm'?'c':'a'):'';
@@ -8746,7 +8746,7 @@ function cmdToBuilding(mine,hit){
       if(!hit.built&&v.length){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(canRepair(hit,0)&&v.length&&!WORK[hit.type]&&!isPen(hit)&&!(hit.type==='house'&&hit.upT>0)){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.type==='ranch'&&hit.built&&isDairy(hit)){const cw=mine.filter(u=>u.type==='cow');if(cw.length){for(const q of cw)q.dairyId=hit.id;const z=penSpot(hit,'c');orderMove(cw,(z[0]+.5)*TILE,(z[1]+.5)*TILE);mark(hit.x,hit.y,'#ffd25a');toast(cw.length>1?cw.length+' cows heading into the ranch':'Cow heading into the ranch');return true;}}
-      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){const LD=penLead(hit);let use=vv;if(LD.type==='ranch'){const have=G.ents.filter(e=>e.shep===LD.id&&!e.dead&&!vv.includes(e)).length,room=Math.max(0,RHAND_MAX-have);if(!room){toast('The ranch has '+RHAND_MAX+' ranch hands already');return true}use=vv.slice(0,room)}use.forEach(u=>{u.order=null;u.path=null;u.shep=LD.id;});mark(hit.x,hit.y,'#ffd25a');toast(LD.type==='ranch'?(use.length>1?use.length+' ranch hands assigned':'Ranch hand assigned')+(use.length<vv.length?' (a ranch takes '+RHAND_MAX+')':''):(use.length>1?use.length+' shepherds assigned':'Shepherd assigned'));return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<4?'Sheep join the ranch in the Renaissance Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
+      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){const LD=penLead(hit);let use=vv;if(LD.type==='ranch'){const have=G.ents.filter(e=>e.shep===LD.id&&!e.dead&&!vv.includes(e)).length+rhMilk(LD),room=Math.max(0,RHAND_MAX-have);if(!room){toast('The ranch has '+RHAND_MAX+' ranch hands already');return true}use=vv.slice(0,room)}use.forEach(u=>{u.order=null;u.path=null;u.shep=LD.id;});mark(hit.x,hit.y,'#ffd25a');toast(LD.type==='ranch'?(use.length>1?use.length+' ranch hands assigned':'Ranch hand assigned')+(use.length<vv.length?' (a ranch takes '+RHAND_MAX+')':''):(use.length>1?use.length+' shepherds assigned':'Shepherd assigned'));return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<4?'Sheep join the ranch in the Renaissance Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
       if((hit.type==='house'||hit.type==='coop')&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
       if((hit.built&&isLodge(hit)&&MPHU(hit.owner)&&v.length)&&MPTW(hit.owner)){let n=foresterN(hit),k=0;for(const u of v){if(n>=FORESTERS)break;if(u.forester===hit.id)continue;u.forester=hit.id;u.order=null;u.path=null;u.shep=0;n++;k++;}toast(k?k+' forester'+(k>1?'s':'')+' at work':'The lodge already has '+FORESTERS+' foresters');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&WORK[hit.type]&&v.length){const n=assignWorkers(hit,v);toast(n?n+' assigned to the '+DEF[hit.type].name.toLowerCase():'The '+DEF[hit.type].name.toLowerCase()+' is full');mark(hit.x,hit.y,'#ffd25a');return true;}
@@ -8952,7 +8952,7 @@ function ranchSettle(R,dt){if(!R.built)return;try{ranchGateTick(R,dt);}catch(err
 /* anyone standing in the dairy wing's yard (cows, ranch hands, passers-by) is drawn in front of the wing picture (the yard is part of it) */
 try{zOverOf=(function(prev){return function(e){const z=prev(e);if(e.air)return z;for(const W of G.ents){if(W.type!=='dairy'||!W.ranch||W.dead)continue;
   if(e.x>=W.tx*TILE&&e.x<(W.tx+W.size)*TILE&&e.y>=W.ty*TILE&&e.y<(W.ty+W.size)*TILE)return Math.max(z,(W.ty+W.size)*TILE);}return z;}})(zOverOf)}catch(err){}
-function addHand(R){if(G.ents.filter(e=>e.shep===R.id&&!e.dead).length>=RHAND_MAX)return null;let best=null,bd=1e9;
+function addHand(R){if(G.ents.filter(e=>e.shep===R.id&&!e.dead).length+rhMilk(R)>=RHAND_MAX)return null;let best=null,bd=1e9;
   for(const u of idleVills()){const d=Math.hypot(u.x-R.x,u.y-R.y);if(d<bd){bd=d;best=u;}}
   if(!best)return null;best.order=null;best.path=null;best.shep=R.id;return best;}
 const GRUB_HITS=4;
@@ -10253,11 +10253,11 @@ function cargoChips(u){if(!u||u.owner!==0)return '';let L=[];
     return '<div class="hint chips">'+L.map(x=>cgChip(x[0],x[1])).join('')+'</div>'}
   return ''}
 function ranchChips(one){const PL=penLead(one)||one,own=e=>e.owner===0&&!e.dead;const R=one.type==='ranch'?one:(one.ranch&&G.byId.get(one.ranch))||one;
-  const sh=G.ents.filter(e=>e.shep===PL.id&&!e.dead).length,sheep=G.ents.filter(e=>e.type==='sheep'&&own(e)&&!e.raise&&inPenArea(PL,e,0,'s')).length;
+  const sh=G.ents.filter(e=>e.shep===PL.id&&!e.dead).length+rhMilk(PL),sheep=G.ents.filter(e=>e.type==='sheep'&&own(e)&&!e.raise&&inPenArea(PL,e,0,'s')).length;
   const cows=R.cFlock||G.ents.filter(e=>e.type==='cow'&&own(e)&&Math.hypot(e.x-R.x,e.y-R.y)<6*TILE).length;
   const work=G.ents.filter(e=>own(e)&&CORRAL_AN.has(e.type)&&!e.raise&&(e.home===PL.id||e.home===R.id||inPenArea(PL,e,0,'a'))).length,young=raisingN(PL),ycap=(typeof RAISE_CAP==='number'?RAISE_CAP:4)*(typeof penN==='function'?penN(R):1);
   const max=typeof RHAND_MAX==='number'?RHAND_MAX:3,iv=idleVills().length;
-  let h='<div class="hint chips">'+cgChip('🧑‍🌾',sh+'<small>/'+max+'</small>',sh?'':'lo')+cgChip('🐄',cows,cows?'':'dim')+cgChip('🐑',sheep,sheep?'':'dim')+cgChip('🫏',work,work?'':'dim')+cgChip('🐣',young+'<small>/'+ycap+'</small>',young?'':'dim')+'</div>';
+  let h='<div class="hint chips">'+cgChip('🧑‍🌾',sh+'<small>/'+max+'</small>',sh?'':'lo')+cgChip('🐄',cows,cows?'':'dim')+cgChip('🐑',sheep,sheep?'':'dim')+cgChip('🫏',work,work?'':'dim')+cgChip('🍼',young+'<small>/'+ycap+'</small>',young?'':'dim')+'</div>';
   if(sh<max)h+=btn('rhadd','🧑‍🌾+','<span class="cost">'+(iv?iv+' idle':'none idle')+'</span>','',!iv,0,'chb');
   return h}
 try{ranchActs=(function(prev){return function(one,P){const h=prev.apply(this,arguments);try{if(one&&one.owner===0&&one.built)return ranchChips(one)+h.replace(/<div class="hint"><b>Raising \d+ of \d+ young<\/b>(<br>[^<]*)?<\/div>/,'')}catch(err){}return h}})(ranchActs)}catch(err){}
@@ -11593,14 +11593,14 @@ try{spawnFrom=(function(prev){return function(b,type){if(type==='tradecart'&&b&&
 try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u.cartFor&&!u.dead){const m=G.byId.get(u.cartFor);
   if(!m||m.dead||!(m.queue||[]).includes('tradecart')){u.cartFor=0}else if(!u.order||u.order.auto){if(Math.hypot(u.x-m.x,u.y-m.y)>m.size*TILE*.9){u.order={type:'move',x:m.tx+1,y:m.ty+m.size,cart:1};u.path=null}else u.order=null}}}catch(err){}return r}})(updUnit)}catch(err){}
 try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if((sel.length&&sel.every(u=>u.type==='donkey'&&MPHU(u.owner)&&u.raise))&&MPTW(u.owner)){const hit=pick(wx,wy);
-  if(hit&&hit.owner===0&&(hit.type==='villager'||hit.kind==='bld')){const R=sel[0].raise;toast('🐣 This donkey is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
+  if(hit&&hit.owner===0&&(hit.type==='villager'||hit.kind==='bld')){const R=sel[0].raise;toast('🍼 This donkey is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 
 /* Oxen go to the farm you tap (Josh, Oct 18: "The ox are not leaving the yard and can't figure out how to get to the farm that I tell them
    to go to"). Oxen only ever picked the nearest farm without an ox by themselves; tapping a farm just made them walk there and turn back.
    Now: select oxen, tap your farm -> that ox plows that farm (an ox already there goes back to looking). Young oxen say how long until grown. */
 try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){const sel=selEnts();if((sel.length&&sel.every(u=>u.type==='ox'&&MPHU(u.owner)&&!u.dead))&&MPTW(u.owner)){const hit=pick(wx,wy);
   if((hit&&hit.type==='farm'&&MPHU(hit.owner)&&!hit.dead)&&MPTW(hit.owner)){if(!hit.built){toast('That farm is not finished yet');return}const u=sel.find(o=>!o.raise);
-    if(!u){const R=sel[0].raise;toast('🐣 This ox is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}
+    if(!u){const R=sel[0].raise;toast('🍼 This ox is still growing: ready for work in '+Math.ceil((R.dur-R.t)/1.1)+' s');return}
     try{corralFree(u)}catch(e){}const old=hit.ox&&G.byId.get(hit.ox);if(old&&old!==u&&!old.dead){old.farm=0;old.plowing=false}
     hit.ox=u.id;u.farm=hit.id;u.home=0;u.penned=0;u.plowing=false;u.order=null;u.path=null;orderMove([u],hit.x,hit.y);if(u.order)u.order.auto=true;
     mark(hit.x,hit.y,'#ffd25a');toast('🐂 This ox will plow that farm (+40% food)'+(sel.length>1?'. One ox per farm':''));panelKeyLast='';return}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
@@ -12640,17 +12640,23 @@ window.__mystai=MYSTAI;
    It isn't clear where the 3rd worker is working"). Every ranch hand walks INTO the ranch to their own post (1 by the trough, 2 in the yard,
    3 in the barn by the hay) and works there. When you select a ranch or a ranch hand, every hand of that ranch gets a gold ring and its number. ===== */
 const RHPOST=[[3.05,4.75],[2.1,4.55],[3.2,3.8]];
+function rhMilk(R){try{const W=R&&R.wing&&G.byId.get(R.wing);if(!W||W.dead)return 0;let n=(W.gar||[]).filter(h=>h.shep===R.id).length;for(const e of G.ents)if(!e.dead&&e.shep===R.id&&e.garIn===W.id)n++;return n}catch(err){return 0}}
 function rhList(R){return G.ents.filter(u=>!u.dead&&u.type==='villager'&&u.shep===R.id).sort((a,b)=>a.id-b.id)}
 function rhPost(R,i){const f=(R.size||6)/6,p=RHPOST[i%RHPOST.length];return[(R.tx+p[0]*f)*TILE,(R.ty+p[1]*f)*TILE]}
 try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u&&!u.dead&&u.type==='villager'&&u.shep&&!u.order&&!(u.carry&&u.carry.amt>0)){const R=G.byId.get(u.shep);
-  if(R&&R.type==='ranch'&&R.built&&!R.dead){const L=rhList(R),i=L.indexOf(u);if(i>=0){const[px,py]=rhPost(R,i),dx=px-u.x,dy=py-u.y,d=Math.hypot(dx,dy);
+  if(R&&R.type==='ranch'&&R.built&&!R.dead){const L=rhList(R),i=L.indexOf(u);
+    /* Josh Oct 22: with a dairy wing, the first 2 hands are the milkers in the dairy (the ones you see milking), the others work in the ranch */
+    const Wd=R.wing&&G.byId.get(R.wing);if(Wd&&!Wd.dead&&Wd.built&&Wd.type==='dairy'){const busy=(Wd.gar?Wd.gar.length:0)+G.ents.filter(e=>e!==u&&!e.dead&&e.order&&e.order.type==='work'&&e.order.id===Wd.id).length;
+      const milkers=L.filter(h=>h.order&&h.order.type==='work'&&h.order.id===Wd.id).length+rhMilk(R);
+      if(busy<WORK.dairy.max&&milkers<2){u.order={type:'work',id:Wd.id,rhand:1};u.path=null;return r;}}
+    const Lr=L.filter(h=>!(h.order&&h.order.type==='work')&&!(h.gar)),j=Lr.indexOf(u);if(j>=0){const[px,py]=rhPost(R,j),dx=px-u.x,dy=py-u.y,d=Math.hypot(dx,dy);
     if(d>1.2*TILE){u.order={type:'move',x:tl(px),y:tl(py),rh:1};u.path=null;}
     else if(d>2){const st=Math.min(d,speedOf(u)*dt);u.x+=dx/d*st;u.y+=dy/d*st;u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt;}
     else{u.moving=false;u.working=true;u.face=Math.atan2(R.y-u.y,R.x-u.x);}}}}}catch(err){}return r}})(updUnit)}catch(err){}
 try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{const s=(G.sel||[]).map(id=>G.byId.get(id)).filter(Boolean);const Rs=new Set();
   for(const e of s){if(e.type==='ranch'&&e.owner===0)Rs.add(e);else if(e.type==='villager'&&e.shep){const R=G.byId.get(e.shep);if(R&&R.type==='ranch')Rs.add(R)}}
   for(const R of Rs){const L=rhList(R);L.forEach((u,i)=>{c.save();c.strokeStyle='#ffd25a';c.lineWidth=2;c.beginPath();c.ellipse(u.x,u.y+5,11,4.8,0,0,7);c.stroke();
-    c.font='bold 10px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(20,14,8,.9)';const t='Hand '+(i+1)+'/'+RHAND_MAX;c.strokeText(t,u.x,u.y-34);c.fillStyle='#ffe08a';c.fillText(t,u.x,u.y-34);c.restore()})}}catch(err){}return r}})(drawBirds)}catch(err){}
+    c.restore()})}}catch(err){}return r}})(drawBirds)}catch(err){}
 
 /* ===== Team rings only in battle (gameplay chat 1, Josh Oct 21: "I don't like the blue circle under everyone, unless there is a battle").
    A unit gets its blue/red ground ring only while it is near a fight: an enemy soldier or unit within RINGFIGHT.r tiles, it is attacking,
@@ -13340,7 +13346,7 @@ $('panel').addEventListener('click',e=>{
   if(act==='form'){const fi=FORMS.findIndex(f=>f[0]===(G.selForm||'loose'));G.selForm=FORMS[(fi+1)%FORMS.length][0];const ag=activeGroup();if(ag>=0)G.groupForm[ag]=G.selForm;toast('Formation: '+FORMS[(fi+1)%FORMS.length][1]);panelKeyLast='';return;}
   if(act==='savegrp'){let i=-1;for(let k=0;k<5;k++)if(!grpUnits(k).length){i=k;break;}if(i<0)toast('All 5 groups are in use. Hold a group number to replace it');else assignGroup(i);return;}
   if(act==='rtab'){G.rtab=arg;panelKeyLast='';return;}
-  if(act==='rhadd'&&one&&isPen(one)){const R=penLead(one);toast(addHand(R)?'An idle villager is on the way to be a ranch hand':G.ents.filter(e=>e.shep===R.id&&!e.dead).length>=RHAND_MAX?'The ranch has '+RHAND_MAX+' ranch hands already':'No idle villager. Select a villager, then tap the ranch to make them a ranch hand');panelKeyLast='';return;}
+  if(act==='rhadd'&&one&&isPen(one)){const R=penLead(one);toast(addHand(R)?'An idle villager is on the way to be a ranch hand':G.ents.filter(e=>e.shep===R.id&&!e.dead).length+rhMilk(R)>=RHAND_MAX?'The ranch has '+RHAND_MAX+' ranch hands already':'No idle villager. Select a villager, then tap the ranch to make them a ranch hand');panelKeyLast='';return;}
   if(act==='rhrem'&&one&&isPen(one)){const R=penLead(one),hs=G.ents.filter(e=>e.shep===R.id&&!e.dead);if(hs.length){const u=hs.sort((a,b)=>Math.hypot(b.x-R.x,b.y-R.y)-Math.hypot(a.x-R.x,a.y-R.y))[0];u.shep=0;u.order=null;u.path=null;toast('Ranch hand released');}panelKeyLast='';return;}
   if(act==='mir'){const Pm=G.players[0];if(!Pm.mirReady){toast('The Miracle is not ready yet');return;}if(arg==='storm'){G.mirAim='storm';toast('Tap where the storm should strike');return;}castMiracle(0,arg);panelKeyLast='';return;}
   if(act==='mkswing'&&one&&one.type==='ranch'){if(!canAfford(P,DEF.pen.cost)){toast(shortMsg?shortMsg(DEF.pen.cost):'Not enough wood');return;}const p={type:'pen',tx:one.tx-3,ty:one.ty+Math.floor(one.size/2)-1,swing:one.id};G.place=p;swingSnap(p);if(swingWhy(one,p.tx,p.ty,0,true))toast('No room beside the ranch: clear the trees, rocks or buildings next to it');panelKeyLast='';return;}
