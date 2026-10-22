@@ -4516,7 +4516,7 @@ GFX.seeFrame=function(now){if(GFX._seeNow===now)return;GFX._seeNow=now;GFX._seeS
     if(u.kind==='unit'){const x=u.px!=null?u.px+(u.x-u.px)*alpha:u.x,y=u.py!=null?u.py+(u.y-u.py)*alpha:u.y;if(x<vx0||x>vx1||y<vy0||y>vy1)continue;if(u.owner!==0&&!V[ti(tl(u.x),tl(u.y))])continue;ux0=x-9;ux1=x+9;uy0=y-28;uy1=y+3;key=y+4;kind='u';u._sx=x;u._sy=y}
     else if(u.kind==='bld'&&isSel&&!GFX.SEE_TYPES[u.type]){let sp=null;try{sp=bldSpr(u)}catch(err){}if(!sp)continue;const S=u.size*TILE;key=(u.ty+u.size)*TILE-2;ux0=u.tx*TILE-(sp.dx||0);ux1=ux0+sp.w;uy0=u.ty*TILE-sp.ov;uy1=u.ty*TILE+S;kind='b'}else continue;
     let cov=0;const hit=[];for(const r of P){if(key>=r.key||ux1<r.x0||ux0>r.x1||uy1<r.y0||uy0>r.y1)continue;hit.push(r.e);cov+=(Math.min(ux1,r.x1)-Math.max(ux0,r.x0))*(Math.min(uy1,r.y1)-Math.max(uy0,r.y0))}
-    if(!hit.length)continue;cov/=Math.max(1,(ux1-ux0)*(uy1-uy0));if(!isSel&&cov<GFX.SEE_COV)continue;
+    if(!hit.length)continue;cov/=Math.max(1,(ux1-ux0)*(uy1-uy0));if(!isSel)continue;/* gameplay chat 1, Josh Oct 21: only selected units show through buildings */
     const o={u,kind,sel:isSel};for(const e of hit){let L=occ.get(e);if(!L)occ.set(e,L=[]);L.push(o)}}};
 GFX.edgeInto=function(src,B,col){const cw=src.width+4,ch=src.height+4;if(B.width!==cw||B.height!==ch){B.width=cw;B.height=ch}const b=B.getContext('2d');b.setTransform(1,0,0,1,0,0);b.globalCompositeOperation='source-over';b.globalAlpha=1;b.clearRect(0,0,cw,ch);
   for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])b.drawImage(src,2+dx,2+dy);b.globalCompositeOperation='source-in';b.fillStyle=col;b.fillRect(0,0,cw,ch);b.globalCompositeOperation='destination-out';b.drawImage(src,2,2);b.globalCompositeOperation='source-over';return B};
@@ -4526,7 +4526,7 @@ GFX._seePool=[];GFX.seeSlot=function(){const P=GFX._seePool,i=GFX._seeSlotI||0;G
 GFX.seeUnitImg=function(u,now,s){const k=GFX._seeUI||(GFX._seeUI=new Map());if(GFX._seeUIt!==now){k.clear();GFX._seeUIt=now}let q=k.get(u.id);if(q&&q.s===s)return q;
   const sl=GFX.seeSlot();if(!sl)return null;const N=72,cw=Math.ceil(N*s),A=sl.img;if(A.width!==cw||A.height!==cw){A.width=A.height=cw}const a=A.getContext('2d');a.setTransform(1,0,0,1,0,0);a.globalAlpha=1;a.globalCompositeOperation='source-over';a.clearRect(0,0,cw,cw);a.setTransform(s,0,0,s,s*(N/2-u._sx),s*(N*.75-u._sy));
   try{if(!GFX.drawUnitSpr(a,u,u._sx,u._sy,now))drawUnit(a,u,u._sx,u._sy,now)}catch(err){return null}a.setTransform(1,0,0,1,0,0);
-  const col=u.owner===0?'rgba(40,110,220,1)':u.owner===1?'rgba(200,50,40,1)':'rgba(70,60,40,1)';q={s,img:A,edge:GFX.edgeInto(A,sl.edge,col),x:u._sx-N/2,y:u._sy-N*.75,w:N,h:N};k.set(u.id,q);return q};
+  const col='rgba(0,0,0,0)';/* no coloured glow (Josh Oct 21) */q={s,img:A,edge:GFX.edgeInto(A,sl.edge,col),x:u._sx-N/2,y:u._sy-N*.75,w:N,h:N};k.set(u.id,q);return q};
 GFX.seeBldImg=function(b){let sp=null;try{sp=bldSpr(b)}catch(err){}if(!sp)return null;const M=GFX._seeBI||(GFX._seeBI=new WeakMap());let e=M.get(sp);
   if(!e){e=GFX.edgeOf(sp,b.owner===0?'#ffffff':'#ff8a7a');M.set(sp,e)}const k=sp.width/sp.w;return {img:sp,edge:e,x:b.tx*TILE-(sp.dx||0),y:b.ty*TILE-sp.ov,w:sp.w,h:sp.h,k}};
 GFX.seeOverlay=function(c,e,L,now){const r=GFX.seeRect(e);if(!r)return;const sp=r.sp,s=sp.width/sp.w;
@@ -12581,6 +12581,22 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
   c.font='bold 9px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(20,14,8,.85)';const t=e.aiS.guard?'Search stopped: you guard it':'Red is searching '+Math.round(k*100)+'%';c.strokeText(t,e.x,y-3);c.fillStyle='#ffd0c8';c.fillText(t,e.x,y-3);c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
 window.__mystai=MYSTAI;
 
+/* ===== Ranch hands have work posts (gameplay chat 1, Josh Oct 21: "it says it assigns them as a ranch hand, but they don't go over to it ...
+   It isn't clear where the 3rd worker is working"). Every ranch hand walks INTO the ranch to their own post (1 by the trough, 2 in the yard,
+   3 in the barn by the hay) and works there. When you select a ranch or a ranch hand, every hand of that ranch gets a gold ring and its number. ===== */
+const RHPOST=[[3.05,4.75],[2.1,4.55],[3.2,3.8]];
+function rhList(R){return G.ents.filter(u=>!u.dead&&u.type==='villager'&&u.shep===R.id).sort((a,b)=>a.id-b.id)}
+function rhPost(R,i){const f=(R.size||6)/6,p=RHPOST[i%RHPOST.length];return[(R.tx+p[0]*f)*TILE,(R.ty+p[1]*f)*TILE]}
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u&&!u.dead&&u.type==='villager'&&u.shep&&!u.order&&!(u.carry&&u.carry.amt>0)){const R=G.byId.get(u.shep);
+  if(R&&R.type==='ranch'&&R.built&&!R.dead){const L=rhList(R),i=L.indexOf(u);if(i>=0){const[px,py]=rhPost(R,i),dx=px-u.x,dy=py-u.y,d=Math.hypot(dx,dy);
+    if(d>1.2*TILE){u.order={type:'move',x:tl(px),y:tl(py),rh:1};u.path=null;}
+    else if(d>2){const st=Math.min(d,speedOf(u)*dt);u.x+=dx/d*st;u.y+=dy/d*st;u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt;}
+    else{u.moving=false;u.working=true;u.face=Math.atan2(R.y-u.y,R.x-u.x);}}}}}catch(err){}return r}})(updUnit)}catch(err){}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{const s=(G.sel||[]).map(id=>G.byId.get(id)).filter(Boolean);const Rs=new Set();
+  for(const e of s){if(e.type==='ranch'&&e.owner===0)Rs.add(e);else if(e.type==='villager'&&e.shep){const R=G.byId.get(e.shep);if(R&&R.type==='ranch')Rs.add(R)}}
+  for(const R of Rs){const L=rhList(R);L.forEach((u,i)=>{c.save();c.strokeStyle='#ffd25a';c.lineWidth=2;c.beginPath();c.ellipse(u.x,u.y+5,11,4.8,0,0,7);c.stroke();
+    c.font='bold 10px system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(20,14,8,.9)';const t='Hand '+(i+1)+'/'+RHAND_MAX;c.strokeText(t,u.x,u.y-34);c.fillStyle='#ffe08a';c.fillText(t,u.x,u.y-34);c.restore()})}}catch(err){}return r}})(drawBirds)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -13889,7 +13905,7 @@ GFX.scene2=function(on){GFX.SCENE2=!!on;S2.list=null;S2.runs=null;try{if(typeof 
 })()}catch(err){}
 /* ===== END art chat 1: scenery pilot ===== */
 
-window.__GFX=GFX;window.__bs=(e)=>bldSpr(e);window.__pw=placeWhy;window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
+window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
 })();
