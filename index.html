@@ -12533,7 +12533,7 @@ function mushTick(dt){if(MUSH.off||!G||!G.players||G.over||!G.bases)return;if(!G
     for(const u of G.ents){if(u.kind!=='unit'||u.dead||u.owner>1||u.air||u.naval||(DEF[u.type]&&DEF[u.type].animal))continue;if(Math.abs(u.x-mx)>MUSH.eatR*TILE||Math.abs(u.y-my)>MUSH.eatR*TILE)continue;
       const hurtNear=m.gold&&G.ents.some(v=>v.kind==='unit'&&!v.dead&&v.owner===u.owner&&mushHurt(v)&&Math.hypot(v.x-mx,v.y-my)<=MUSH.goldR*TILE);
       if(mushHurt(u)||hurtNear){mushEat(u,m);break}
-      if(u.mushT===m.id){delete u.mushT;if(u.owner===0&&G.t-(G.mushMsgT||-9)>3){G.mushMsgT=G.t;toast('🍄 Already at full health: the mushroom is saved for later')}}}}
+      if(u.mushT===m.id){delete u.mushT;if(!u.mushC){mushPick(u,m);break}else if(u.owner===0&&G.t-(G.mushMsgT||-9)>3){G.mushMsgT=G.t;toast('🍄 This unit already carries a mushroom')}}}}
   // the computer sends badly hurt units to a mushroom nearby
   if((G.mushAiT=(G.mushAiT||0)-dt)<=0){G.mushAiT=3;for(const o of[0,1]){if(!(G.ais&&G.ais[o]))continue;
     for(const u of G.ents){if(u.kind!=='unit'||u.dead||u.owner!==o||u.mushT||!u.maxHp||u.hp>u.maxHp*MUSH.aiHp||(DEF[u.type]&&DEF[u.type].animal)||u.naval||u.air)continue;
@@ -12544,7 +12544,7 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
 function mushAt(wx,wy){if(!G.mush)return null;for(const m of G.mush){if(!G.vis[0][ti(m.x,m.y)])continue;if(Math.hypot(wx-(m.x+.5)*TILE,wy-(m.y+.5)*TILE)<MUSH.tapR*TILE)return m}return null}
 try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place&&!G.mirAim){const m=mushAt(wx,wy);const us=selEnts().filter(u=>u.owner===0&&u.kind==='unit'&&!u.naval&&!u.air&&!(DEF[u.type]&&DEF[u.type].animal));
   if(m&&us.length){const hurt=us.filter(mushHurt),go=(hurt.length?hurt:us).slice(0,m.gold?99:1);for(const u of go)u.mushT=m.id;orderMove(go,(m.x+.5)*TILE,(m.y+.5)*TILE);mark((m.x+.5)*TILE,(m.y+.5)*TILE,m.gold?'#ffe08a':'#9dffb0');
-    toast(m.gold?'✨ Golden mushroom: heals all your units within '+MUSH.goldR+' tiles':(hurt.length?'🍄 Going to eat the mushroom: full health':'🍄 Nobody is hurt. A healing mushroom: send a hurt unit to it'));return}
+    toast(m.gold?'✨ Golden mushroom: heals all your units within '+MUSH.goldR+' tiles'+(hurt.length?'':'. Nobody is hurt: it will be picked up and carried'):(hurt.length?'🍄 Going to eat the mushroom: full health':'🍄 Nobody is hurt: the mushroom will be picked up and carried. It is eaten when this unit or a teammate nearby gets badly hurt'));return}
   if(m&&!us.length){toast(m.gold?'✨ Golden mushroom: select units, then tap it. Heals all your units within '+MUSH.goldR+' tiles':'🍄 Healing mushroom: select a hurt unit, then tap it for full health');return}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 /* drawing (code stand-in until art chat 1 paints them) */
 function mushPaint(c,x,y,gold,now){const pul=.75+.25*Math.sin(now/420+x);const g=c.createRadialGradient(x,y-3,1,x,y-3,gold?22:15);g.addColorStop(0,gold?'rgba(255,220,110,'+(.55*pul)+')':'rgba(150,220,255,'+(.45*pul)+')');g.addColorStop(1,'rgba(150,220,255,0)');
@@ -12559,6 +12559,22 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
     for(let i=0;i<6;i++){const a=i*1.047+k*2;c.fillStyle=f.gold?'#fff2b0':'#c8ffd6';c.fillRect(f.x+Math.cos(a)*(6+k*14)-1,f.y-10-k*26+Math.sin(a)*4-1,2.4,2.4)}c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
 setInterval(()=>{try{if(G&&G.mushFx){for(const f of G.mushFx)f.t+=.05;G.mushFx=G.mushFx.filter(f=>f.t<1.2)}}catch(err){}},50);
 window.__mush=MUSH;
+/* carry (Josh Oct 21 picked B): a unit sent to a mushroom while nobody is hurt picks it up (u.mushC={gold}) and carries it, shown with a badge.
+   It is eaten automatically when the carrier or a teammate within MUSH.carryR tiles drops below MUSH.carryHp of its health. One per unit. */
+MUSH.carryR=3;MUSH.carryHp=.5;
+function mushPick(u,m){u.mushC={gold:!!m.gold};G.mush=G.mush.filter(q=>q!==m);(G.mushWait=G.mushWait||[]).push({t:G.t+(m.gold?MUSH.goldRegrow:MUSH.regrow),gold:m.gold});
+  if(u.owner===0){G.fx.push({type:'float',x:u.x,y:u.y-26,t:2.2,text:m.gold?'✨ Golden mushroom picked up':'🍄 Picked up',col:m.gold?'#ffe08a':'#9dffb0'});try{sfx('done',u.x,u.y)}catch(e){}}}
+function mushCarryTick(){for(const u of G.ents){if(!u.mushC||u.dead||u.kind!=='unit')continue;const low=v=>v.maxHp&&v.hp<v.maxHp*MUSH.carryHp;
+    const near=G.ents.filter(v=>v.kind==='unit'&&!v.dead&&v.owner===u.owner&&!(DEF[v.type]&&DEF[v.type].animal)&&Math.hypot(v.x-u.x,v.y-u.y)<=MUSH.carryR*TILE&&low(v));
+    if(!near.length)continue;const gold=u.mushC.gold;delete u.mushC;let n=0;
+    if(gold){for(const v of G.ents)if(v.kind==='unit'&&!v.dead&&v.owner===u.owner&&!(DEF[v.type]&&DEF[v.type].animal)&&v.maxHp&&Math.hypot(v.x-u.x,v.y-u.y)<=MUSH.goldR*TILE){if(v.hp<v.maxHp){v.hp=v.maxHp;n++}(G.mushFx=G.mushFx||[]).push({x:v.x,y:v.y,t:0,gold:1})}}
+    else{const v=near.sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];v.hp=v.maxHp;n=1;(G.mushFx=G.mushFx||[]).push({x:v.x,y:v.y,t:0})}
+    if(u.owner===0){G.fx.push({type:'float',x:u.x,y:u.y-26,t:2.2,text:gold?'✨ Golden mushroom: '+n+' healed':'🍄 Mushroom eaten: healed!',col:gold?'#ffe08a':'#9dffb0'});try{sfx('done',u.x,u.y)}catch(e){}}}}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!MUSH.off&&G&&!G.over)mushCarryTick()}catch(err){}return r}})(railTick)}catch(err){}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(MUSH.off)return r;for(const u of G.ents){if(!u.mushC||u.dead||u.kind!=='unit')continue;if(u.owner!==0&&!G.vis[0][ti(tl(u.x),tl(u.y))])continue;
+  const x=u.x+9,y=u.y-30;c.save();c.fillStyle='rgba(20,14,8,.75)';c.beginPath();c.arc(x,y,6.5,0,7);c.fill();c.strokeStyle=u.mushC.gold?'#ffd25a':'#9dffb0';c.lineWidth=1.2;c.stroke();
+  c.fillStyle='#efe6cf';c.fillRect(x-1,y-1,2,4);c.fillStyle=u.mushC.gold?'#f2c032':'#6fb8ff';c.beginPath();c.ellipse(x,y-1,4,2.6,0,Math.PI,0);c.fill();c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
+
 
 /* ===== The computer works for its mystery clues (gameplay chat 1, Josh Oct 20 picked A + C: the computer solved the mystery too fast).
    A) A computer unit must stay at a ruin for MYSTAI.study s to take its clues (you solve a puzzle; it searches). While any of your units stands within
