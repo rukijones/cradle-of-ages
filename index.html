@@ -14126,7 +14126,7 @@ function v3build(){const T=G.terrain,LV=GFX.CLIFF&&GFX.CLIFF.LV,HT=(GFX.CLIFF&&G
       if(L.length<3)continue;const ci=comp[ti(e0.tx,e0.ty)];if(!byC.has(ci))byC.set(ci,[]);byC.get(ci).push(L)}
     for(const[ci,loops]of byC){const out=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
       for(const L of loops){const P=v3loop(L,k,M,HT,lv);if(!P)continue;out.push(P);for(const p of P.b){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}}
-      if(out.length)slabs.push({ci,k,loops:out,x0:x0-24,y0:y0-24,x1:x1+24,y1:y1+24,ord:cy1[ci]})}}
+      if(out.length)v3top(out);if(out.length)slabs.push({ci,k,loops:out,x0:x0-24,y0:y0-24,x1:x1+24,y1:y1+24,ord:cy1[ci]})}}
   slabs.sort((a,b)=>(a.ord-b.ord)||(a.k-b.k));return slabs}
 function v3loop(L,k,M,HT,lv){const T=G.terrain;
   /* tile corners -> world px, drop straight-run corners */
@@ -14146,13 +14146,41 @@ function v3loop(L,k,M,HT,lv){const T=G.terrain;
   const H=[],ws=[];for(let i=0;i<m;i++){const[x,y]=S[i],[nx,ny]=nr[i];ws.push(Math.max(0,Math.min(1,(sy[i]-.15)/.6)));
     let tx=Math.floor((x-nx*14)/TILE),ty=Math.floor((y-ny*14)/TILE);if(!M(tx,ty)){tx=Math.floor((x-nx*26)/TILE);ty=Math.floor((y-ny*26)/TILE)}
     let hs=0,hk=HT[k-1];if(S2.v3tiers){if(ty+1<MH&&T[ti(tx,ty+1)]===3&&lv(ti(tx,ty+1))<k)hs=HT[lv(ti(tx,ty+1))-1]}else if(M(tx,ty))hk=HT[lv(ti(tx,ty))-1];hk*=(S2.v3hm||1.5);let D=0;while(D<8&&M(tx,ty-D))D++;
-    H.push(Math.max(0,Math.min(hk-hs,Math.max(14,D*TILE-12))))}
+    H.push(Math.max(0,hk-hs))}
   const Hs=H.map((h,i)=>{let s=0,w=0;for(let j=-8;j<=8;j++){const f=9-Math.abs(j);s+=H[(i+j+m)%m]*f;w+=f}return s/w});
-  const s3=t=>t*t*(3-2*t);const top0=S.map((p,i)=>p[1]-Hs[i]*s3(ws[i]));
-  /* soften the lip line itself so tile steps in the footprint become gentle slopes, not spikes */
-  const top=S.map((p,i)=>{let a=0,w=0;for(let j=-9;j<=9;j++){const f=10-Math.abs(j);a+=top0[(i+j+m)%m]*f;w+=f}const ww=s3(ws[i]);return[p[0],Math.min(p[1],top0[i]*(1-ww)+(a/w)*ww)]});
-  return{b:S,t:top,n:nr,w:ws.map(s3),h:Hs}}
-const V3C=new Map();let V3K=0;
+  return{b:S,n:nr,h:Hs}}
+
+/* the top is the outline lifted straight up by the wall height (a flat, level top: nothing droops down the sides), but never past
+   the mass's own back edge, so the ground behind a cliff stays where the game has it */
+function v3top(loops){const B=new Map(),BW=8;
+  for(const L of loops){const A=L.b,m=A.length;for(let i=0;i<m;i++){const p=A[i],q=A[(i+1)%m];const a=Math.floor(Math.min(p[0],q[0])/BW),b=Math.floor(Math.max(p[0],q[0])/BW);for(let k=a;k<=b;k++){let l=B.get(k);if(!l)B.set(k,l=[]);l.push(p,q)}}}
+  const yN=(x,y)=>{const l=B.get(Math.floor(x/BW))||[];const ys=[];for(let i=0;i<l.length;i+=2){const p=l[i],q=l[i+1];if((p[0]<=x)!==(q[0]<=x)){ys.push(p[1]+(q[1]-p[1])*(x-p[0])/(q[0]-p[0]))}}
+    ys.sort((a,b)=>a-b);let best=null,bd=1e9;for(let i=0;i+1<ys.length;i+=2){const a=ys[i],b=ys[i+1];const d=y<a?a-y:y>b?y-b:0;if(d<bd){bd=d;best=a}}return best==null?y:best};
+  for(const L of loops){const m=L.b.length;L.t=[];L.w=[];for(let i=0;i<m;i++){const[x,y]=L.b[i],[nx,ny]=L.n[i],h=L.h[i];
+    const g=Math.max(0,Math.min(1,(ny+.55)/.4)),gg=g*g*(3-2*g);const n0=yN(x-nx*2+.013,y-ny*2);const ty=Math.min(y,Math.max(y-h*gg,n0+8*gg));
+    L.t.push([x,ty]);L.w.push(h>1?Math.max(0,Math.min(1,(y-ty)/h)):0)}}}
+/* rocky upland for the tops: weathered stone with grass growing in patches and in the cracks */
+const ROCKT=new Image();try{ROCKT.src=__PK[477]}catch(err){}let TOPT=null;
+function topTex(){if(TOPT)return TOPT;if(!ROCKT.complete||!ROCKT.naturalWidth)return null;const N=1024,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
+  g.drawImage(ROCKT,0,0,N,N);g.globalCompositeOperation='saturation';g.fillStyle='hsla(0,0%,50%,.55)';g.fillRect(0,0,N,N);
+  g.globalCompositeOperation='soft-light';g.fillStyle='rgba(200,196,182,.55)';g.fillRect(0,0,N,N);g.globalCompositeOperation='source-over';
+  /* crisp detail at 2x: grit, pebbles with a lit top and a shadow, hairline cracks */
+  for(let i=0;i<5200;i++){const x=hr(i,11,613)*N,y=hr(i,12,613)*N,v=hr(i,13,613);g.fillStyle=v<.5?'rgba(40,38,34,.32)':'rgba(236,232,220,.30)';g.fillRect(x,y,1.2+hr(i,14,613)*1.6,1.2+hr(i,15,613)*1.2)}
+  for(let i=0;i<420;i++){const x=hr(i,21,614)*N,y=hr(i,22,614)*N,r=2+hr(i,23,614)*5,q=.55+hr(i,24,614)*.35;
+    g.fillStyle='rgba(22,22,20,.35)';g.beginPath();g.ellipse(x+1,y+r*.5,r*1.05,r*q*.9,0,0,7);g.fill();
+    const l=120+((hr(i,25,614)*60)|0);g.fillStyle='rgb('+l+','+(l-3)+','+(l-10)+')';g.beginPath();g.ellipse(x,y,r,r*q,0,0,7);g.fill();
+    g.fillStyle='rgba(255,252,240,.35)';g.beginPath();g.ellipse(x-r*.25,y-r*q*.35,r*.55,r*q*.4,0,0,7);g.fill()}
+  g.lineCap='round';for(let i=0;i<70;i++){let x=hr(i,31,615)*N,y=hr(i,32,615)*N,a=hr(i,33,615)*6.3;g.strokeStyle='rgba(28,26,22,.45)';g.lineWidth=1.3;g.beginPath();g.moveTo(x,y);
+    for(let k=0;k<6;k++){a+=(hr(i,40+k,615)-.5)*1.2;x+=Math.cos(a)*14;y+=Math.sin(a)*14;g.lineTo(x,y)}g.stroke()}
+  /* grass patches: soft blobs (tiling), grass pattern clipped to them */
+  const m=document.createElement('canvas');m.width=m.height=N;const mg=m.getContext('2d');
+  for(let i=0;i<46;i++){const x=hr(i,1,611)*N,y=hr(i,2,611)*N,r=36+hr(i,3,611)*104,a=.55+hr(i,4,611)*.45;for(const dx of[-N,0,N])for(const dy of[-N,0,N]){const gr=mg.createRadialGradient(x+dx,y+dy,0,x+dx,y+dy,r);gr.addColorStop(0,'rgba(0,0,0,'+a+')');gr.addColorStop(.6,'rgba(0,0,0,'+a*.8+')');gr.addColorStop(1,'rgba(0,0,0,0)');mg.fillStyle=gr;mg.fillRect(x+dx-r,y+dy-r,2*r,2*r)}}
+  for(let i=0;i<2600;i++){const x=hr(i,5,612)*N,y=hr(i,6,612)*N;mg.fillStyle='rgba(0,0,0,.45)';mg.beginPath();mg.ellipse(x,y,.8+hr(i,7,612)*1.8,.6+hr(i,8,612)*1.2,0,0,7);mg.fill()}
+  const gc=document.createElement('canvas');gc.width=gc.height=N;const gg=gc.getContext('2d');const gp=GFX.pat(gg,'grass');if(gp&&gp.setTransform)gp.setTransform(new DOMMatrix().scale(2));gg.fillStyle=gp;gg.fillRect(0,0,N,N);gg.fillStyle='rgba(120,110,40,.18)';gg.fillRect(0,0,N,N);
+  gg.globalCompositeOperation='destination-in';gg.drawImage(m,0,0);g.drawImage(gc,0,0);
+  return TOPT=c}
+S2.topTex=()=>topTex();
+const V3C=new Map();let V3K=0;S2.v3c=V3C;
 function v3path(c,s,key,dx,dy){c.beginPath();for(const L of s.loops){const A=L[key];c.moveTo(A[0][0]+(dx||0),A[0][1]+(dy||0));for(let i=1;i<A.length;i++)c.lineTo(A[i][0]+(dx||0),A[i][1]+(dy||0));c.closePath()}}
 function v3slab(c,s){const fp=c.createPattern(FHD,'repeat');if(fp.setTransform)fp.setTransform(new DOMMatrix().scale((S2.v3ts||220)/FHD.naturalWidth));
   /* ground: cast shadow to the south-east and a dark contact line all round */
@@ -14169,23 +14197,24 @@ function v3slab(c,s){const fp=c.createPattern(FHD,'repeat');if(fp.setTransform)f
     band(-3,10,'rgba(6,8,12,.38)','b');band(-9,20,'rgba(6,8,12,.16)','b');band(5,8,'rgba(255,240,210,.10)','t')}
   c.restore();
   /* top: raised upland, a touch lighter and warmer than the ground below */
-  c.save();v3path(c,s,'t');c.clip();c.fillStyle=GFX.pat(c,'grass');c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);c.fillStyle='rgba(232,222,150,.16)';c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);
+  c.save();v3path(c,s,'t');c.clip();const TT=topTex();if(TT){const tp=c.createPattern(TT,'repeat');if(tp.setTransform)tp.setTransform(new DOMMatrix().scale(S2.v3rs||.5));c.fillStyle=tp}else c.fillStyle=GFX.pat(c,'grass');
+  c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);c.fillStyle='rgba(255,246,220,.06)';c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);
   /* soft inner shade along the back edge so the top reads as a surface */
   if(s.k===1){c.strokeStyle='rgba(30,40,10,.18)';c.lineWidth=12;v3path(c,s,'t');c.stroke()}c.restore();
   /* the lip: a crisp dark line where the top breaks over, a lit edge on it */
   c.lineCap='round';for(const L of s.loops){const m=L.t.length;const run=(off,w,col,min)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();let on=false;for(let i=0;i<=m;i++){const p=L.t[i%m],ww=L.w[i%m];if(ww<min){on=false;continue}if(!on){c.moveTo(p[0],p[1]+off);on=true}else c.lineTo(p[0],p[1]+off)}c.stroke()};
     run(1.6,2,'rgba(16,16,10,.55)',.3);run(-.2,1.6,'rgba(236,240,186,.65)',.3);if(s.k===1){run(0,1.3,'rgba(24,30,12,.45)',-1);run(1.6,1.1,'rgba(232,238,182,.30)',-1)}}}
-function v3chunk(cx,cy,K){const CS=256,cv=document.createElement('canvas');cv.width=CS*K;cv.height=CS*K;const c=cv.getContext('2d');c.scale(K,K);c.translate(-cx*CS,-cy*CS);
-  c.beginPath();c.rect(cx*CS,cy*CS,CS,CS);c.clip();const x0=cx*CS,y0=cy*CS;
+function v3chunk(cx,cy,K){const CS=256,cv=document.createElement('canvas');cv.width=(CS+2)*K;cv.height=(CS+2)*K;const c=cv.getContext('2d');c.scale(K,K);c.translate(-cx*CS+1,-cy*CS+1);
+  c.beginPath();c.rect(cx*CS-1,cy*CS-1,CS+2,CS+2);c.clip();const x0=cx*CS-1,y0=cy*CS-1;
   for(const s of V3.slabs){if(s.x1<x0||s.x0>x0+CS||s.y1<y0||s.y0>y0+CS)continue;v3slab(c,s)}return cv}
-function v3draw(c,vx,vy,vw,vh){if(!FHD.complete||!FHD.naturalWidth)return false;const sig=(G.seed||0)+':'+G.mapType+':'+G.terrain.length;
+function v3draw(c,vx,vy,vw,vh){if(!FHD.complete||!FHD.naturalWidth||!ROCKT.complete)return false;const sig=(G.seed||0)+':'+G.mapType+':'+G.terrain.length;
   if(V3.sig!==sig){V3.sig=sig;V3.slabs=v3build();for(const v of V3C.values())v.cv.width=0;V3C.clear();V3.has=null}
   if(!V3.slabs)return false;const CS=256;
   if(!V3.has){V3.has=new Set();for(const s of V3.slabs)for(let y=Math.floor(s.y0/CS);y<=Math.floor(s.y1/CS);y++)for(let x=Math.floor(s.x0/CS);x<=Math.floor(s.x1/CS);x++)V3.has.add(x+','+y)}
   const dpr=window.devicePixelRatio||1,K=Math.max(1,Math.min(3,Math.ceil(cam.z*dpr*2)/2));let made=0;const now=performance.now();
   for(let y=Math.floor(vy/CS);y<=Math.floor((vy+vh)/CS);y++)for(let x=Math.floor(vx/CS);x<=Math.floor((vx+vw)/CS);x++){const id=x+','+y;if(!V3.has.has(id))continue;
     let e=V3C.get(id);if((!e&&made<4)||(e&&e.K!==K&&made<1)){const cv=v3chunk(x,y,K);made++;if(e)e.cv.width=0;e={cv,K,t:now};V3C.set(id,e)}if(!e)continue;
-    e.t=now;c.drawImage(e.cv,x*CS,y*CS,CS,CS)}
+    e.t=now;c.drawImage(e.cv,x*CS-1,y*CS-1,CS+2,CS+2)}
   if(V3C.size>(S2.V3MAX||36)){const a=[...V3C.entries()].sort((p,q)=>p[1].t-q[1].t);while(V3C.size>(S2.V3MAX||36)){const[k,v]=a.shift();v.cv.width=0;V3C.delete(k)}}
   return true}
 function faces(c,vx,vy,vw,vh){if(S2.noface||!FHD.complete||!FHD.naturalWidth)return;V3.ok=!!S2.v3;if(!S2.runs){const r0=runs();S2.runs=r0?r0.concat(nruns()):null;S2.pcs=null;for(const q of CACHE)q.cv=null;CACHE=[]}if(!S2.runs)return;if(!S2.pcs)S2.pcs=pieces();
