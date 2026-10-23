@@ -306,7 +306,7 @@ const DEF={
   towncenter:{kind:'bld',name:'Town center',hp:700,size:3,sight:7,pop:5,drop:1,atk:4,range:6,cd:1.6,trains:['villager','settler'],techs:['bronze','iron','medieval','renaissance','industrial','modern'],cost:{w:275},time:60},
   house:{kind:'bld',name:'House',hp:150,size:2,sight:3,pop:5,cost:{w:30},time:15},
   storage:{kind:'bld',name:'Storage pit',hp:250,size:2,sight:4,drop:1,techs:['axes','plow','wheel','coppicing','forestry'],cost:{w:100},time:20},
-  barracks:{kind:'bld',name:'Barracks',hp:350,size:3,sight:5,trains:['clubman','axeman','slinger','spearman','pikeman','halberdier','swordsman','legionary','longsword','arquebus','rifleman','infantry','bazooka'],techs:['axemen','vetsling','pikes','legion','halberds','longswords'],cost:{w:125},time:30},
+  barracks:{kind:'bld',name:'Barracks',hp:350,size:3,sight:5,trains:['clubman','axeman','slinger','spearman','pikeman','halberdier','swordsman','legionary','longsword','bazooka']/* gameplay chat 1 (Josh Oct 22): arquebusiers, riflemen and infantry train at the archery range only */,techs:['axemen','vetsling','pikes','legion','halberds','longswords'],cost:{w:125},time:30},
   swordsman:{kind:'unit',needTech:'bronzework',name:'Swordsman',plural:'Swordsmen',hp:60,atk:7,arm:1,range:0,cd:1.3,speed:82,sight:5,r:9,cost:{f:50,g:30},time:18,age:1},
   bowman:{kind:'unit',name:'Bowman',plural:'Bowmen',hp:32,atk:4,range:6,cd:1.5,speed:80,sight:8,r:8,cost:{f:35,w:40},time:18,age:1},
   rider:{kind:'unit',name:'Horse rider',plural:'Horse riders',hp:85,atk:6,range:0,cd:1.4,speed:108,sight:7,r:11,cost:{f:70,g:40},time:22,age:1},
@@ -1848,8 +1848,9 @@ function updBld(b,dt){
   if(b.type==='inn'&&b.built)innTick(b,dt);
 
   if(b.type==='dairy'){if(b.ranch)wingTick(b,dt);else dairyTick(b,dt);}
+  /* gameplay chat 1 (Josh Oct 22: "I don't think it upgraded the bakery to grand bakery when i clicked to research"): the bakery's work returned out of updBld, so its research queue never ran. Now it falls through to the queue like other buildings */
+  else if(b.type==='bakery'&&WORK.bakery){b.stall='';bakeryRun(b,dt,G.players[b.owner],b.gar?b.gar.length:0);}
   else if(WORK[b.type]){const W=WORK[b.type],P=G.players[b.owner],n=(b.gar?b.gar.length:0)+(b.type==='factory'?2:0);let ok=n>0;b.stall='';
-    if(b.type==='bakery'){bakeryRun(b,dt,P,n);return;}
     if(ok&&W.fuel){for(const k in W.fuel)if(P[k]<W.fuel[k]*n*dt){ok=false;b.stall=b.type==='factory'?'Needs wood and stone for the machines':'Needs wood for the ovens';}}
     if(ok&&b.type==='weaver'){const sh=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&!(e.born&&G.t-e.born<60)).length;if(sh<4){ok=false;b.stall='Needs 4 adult sheep for wool';}}
     b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){if((b.wool||0)>=amt/4){b.wool-=amt/4;if(expAt(b,'textile',amt/5))continue;P.g+=amt*1.6*(b.owner===1?G.aiMult:1);inc(b.owner,'g',amt*1.6,'textiles');continue;}b.stall='Needs wool: set a livestock pen to Wool (runs at half speed without it)';if(expAt(b,'cloth',amt/12))continue;P[k]+=amt*.5*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt*.5,b.type);continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
@@ -9527,11 +9528,9 @@ const PUBTIP={off:false,gap:240,need:3};
   try{const cs=document.createElement('style');cs.textContent='#pubTip{position:absolute;left:calc(58px + var(--sl));bottom:calc(76px + var(--sb));z-index:6;display:flex;align-items:flex-end;gap:2px;pointer-events:none;animation:ptIn .45s cubic-bezier(.2,1.4,.4,1)}#pubTip[hidden]{display:none}#pubTip img{height:118px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}#pubTip img+img{margin-left:-26px}#pubTip .ptb{position:relative;align-self:flex-start;margin-left:6px;max-width:230px;background:#fbf1d8;color:#3a2614;border:2px solid #8a5a2b;border-radius:14px;padding:8px 10px;font-size:12px;line-height:1.35;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:auto}#pubTip .ptb:before{content:"";position:absolute;left:-10px;bottom:16px;border:8px solid transparent;border-right-color:#8a5a2b;border-left:0}#pubTip .ptb b{display:block;font-family:Cinzel,Georgia,serif;font-size:14px;color:#8a3a12;margin-bottom:2px}#pubTip .ptr{display:flex;gap:6px;margin-top:6px}#pubTip button{border:1px solid #8a5a2b;border-radius:8px;background:#e3ab3f;color:#2a2017;font-weight:800;font-size:12px;padding:5px 10px}#pubTip button.ptx{background:#efe1c0;font-weight:600}@keyframes ptIn{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}';document.head.appendChild(cs);}catch(err){}
   let el=null,shownAt=0,idleSince=0,ids=[];
   function mk(){el=document.createElement('div');el.id='pubTip';el.hidden=true;
-    el.innerHTML='<img alt="" src="'+IMG[0]+'"><img alt="" src="'+IMG[1]+'"><div class="ptb"><b>Come on down for a pint!</b>Your soldiers look thirsty. Select them and tap <i>Round at the pub</i>: <b style="display:inline;font:inherit;font-weight:800;color:#2f6b12">+10% attack, +1 armor</b> for 2 minutes.<div class="ptr"><button class="ptgo">Send them</button><button class="ptx">Not now</button></div></div>';
+    el.innerHTML='<img alt="" src="'+IMG[0]+'"><img alt="" src="'+IMG[1]+'"><div class="ptb"><b>Come on down for a pint!</b>Your soldiers look thirsty. Select them and tap <i>Round at the pub</i>: <b style="display:inline;font:inherit;font-weight:800;color:#2f6b12">+10% attack, +1 armor</b> for 2 minutes.<div style="font-size:10px;opacity:.7;margin-top:3px">Tap to close</div></div>';/* gameplay chat 1 (Josh Oct 22: "it shouldn't have any buttons to send anyone. It should just be a reminder"): no Send them / Not now; tap anywhere on it to close, and it still closes by itself after 12 s */
     $('app').appendChild(el);
-    el.querySelector('.ptx').addEventListener('click',e=>{e.stopPropagation();hide();});
-    el.querySelector('.ptgo').addEventListener('click',e=>{e.stopPropagation();let us=ids.map(id=>G.byId.get(id)).filter(u=>u&&!u.dead);try{us=pubPick(us)}catch(err){}hide();if(!us.length)return;
-      setSel(us);panelKeyLast='';let n=0;const go=()=>{const b=document.querySelector('#acts button[data-act="round"]');if(b){b.click();return;}if(++n<10)setTimeout(go,60);else toast('Select the soldiers and tap Round at the pub');};setTimeout(go,60);});}
+    el.addEventListener('click',e=>{e.stopPropagation();hide();});}
   function hide(){if(el)el.hidden=true;}
   function idleSold(){const out=[];for(const u of G.ents){if(u.owner!==0||u.dead||u.kind!=='unit'||NONMIL.has(u.type)||u.air||DEF[u.type].animal||u.order)continue;
       if((u.pubCd||0)>G.t||(u.buff&&u.buff.type==='morale'&&u.buff.until>G.t))continue;if(typeof nearestEnemy==='function'&&nearestEnemy(u,8*TILE))continue;out.push(u);}return out;}
@@ -10478,7 +10477,7 @@ function pcLodge(b){try{if(!isLodge(b))return null;const n=foresterN(b),g=groveT
 function pcHtml(L){return L.filter(Boolean).map(x=>'<span class="ch'+(x[2]?' '+x[2]:'')+'">'+x[0]+'<b>'+x[1]+'</b></span>').join('')}
 function pcApply(){if(PANEL_CHIPS.off||!G||!G.sel||G.sel.length!==1||G.place)return;const b=G.byId.get(G.sel[0]);if(!b||b.owner!==0||b.kind!=='bld'||!b.built)return;
   const A=$('acts');if(!A)return;let L=PCH[b.type]?PCH[b.type](b):null;if(b.type==='storage'||b.type==='forester'){const l=pcLodge(b);if(l)L=l}
-  for(const h of A.querySelectorAll('.hint')){if(h.id==='pchips'||h.classList.contains('chips'))continue;const t=h.textContent;
+  for(const h of A.querySelectorAll('.hint')){if(h.id==='pchips'||h.classList.contains('chips')||h.querySelector('#qtxt'))continue;/* gameplay chat 1 (Josh Oct 22: no sign of how long the research was taking): the research / training progress bar is never hidden */const t=h.textContent;
     if(/Tap the map to set where new units gather/.test(t)){h.innerHTML='📍 <small>Tap the map: gather point</small>';h.style.flexDirection='row';continue}
     if(/^All upgrades researched/.test(t)){h.style.display='none';continue}
     if(L&&!/Next step/.test(t)){h.style.display='none';continue}
@@ -12721,6 +12720,21 @@ try{ranchGatePts=(function(prev){return function(R){const L=prev.apply(this,argu
   if(inW(u.x,u.y)||(GF_E&&inW(GF_E.x,GF_E.y))||(u.order&&u.order.id===W.id))return L;
   const K=L.filter(g=>!inW(g.o[0],g.o[1])&&walk(tl(g.o[0]),tl(g.o[1]))&&walk(tl(g.o[0]),tl(g.o[1])+1));return K.length?K:L}catch(err){return L}}})(ranchGatePts)}catch(err){}
 try{gateFix=(function(prev){return function(u,path){GF_U=u;GF_E=path&&path.length?path[path.length-1]:null;try{return prev.apply(this,arguments)}finally{GF_U=null;GF_E=null}}})(gateFix)}catch(err){}
+/* ===== gameplay chat 1 r173 (Josh Oct 22: "When the sheep wing is added, it needs to be included in the outline of the ranch"): the selected
+   ranch's outline (one hull round the ranch and its dairy wing) now also takes in the sheep wing; selecting the sheep wing draws the same outline. ===== */
+try{const prevRO2=GFX._ranchOutline;if(prevRO2)GFX._ranchOutline=function(c,e){try{if(GFX.mode!=='V23D'||!GFX.ranch8Pt||!e||e.owner>1)return prevRO2.apply(this,arguments);
+    let R=e;if((e.type==='dairy'&&e.ranch)||(e.type==='pen'&&e.sranch)){R=G.byId.get(e.ranch||e.sranch);if(!R||R.dead)return false}else if(e.type!=='ranch')return false;
+    const S=R.swing&&G.byId.get(R.swing);if(!S||S.dead||S.type!=='pen')return prevRO2.call(this,c,R);
+    const pts=[[35,465],[480,710],[990,450],[505,215]].map(p=>GFX.ranch8Pt(R,p[0],p[1]));if(pts.some(p=>!p))return prevRO2.apply(this,arguments);
+    const W=R.wing&&G.byId.get(R.wing);if(W&&!W.dead&&W.type==='dairy'&&GFX.wing8Pt){const w=[[40,470],[510,735],[980,480],[490,215]].map(p=>GFX.wing8Pt(W,p[0],p[1]));if(!w.some(p=>!p))pts.push(...w)}
+    let sp=null;try{const r=GFX.swRoute&&GFX.swRoute(S,bldSpr(R));if(r&&r.P)sp=r.P}catch(err){}
+    const n=S.size||3,x0=S.tx*TILE,y0=S.ty*TILE,x1=(S.tx+n)*TILE,y1=(S.ty+n)*TILE,cx0=(x0+x1)/2,cy0=(y0+y1)/2;
+    let sx0=x0,sy0=y0,sx1=x1,sy1=y1;try{const q=bldSpr(S);if(q&&q.w){sx0=S.tx*TILE-(q.dx||0);sy0=S.ty*TILE-(q.ov||0);sx1=sx0+q.w;sy1=sy0+(q.h||q.w*.7)}}catch(err){}const mx=(sx0+sx1)/2,my=(sy0+sy1)/2;pts.push([sx0,my],[mx,sy0],[sx1,my],[mx,sy1],[sx0+(sx1-sx0)*.2,sy0+(sy1-sy0)*.2],[sx0+(sx1-sx0)*.2,sy1-(sy1-sy0)*.2]);if(sp)for(const p of sp)if(p&&isFinite(p[0]))pts.push([p[0],p[1]]);
+    const P=pts.map(p=>[p[0],p[1]]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],hi=[];
+    for(const p of P){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+    for(let i=P.length-1;i>=0;i--){const p=P[i];while(hi.length>=2&&cr(hi[hi.length-2],hi[hi.length-1],p)<=0)hi.pop();hi.push(p)}
+    const H=lo.slice(0,-1).concat(hi.slice(0,-1));let cx=0,cy=0;for(const p of H){cx+=p[0];cy+=p[1]}cx/=H.length;cy/=H.length;
+    H.forEach((p,i)=>{const dx=p[0]-cx,dy=p[1]-cy,l=Math.hypot(dx,dy)||1,q=[p[0]+dx/l*3,p[1]+dy/l*3];i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();return true}catch(err){return prevRO2.apply(this,arguments)}}}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -13435,6 +13449,7 @@ $('panel').addEventListener('click',e=>{
     else if(TECH[arg]&&reqMissing(0,arg))msg='To unlock '+(UPSHORT[arg]||TECH[arg].name)+', build a '+reqMissing(0,arg).map(t=>DEF[t].name.toLowerCase()).join(' and a ');
     else if(it.needTech&&!P0.tech[it.needTech])msg='Needs Bronze working. Research it at the forge';
     else if((it.age||0)>P0.age)msg='Needs the '+AGES[it.age];
+    else if(arg==='tradecart'&&one.type==='market'&&canAfford(P0,it.cost))msg=G.ents.some(d=>d.type==='donkey'&&d.owner===0&&!d.dead&&!d.raise)?'🫏 A trade cart needs a free pack donkey to pull it, and yours all have jobs. Tap a donkey and send it somewhere to free it, or train another at the ranch':'🫏 A trade cart needs a pack donkey to pull it. Train one at the ranch first';/* gameplay chat 1 (Josh Oct 22: "Why does it say i can\'t build a trade cart right now") */
     else msg=shortMsg(it.cost);
     toast(msg);}}
   else if(act==='cancel'&&one)cancelQ(one);
