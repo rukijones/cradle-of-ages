@@ -914,9 +914,14 @@ function ranchActs(one,P){
       else if(P.age<3)h+=line('No cows yet','The dairy wing comes in the Medieval Age: it joins the ranch at a gate, with 2 cows for milk or cheese. Sheep follow in the Renaissance');
       else h+=btn('mkwing','Dairy wing',costHtml(DEF.dairy.cost),bldIcon('dairy',THUMB.dairy||THUMB.ranch),!canAfford(P,DEF.dairy.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds the dairy onto the ranch at one of its gates. 2 cows join; the shepherds milk them for food or cheese</div>';
     }else{
-      h+=line(cows+' cow'+(cows===1?'':'s')+' (room for '+COW_CAP+') · '+(one.milked||0)+' milked',(sh?'Ranch hands milk them':'Needs a ranch hand to milk them'));h+=handBtns(one,sh);
-      if(sickC)h+=btn('medicine','Give medicine',costHtml({g:25}),THUMB.cow,!canAfford(P,{g:25}),0,'wide danger',PILL('up','Sick'));
-      h+=btn('cuse',one.cuse==='cheese'?'Cows make: 🧀 cheese → 🪙 gold':'Cows make: 🥛 milk → 🍞 food','<span class="cost">Tap to switch to '+(one.cuse==='cheese'?'🥛 milk (🍞 food)':'🧀 cheese (🪙 gold)')+'</span>',THUMB.cow,false,0,'wide');
+      /* r172 (Josh Oct 22: "make the buttons on the cow section better UI... the work animals section is simple and easy... the size of the buttons could be more uniform... the supply chain thing on the bakery, could do something similar"):
+         the status line moved to a supply-chain strip (cowChain); 4 same-size buttons like Work animals: + hand, - hand, Milk, Cheese (the one in use outlined) */
+      const iv=idleVills().length,chz=one.cuse==='cheese';
+      h+=btn('rhadd','Add hand','<span class="cost">'+sh+' of '+RHAND_MAX+(sh<RHAND_MAX&&!iv?' · no idle':'')+'</span>',THUMB.villager,sh>=RHAND_MAX||!iv);
+      h+=btn('rhrem','Remove hand','<span class="cost">'+sh+' of '+RHAND_MAX+'</span>',THUMB.villager,!sh);
+      h+=btn(chz?'cuse':'cusenone','🥛 Milk','<span class="cost">→ 🍞 food</span>',THUMB.cow,false,0,chz?'':'cpick',chz?'':PILL('new','On'));
+      h+=btn(chz?'cusenone':'cuse','🧀 Cheese','<span class="cost">→ 🪙 gold</span>',THUMB.cow,false,0,chz?'cpick':'',chz?PILL('new','On'):'');
+      if(sickC)h+=btn('medicine','Medicine',costHtml({g:25}),THUMB.cow,!canAfford(P,{g:25}),0,'danger',PILL('up','Sick'));
     }
   }else{
     const n=raisingN(PL),cp=RAISE_CAP*penN(one);
@@ -1153,9 +1158,10 @@ function innTick(b,dt){b.beer=b.beer||0;
     const busy=G.ents.filter(v=>v.order&&v.order.type==='inn'&&v.order.id===b.id).length;if(busy>=4||b.beer<1+busy||Math.random()>1/3)continue;u.order={type:'inn',id:b.id,seat:busy,prev:u.order};u.path=null;}}
 function pubBuff(u){return u.buff&&u.buff.until>G.t?u.buff.type:null;}
 function millTick(b,dt){const P=G.players[b.owner];b.grain=b.grain||0;b.flour=b.flour||0;const g=Math.min(b.grain,4*dt);b.grain-=g;b.flour+=g;b.working=g>0;if(b.grain>120){const x=b.grain-120;b.grain=120;P.f+=x*(b.owner===1?G.aiMult:1);inc(b.owner,'f',x,'farm');}
-  const bk=G.ents.some(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);
+  const bk=G.ents.some(e=>e.type==='bakery'&&e.owner===b.owner&&e.built&&!e.dead&&(Math.hypot(e.x-b.x,e.y-b.y)<15*TILE||(Math.hypot(e.x-b.x,e.y-b.y)<45*TILE&&bakeDonkey(e))));/* r172: a bakery up to 45 tiles away keeps the flour when it has a pack donkey */
   if(!bk&&b.flour>0){P.f+=b.flour*(b.owner===1?G.aiMult:1);inc(b.owner,'f',b.flour,'farm');b.flour=0;}else if(b.flour>150){const x=b.flour-150;P.f+=x*(b.owner===1?G.aiMult:1);inc(b.owner,'f',x,'farm');b.flour=150;}}
 /* ---- flour hauling (Josh): a pack donkey from the corral carries flour windmill -> bakery; without one a baker walks for it ---- */
+/* r172 (Josh Oct 22: "I assigned a pack donkey to the bakery... it didn't do anything. maybe because the windmill was too far away"): a baker on foot only fetches from a windmill within 15 tiles, but a pack donkey now hauls from one up to 45 tiles away */ function flourMillFar(b,min){let m=null,md=1e9;for(const e of G.ents)if(e.type==='mill'&&e.owner===b.owner&&e.built&&!e.dead&&(e.flour||0)>=min){const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<45*TILE&&d<md){md=d;m=e;}}return m;}
 function flourMill(b,min){let m=null,md=1e9;for(const e of G.ents)if(e.type==='mill'&&e.owner===b.owner&&e.built&&!e.dead&&(e.flour||0)>=min){const d=Math.hypot(e.x-b.x,e.y-b.y);if(d<15*TILE&&d<md){md=d;m=e;}}return m;}
 function bakeDonkey(b){const d=b.donk&&G.byId.get(b.donk);return d&&!d.dead&&d.owner===b.owner&&d.bake===b.id?d:null;}
 function bakeRunner(b){const r=b.runner&&G.byId.get(b.runner);return r&&!r.dead&&r.owner===b.owner&&r.order&&r.order.type==='flour'&&r.order.bk===b.id?r:null;}
@@ -1175,13 +1181,13 @@ function donkeyBake(u,dt){const b=G.byId.get(u.bake);if(u.breadB)return false;
     u.lw=(u.lw||0)+dt;if(u.lw<1.2)return true;const a=Math.min(40,m.flour||0);if(a<4){if(u.lw>20){u.lw=0;u.leg='home';}return true;}m.flour-=a;u.flourC=a;u.lw=0;u.leg='back';return true;}
   const r=approach(u,b,TILE*1.1);if(r==='fail'){u.fz=G.t+3;u.nf=(u.nf||0)+1;if(u.nf>=5){u.nf=0;b.donk=0;u.bake=0;if(u.flourC){b.flour=(b.flour||0)+u.flourC;u.flourC=0;}return false;}return true;}u.nf=0;if(r!==true)return true;
   if(u.flourC){b.flour=(b.flour||0)+u.flourC;if(b.owner===0){ICON.flour=ICON.flour||VTOOL.wheat;addPop(b,'flour',u.flourC);}u.flourC=0;}
-  u.leg='home';if((b.flour||0)<=60){const m=flourMill(b,8);if(m){u.mill=m.id;u.leg='go';u.lw=0;}}return true;}
+  u.leg='home';if((b.flour||0)<=60){const m=flourMill(b,8)||flourMillFar(b,8);if(m){u.mill=m.id;u.leg='go';u.lw=0;}}return true;}
 function flourRun(u,o){const b=G.byId.get(o.bk);if(!alive(b)||!b.built){if(u.flourC&&b&&b.owner===u.owner)b.flour=(b.flour||0)+u.flourC;u.flourC=0;u.order=null;return;}
   if(!u.flourC){const m=G.byId.get(o.mill);if(!alive(m)||m.owner!==u.owner){u.order={type:'work',id:b.id};return;}const r=approach(u,m,TILE*.8);if(r==='fail'){u.order={type:'work',id:b.id};return;}if(r!==true)return;
     o.w=(o.w||0)+STEP;u.working=true;if(o.w<1.5)return;const a=Math.min(20,m.flour||0);if(a<1){if(o.w>15)u.order={type:'work',id:b.id};return;}m.flour-=a;u.flourC=a;o.w=0;return;}
   const r=approach(u,b,TILE*.8);if(r==='fail'){u.flourC=0;u.order=null;return;}if(r!==true)return;
   b.flour=(b.flour||0)+u.flourC;if(b.owner===0){ICON.flour=ICON.flour||VTOOL.wheat;addPop(b,'flour',u.flourC);}u.flourC=0;u.order={type:'work',id:b.id};u.path=null;}
-function flourStall(b){if(b.chute)return flourMill(b,0)?'Needs flour: the windmill has none yet. Put farmers on the farms around it':'Needs flour: build a windmill near your farms';const dk=bakeDonkey(b);if(dk&&(dk.leg==='go'||dk.flourC))return 'Needs flour: the pack donkey is bringing it';if(dk&&!flourMill(b,4))return flourMill(b,0)?'Needs flour: the windmill has none yet. Put farmers on the farms around it':'Needs flour: build a windmill near your farms';if(bakeRunner(b))return 'Needs flour: a baker went to the windmill for it. A pack donkey from the corral would haul it faster';if(!flourMill(b,0))return 'Needs flour: build a windmill near your farms';return 'Needs flour: waiting for the windmill';}
+function flourStall(b){if(b.chute)return flourMill(b,0)?'Needs flour: the windmill has none yet. Put farmers on the farms around it':'Needs flour: build a windmill near your farms';const dk=bakeDonkey(b);if(dk&&(dk.leg==='go'||dk.flourC))return 'Needs flour: the pack donkey is bringing it';if(dk&&!flourMillFar(b,0))return 'Needs flour: no windmill within 45 tiles for the pack donkey. Build one near your farms';if(dk&&!flourMillFar(b,4))return flourMill(b,0)?'Needs flour: the windmill has none yet. Put farmers on the farms around it':'Needs flour: build a windmill near your farms';if(bakeRunner(b))return 'Needs flour: a baker went to the windmill for it. A pack donkey from the corral would haul it faster';if(!flourMill(b,0))return 'Needs flour: build a windmill near your farms';return 'Needs flour: waiting for the windmill';}
 function weaverTick(b,dt){const n=b.gar?b.gar.length:0,P=G.players[b.owner];b.wool=b.wool||0;b.working=false;b.stall='';if(!n)return;const need=.1*n*dt;if(b.wool<need){b.stall='Needs wool: set a sheep pen to Wool cloth';return;}
   b.wool-=need;const g=.16*n*dt*(P.tech.guilds?1.25:1);if(!(b.export&&exportTo(b.owner,'cloth',g/8))){P.g+=g*(b.owner===1?G.aiMult:1);inc(b.owner,'g',g,'weaver');}b.working=true;}
 const GOODV={bread:12,cheese:16,cloth:20,beer:14,cake:30,pastry:40,textile:30},GOODN={bread:'bread',cheese:'cheese',cloth:'cloth',beer:'beer',cake:'cakes',pastry:'pastries',textile:'textiles'};
@@ -7952,7 +7958,7 @@ function gateSpr(o){try{if(!THUMB.gate&&THUMB.wall)THUMB.gate=THUMB.wall;}catch(
   x.fillStyle=PCOL[o];x.fillRect(mid-1.2,top+11,2.4,5);x.fillStyle='#c9b27a';x.beginPath();x.arc(mid+3,(top+bot)/2+3,1.1,0,7);x.fill();
   for(const kk of['w','h','ov','dx'])if(sp[kk]!==undefined)c[kk]=sp[kk];GATESPR.set(sp,c);return c;}
 /* Poultry yard ground (gameplay placeholder until art chat 1 paints the yard): one straw-and-earth yard under all 6 coops, a low fence round the whole block, a gate and a team pennant */
-try{const _bd=BANIM.dairy;BANIM.dairy=function(c,b,now){if(b&&b.ranch){const R=G.byId.get(b.ranch);let n=0;if(R)for(const u of G.ents)if(u.shep===R.id&&!u.dead)n++;const g=b.gar;b.gar={length:Math.min(2,n)};try{if(_bd)_bd(c,b,now);}finally{b.gar=g;}}else if(_bd)_bd(c,b,now);};}catch(err){}
+try{const _bd=BANIM.dairy;BANIM.dairy=function(c,b,now){if(b&&b.ranch){const R=G.byId.get(b.ranch);/* r172 (Josh Oct 22: "the women working in the dairy came before the villagers showed up"): since r168 the 2 milkers really go into the dairy, so only hands that are inside count */let n=0;if(R)for(const u of (b.gar||[]))if(u&&u.shep===R.id)n++;const g=b.gar;b.gar={length:Math.min(2,n)};try{if(_bd)_bd(c,b,now);}finally{b.gar=g;}}else if(_bd)_bd(c,b,now);};}catch(err){}
 /* door opening / shutting drawn over the building (generic: the painted door is cut out of the picture and swung on its hinge, or rolled up) */
 function drawDoorAnim(c,e){const k=doorK(e);if(k<=0)return;const D=doorInfo(e);if(!D||(D.m!=='closed'&&D.m!=='roll'))return;const sp=D.sp,f=D.f,K=sp.width/sp.w;
   const sx=f[0]*sp.width,sy=f[1]*sp.height,sw=f[2]*sp.width,sh=f[3]*sp.height;c.save();c.beginPath();c.rect(D.x,D.y,D.w,D.h);c.clip();
@@ -9237,7 +9243,7 @@ try{onTap=(function(prev){return function(wx,wy){try{if(G&&!G.over&&!G.place){co
         else 
         if(hit.type==='villager'){const old=G.ents.find(d=>d!==u&&d.type==='donkey'&&d.asgV===hit.id&&!d.dead);if(old)donkFree(old);donkFree(u);u.asgV=hit.id;hit.donkey=u.id;u.buddy=hit.id;toast('Pack donkey now carries for this villager');}
         else if(hit.type==='inn'){const old=innDonkeyOf(hit);if(old&&old!==u)donkFree(old);donkFree(u);u.home=0;u.innD=hit.id;u.ileg='home';u.beerC=0;hit.donk=u.id;toast('Pack donkey now brings beer to this inn');}
-        else{const old=bakeDonkey(hit);if(old&&old!==u)donkFree(old);donkFree(u);u.bake=hit.id;u.leg='home';u.flourC=0;hit.donk=u.id;toast('Pack donkey now brings flour to this bakery');}
+        else{const old=bakeDonkey(hit);if(old&&old!==u)donkFree(old);donkFree(u);u.bake=hit.id;u.leg='home';u.flourC=0;hit.donk=u.id;toast(chuteMill(hit)?'Pack donkey assigned, but this bakery gets flour straight from the windmill next door: no donkey needed':flourMillFar(hit,0)?'Pack donkey now brings flour to this bakery':'Pack donkey assigned, but there is no windmill within 45 tiles of this bakery: build one');}
         if(sel.length>1)toast('One donkey per job: the others stay where they are');mark(hit.x,hit.y,'#ffd25a');panelKeyLast='';return;}}}}catch(err){}return prev.apply(this,arguments)}})(onTap)}catch(err){}
 try{setSel=(function(prev){return function(a){const r=prev.apply(this,arguments);try{const s=selEnts();if(s.length&&s.every(u=>u.type==='donkey'&&u.owner===0)&&G.t-(G.dkTip||-999)>90){G.dkTip=G.t;toast('Tap a villager, a pub, a roadside inn or a bakery to give this donkey a job');}}catch(err){}return r}})(setSel)}catch(err){}
 /* ===== Pack donkey to a pub (Josh, Oct 15: "I can't get a pack donkey to get beer for the Inn that says it needs grain"). That building is a
@@ -12698,6 +12704,23 @@ try{wkFor=(function(prev){return function(u,gx,gy,t){const w=prev.apply(this,arg
     for(const r of Array.from(RANCH_OK)){if(keepT.has(r))continue;const R=G.byId.get(r);if(!R||R.type!=='ranch')continue;const F=ranchFence(R);if(!F)continue;
       if(inPolyG(F,u.x,u.y)||inPolyG(F,(gx+.5)*TILE,(gy+.5)*TILE))continue;RANCH_OK.delete(r);}}}catch(err){}
   return w}})(wkFor)}catch(err){}
+/* ===== gameplay chat 1 r172: Cows tab supply chain strip (like the bakery's): 🐄 cows › 🧑‍🌾 milkers › 🥛 Milk / 🧀 Cheese › 🍞 food / 🪙 gold.
+   Shown above the panel while a ranch with a dairy wing is selected on its Cows tab. A missing step is red. ===== */
+try{const st=document.createElement('style');st.textContent='#acts .b.cpick{outline:2px solid var(--gold);outline-offset:-2px;background:#6b5230}';document.head.appendChild(st)}catch(err){}
+function cowChain(b){try{if(!b||b.type!=='ranch'||G.rtab!=='c'||!ranchDairy(b))return '';const cows=b.cFlock||0,mk=b.milked||0,hands=Math.min(2,rhMilk(b)),chz=b.cuse==='cheese',sick=G.ents.some(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&e.sick&&Math.hypot(e.x-b.x,e.y-b.y)<5*TILE);
+  const pill=(ic,txt,ok,cur)=>'<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:7px;font-size:10px;white-space:nowrap;border:1px solid '+(cur?'var(--gold)':ok?'rgba(143,191,84,.6)':'#d65a46')+';'+(cur?'background:rgba(227,171,63,.18);':'')+(ok?'':'color:#ffb4a4;')+'">'+ic+' '+txt+(ok?'':' ✗')+'</span>';
+  const parts=[pill('🐄',cows+' cow'+(cows===1?'':'s')+' / '+COW_CAP+(sick?' · 🤒 sick':''),cows>0&&!sick,false),pill('🧑‍🌾',hands?hands+' milking':'no hands',hands>0,false),pill(chz?'🧀':'🥛',chz?'Cheese':'Milk',mk>0,true),pill(chz?'🪙':'🍞',chz?'Gold':'Food',mk>0,false)];
+  return '<div style="font-size:9px;color:var(--muted)">Supply chain · '+mk+' milked</div><div style="display:flex;align-items:center;gap:2px">'+parts.join('<span style="color:var(--muted)">›</span>')+'</div>'}catch(err){return ''}}
+try{CH_OF.ranch='dairy';chHtml=(function(prev){return function(b){if(b&&b.type==='ranch')return cowChain(b);return prev.apply(this,arguments)}})(chHtml)}catch(err){}
+/* ===== gameplay chat 1 r172 (Josh Oct 22: "the pack donkeys are still having trouble leaving the ranch"). With the dairy wing on the left,
+   the ranch's lower-left opening leads into the dairy yard, a dead end for anyone else; a donkey heading out chose that gate and stood
+   stuck at it. Now only cows and people going to / coming from the dairy use that opening; everyone else uses the other gates. ===== */
+let GF_U=null,GF_E=null;
+try{ranchGatePts=(function(prev){return function(R){const L=prev.apply(this,arguments);try{const u=GF_U;if(!u||u.type==='cow'||!L||L.length<2)return L;const W=R&&R.wing&&G.byId.get(R.wing);if(!W||W.dead)return L;
+  const s=W.size||DEF.dairy.size,inW=(x,y)=>x>=W.tx*TILE&&x<(W.tx+s)*TILE&&y>=W.ty*TILE&&y<(W.ty+s)*TILE;
+  if(inW(u.x,u.y)||(GF_E&&inW(GF_E.x,GF_E.y))||(u.order&&u.order.id===W.id))return L;
+  const K=L.filter(g=>!inW(g.o[0],g.o[1])&&walk(tl(g.o[0]),tl(g.o[1]))&&walk(tl(g.o[0]),tl(g.o[1])+1));return K.length?K:L}catch(err){return L}}})(ranchGatePts)}catch(err){}
+try{gateFix=(function(prev){return function(u,path){GF_U=u;GF_E=path&&path.length?path[path.length-1]:null;try{return prev.apply(this,arguments)}finally{GF_U=null;GF_E=null}}})(gateFix)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
