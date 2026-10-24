@@ -13984,27 +13984,40 @@ const _dr=GFX.drawRes;GFX.drawRes=function(c,e){try{if(GFX.SCENE2&&!S2.notree&&e
     const u=v/(4/6),k=u<.82?'oak':u<.95?'birch':'maple';s=C[k];w=s.w;
     const sw=k==='birch'?26:w*.95;c.drawImage(C.sh,x-sw*.42+5,y-sw*.17,sw,sw*.42);
     c.save();c.translate(x,y);if(fl)c.scale(-1,1);c.drawImage(s,-w/2,-s.h+2,w,s.h);c.restore();return true}}}catch(err){}return _dr.apply(this,arguments)};
-/* ---- gold ore sits in the ground (Josh, again: "gold ore still looks like it is floating"): a dug-up dirt patch with rubble under each
-   pile, a tight dark contact shadow, the pile sunk ~3 px into it and a few stones in front of its foot. Gameplay's GOLDSH patch is turned off. ---- */
-let RUB=null;function rubble(){if(RUB)return RUB;const K=3,o=[];for(let v=0;v<3;v++){const c=document.createElement('canvas');c.width=60*K;c.height=26*K;const g=c.getContext('2d');g.scale(K,K);
-    /* dirt patch */const P=[];for(let j=0;j<12;j++){const a=j/12*6.283,r=(.82+hr(v,j,501)*.3);P.push([30+Math.cos(a)*27*r,14+Math.sin(a)*10*r])}
-    const gr=g.createRadialGradient(30,13,2,30,14,28);gr.addColorStop(0,'rgba(58,40,22,.95)');gr.addColorStop(.65,'rgba(84,62,36,.85)');gr.addColorStop(1,'rgba(96,74,44,0)');g.fillStyle=gr;g.beginPath();for(const[u,w]of P)g.lineTo(u,w);g.closePath();g.fill();
-    for(let j=0;j<16;j++){const x=6+hr(v,j,502)*48,y=7+hr(v,j,503)*14,r=.8+hr(v,j,504)*1.8;g.fillStyle=hr(v,j,505)<.25?'#c9a23a':hr(v,j,505)<.6?'#6d6a64':'#4e4a44';g.beginPath();g.ellipse(x,y,r*1.3,r,0,0,7);g.fill();g.fillStyle='rgba(255,250,230,.25)';g.beginPath();g.ellipse(x-r*.4,y-r*.4,r*.5,r*.3,0,0,7);g.fill()}
-    c.w=60;c.h=26;o.push(c)}
-  /* front stones (drawn over the pile's foot) */
-  const f=[];for(let v=0;v<3;v++){const c=document.createElement('canvas');c.width=50*K;c.height=12*K;const g=c.getContext('2d');g.scale(K,K);
-    for(let j=0;j<7;j++){const x=4+j*6.5+hr(v,j,511)*3,y=6+hr(v,j,512)*3,r=1.2+hr(v,j,513)*1.8;g.fillStyle='rgba(20,14,8,.45)';g.beginPath();g.ellipse(x+.8,y+1.2,r*1.2,r*.6,0,0,7);g.fill();
-      const gg=g.createLinearGradient(x-r,y-r,x+r,y+r);const gold=hr(v,j,514)<.15;gg.addColorStop(0,gold?'#f2cf5a':'#8f8b83');gg.addColorStop(1,gold?'#9a6f1c':'#47433d');g.fillStyle=gg;g.beginPath();g.ellipse(x,y,r*1.15,r*.8,0,0,7);g.fill()}
-    c.w=50;c.h=12;f.push(c)}
-  return RUB={d:o,f}}
+/* ---- gold and stone piles sit IN the ground (Josh, Oct 22, 3rd ask: "still look like they float … like stickers"): every pile gets a
+   shared bed of dug-up earth / gravel on the ground layer (neighbouring piles share one patch), a tight contact shadow, its base sunk
+   ~8 px, and a collar of earth, pebbles and grass tufts drawn over its foot. Gameplay's GOLDSH bed is turned off. GFX.S2.res2=false = old. ---- */
+S2.res2=true;let RB=null;
+function resArt(){if(RB)return RB;const K=3,mk=(w,h)=>{const c=document.createElement('canvas');c.width=w*K;c.height=h*K;const g=c.getContext('2d');g.scale(K,K);c.w=w;c.h=h;return[c,g]};
+  const pal={gold:{a:'rgba(48,34,18,.92)',b:'rgba(80,60,34,.6)',peb:['#6f6a62','#4c4842','#8a6a2c','#d6ae3e'],mound:['#7a5a34','#3e2a16']},
+             stone:{a:'rgba(62,52,40,.9)',b:'rgba(84,72,54,.6)',peb:['#a9a59c','#7c786f','#5d5a54','#c4c0b6'],mound:['#857a68','#4a4438']}};
+  const out={};for(const t of['gold','stone']){const P=pal[t],beds=[],cols=[];
+    for(let v=0;v<3;v++){const[c,g]=mk(84,46);const pts=[];for(let j=0;j<16;j++){const a=j/16*6.283,r=.78+hr(v,j,701+(t==='gold'?0:50))*.32;pts.push([42+Math.cos(a)*38*r,23+Math.sin(a)*19*r])}
+      const gr=g.createRadialGradient(42,22,3,42,23,40);gr.addColorStop(0,P.a);gr.addColorStop(.55,P.b);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();for(const[u,w]of pts)g.lineTo(u,w);g.closePath();g.fill();
+      for(let j=0;j<70;j++){const a=hr(v,j,711)*6.283,r=Math.sqrt(hr(v,j,712))*.85,x=42+Math.cos(a)*36*r,y=23+Math.sin(a)*17*r,s=.5+hr(v,j,713)*1.6*(1.1-r);
+        g.fillStyle=P.peb[(hr(v,j,714)*4)|0];g.globalAlpha=.55+.45*(1-r);g.beginPath();g.ellipse(x,y,s*1.3,s*.9,0,0,7);g.fill()}g.globalAlpha=1;
+      /* grass creeping back over the rim */
+      for(let j=0;j<10;j++){const a=hr(v,j,721)*6.283,x=42+Math.cos(a)*35*(.9+hr(v,j,722)*.15),y=23+Math.sin(a)*17.5*(.9+hr(v,j,722)*.15),l=2+hr(v,j,723)*3;
+        g.strokeStyle=hr(v,j,724)<.5?'#5f8a2a':'#76a032';g.lineWidth=.9;g.beginPath();for(let b=-1;b<=1;b++){g.moveTo(x+b*1.2,y+1);g.lineTo(x+b*1.8+(hr(v,j+b,725)-.5)*1.5,y+1-l)}g.stroke()}
+      beds.push(c);
+      /* collar over the pile's foot: a low mound of earth, pebbles, tufts of grass */
+      const[d,h]=mk(64,18);const mg=h.createLinearGradient(0,4,0,16);mg.addColorStop(0,'rgba(0,0,0,0)');mg.addColorStop(.35,P.mound[0]);mg.addColorStop(1,P.mound[1]);for(let j=0;j<14;j++){const x=4+j*4.3+hr(v,j,733)*2,y=10+hr(v,j,734)*3,r=3+hr(v,j,735)*3;const eg=h.createRadialGradient(x,y,0,x,y,r);eg.addColorStop(0,P.mound[1]);eg.addColorStop(1,'rgba(0,0,0,0)');h.globalAlpha=.55;h.fillStyle=eg;h.fillRect(x-r,y-r,2*r,2*r)}h.globalAlpha=1;
+      for(let j=0;j<16;j++){const x=4+hr(v,j,741)*56,y=9+hr(v,j,742)*6,r=.8+hr(v,j,743)*1.8;h.fillStyle='rgba(20,14,8,.4)';h.beginPath();h.ellipse(x+.6,y+.9,r*1.2,r*.6,0,0,7);h.fill();
+        h.fillStyle=P.peb[(hr(v,j,744)*4)|0];h.beginPath();h.ellipse(x,y,r*1.15,r*.8,0,0,7);h.fill();h.fillStyle='rgba(255,250,235,.3)';h.beginPath();h.ellipse(x-r*.35,y-r*.35,r*.5,r*.3,0,0,7);h.fill()}
+      for(let j=0;j<4;j++){const x=6+hr(v,j,751)*52,y=13+hr(v,j,752)*3,l=3+hr(v,j,753)*4;h.strokeStyle=hr(v,j,754)<.5?'#5a8428':'#7aa636';h.lineWidth=1;h.beginPath();
+        for(let b=-2;b<=2;b++){h.moveTo(x+b*.9,y);h.lineTo(x+b*1.7+(hr(v,j+b,755)-.5)*1.4,y-l*(1-Math.abs(b)*.18))}h.stroke()}
+      cols.push(d)}
+    out[t]={beds,cols}}
+  return RB=out}
+let RLIST=null,RLT=0;function resList(){const now=performance.now();if(!RLIST||now-RLT>2000){RLT=now;RLIST=G.ents.filter(e=>(e.type==='gold'||e.type==='stone')&&!e.dead)}return RLIST}
+function resBeds(c,vx,vy,vw,vh){if(!S2.res2||!GFX.resOn||!GFX.resOn())return;const A=resArt();for(const e of resList()){if(e.dead||e.x<vx-60||e.y<vy-40||e.x>vx+vw+60||e.y>vy+vh+40)continue;
+  const k=.55+.45*Math.max(0,e.amt)/RES[e.type].amt,v=(e.id||0)%3,b=A[e.type].beds[v],w=64*(.7+.3*k);c.drawImage(b,e.x-w/2,e.y+6-w*.3,w,w*.55)}}
 try{GOLDSH.w=GOLDSH.h=0}catch(err){}
-const _drg=GFX.drawRes;GFX.drawRes=function(c,e){if(!(GFX.SCENE2&&e&&e.type==='gold'&&!e.dead&&GFX.resOn&&GFX.resOn()))return _drg.apply(this,arguments);
-  const k=.55+.45*e.amt/RES.gold.amt,R=rubble(),v=(e.id||0)%3,x=e.x,y=e.y+11,w=50*k;
-  const d=R.d[v];c.drawImage(d,x-w*.66,y-w*.26,w*1.32,w*.57);
-  c.fillStyle='rgba(16,10,4,.45)';ell(c,x+1,y-1,w*.42,w*.12);c.fill();
-  c.save();c.beginPath();c.rect(x-w,y-w*3,w*2,w*3-3);c.clip();c.translate(0,3);
-  try{GFX.put(c,'gold',x,y,w,(e.v||0)>.5)}catch(err){}c.restore();
-  const f=R.f[v];c.drawImage(f,x-w*.36,y-w*.08,w*.72,w*.17);return true};
+const _drg=GFX.drawRes;GFX.drawRes=function(c,e){if(!(GFX.SCENE2&&S2.res2!==false&&e&&(e.type==='gold'||e.type==='stone')&&!e.dead&&GFX.resOn&&GFX.resOn()))return _drg.apply(this,arguments);
+  const t=e.type,A=resArt(),k=.55+.45*Math.max(0,e.amt)/RES[t].amt,v=(e.id||0)%3,x=e.x,y=e.y+11,w=50*k,S=Math.round(w*.16);
+  c.fillStyle='rgba(14,10,4,.32)';ell(c,x+1,y-2,w*.56,w*.15);c.fill();c.fillStyle='rgba(10,6,2,.42)';ell(c,x,y-3,w*.42,w*.09);c.fill();
+  c.save();c.beginPath();c.moveTo(x-w,y-w*3);c.lineTo(x+w,y-w*3);for(let i=0;i<=16;i++){const u=x+w-i*w/8,q=Math.abs(u-x)/w;c.lineTo(u,y-2-q*q*w*.12+Math.sin(u*.7+v*2)*1.3)}c.closePath();c.clip();c.translate(0,S);try{GFX.put(c,t,x,y,w,(e.v||0)>.5)}catch(err){}c.restore();
+  const d=A[t].cols[v],cw=w*.98;c.drawImage(d,x-cw/2,y-cw*.2,cw,cw*.28);return true};
 /* ---- decorations: bushes, boulders, cliff-foot shadow (drawn on the ground layer, only what is on screen) ---- */
 function build(){const T=G.terrain,L=[],occ=(x,y)=>{const o=G.occ[ti(x,y)];return o?G.byId.get(o):null},isT=(x,y)=>{if(x<0||y<0||x>=MW||y>=MH)return false;const e=occ(x,y);return e&&e.type==='tree'},
     land=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&T[ti(x,y)]===0,base=(x,y)=>(G.bases||[]).some(([bx,by])=>Math.hypot(bx-x,by-y)<9);
@@ -14018,7 +14031,7 @@ function build(){const T=G.terrain,L=[],occ=(x,y)=>{const o=G.occ[ti(x,y)];retur
     const h=hr(x,y,220);if((wn>0&&h<.08)||(tn>=2&&h<.14)){L.push({t:hr(x,y,221)<.55?'bushrock':'flower',x:(x+.25+hr(x,y,222)*.5)*TILE,y:(y+.45+hr(x,y,223)*.4)*TILE,fl:hr(x,y,224)<.5})}}
   L.sort((a,b)=>a.y-b.y);return L}
 function deco(c){if(S2.nodeco&&S2.noface)return;if(!GFX.SCENE2||!G||!G.terrain)return;const C=cvs();if(!C)return;const sig=(G.seed||0)+':'+G.terrain.length+':'+G.mapType;if(!S2.list||S2.sig!==sig){S2.list=build();S2.sig=sig;S2.runs=null}
-  const z=cam.z,vx=cam.x-40,vy=cam.y-40,vw=W/z+80,vh=H/z+80;try{faces(c,vx,vy,vw,vh+100)}catch(err){S2.err=String(err)}
+  const z=cam.z,vx=cam.x-40,vy=cam.y-40,vw=W/z+80,vh=H/z+80;try{resBeds(c,vx,vy,vw,vh)}catch(err){S2.errR=String(err)}try{faces(c,vx,vy,vw,vh+100)}catch(err){S2.err=String(err)}
   if(!S2.nodeco)for(const d of S2.list){if(d.x<vx||d.y<vy||d.x>vx+vw||d.y>vy+vh)continue;
     if(d.t==='foot'){if(S2.v3)continue;const g=c.createLinearGradient(0,d.y,0,d.y+12);g.addColorStop(0,'rgba(12,16,10,.5)');g.addColorStop(1,'rgba(12,16,10,0)');c.fillStyle=g;c.fillRect(d.x-1,d.y,TILE+2,12);continue}
     const o=G.occ[ti(tl(d.x),tl(d.y))];if(o){const e=G.byId.get(o);if(e&&e.kind==='bld'&&!e.dead)continue}
