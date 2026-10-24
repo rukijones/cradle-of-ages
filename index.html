@@ -14189,7 +14189,7 @@ function v3build(){const T=G.terrain,LV=GFX.CLIFF&&GFX.CLIFF.LV,HT=(GFX.CLIFF&&G
       if(L.length<3)continue;const ci=comp[ti(e0.tx,e0.ty)];if(!byC.has(ci))byC.set(ci,[]);byC.get(ci).push(L)}
     for(const[ci,loops]of byC){const out=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
       for(const L of loops){const P=v3loop(L,k,M,HT,lv);if(!P)continue;out.push(P);for(const p of P.b){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}}
-      if(out.length)v3top(out);if(out.length)slabs.push({ci,k,loops:out,x0:x0-24,y0:y0-24,x1:x1+24,y1:y1+24,ord:cy1[ci]})}}
+      if(out.length){v3top(out);for(const L of out)for(const p of L.t){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1])}}if(out.length)slabs.push({ci,k,loops:out,x0:x0-24,y0:y0-24,x1:x1+24,y1:y1+24,ord:cy1[ci]})}}
   slabs.sort((a,b)=>(a.ord-b.ord)||(a.k-b.k));return slabs}
 function v3loop(L,k,M,HT,lv){const T=G.terrain;
   /* tile corners -> world px, drop straight-run corners */
@@ -14211,7 +14211,8 @@ function v3loop(L,k,M,HT,lv){const T=G.terrain;
     let hs=0,hk=HT[k-1];if(S2.v3tiers){if(ty+1<MH&&T[ti(tx,ty+1)]===3&&lv(ti(tx,ty+1))<k)hs=HT[lv(ti(tx,ty+1))-1]}else if(M(tx,ty))hk=HT[lv(ti(tx,ty))-1];hk*=(S2.v3hm||1.5);let D=0;while(D<8&&M(tx,ty-D))D++;
     H.push(Math.max(0,hk-hs))}
   const Hs=H.map((h,i)=>{let s=0,w=0;for(let j=-8;j<=8;j++){const f=9-Math.abs(j);s+=H[(i+j+m)%m]*f;w+=f}return s/w});
-  return{b:S,n:nr,h:Hs}}
+  const wet=S.map(([x,y],i)=>{const X=Math.floor((x+nr[i][0]*18)/TILE),Y=Math.floor((y+nr[i][1]*18)/TILE);return X>=0&&Y>=0&&X<MW&&Y<MH&&T[ti(X,Y)]===1});
+  return{b:S,n:nr,h:Hs,wet}}
 
 /* the top is the outline lifted straight up by the wall height (a flat, level top: nothing droops down the sides), but never past
    the mass's own back edge, so the ground behind a cliff stays where the game has it */
@@ -14220,28 +14221,29 @@ function v3top(loops){const B=new Map(),BW=8;
   const yN=(x,y)=>{const l=B.get(Math.floor(x/BW))||[];const ys=[];for(let i=0;i<l.length;i+=2){const p=l[i],q=l[i+1];if((p[0]<=x)!==(q[0]<=x)){ys.push(p[1]+(q[1]-p[1])*(x-p[0])/(q[0]-p[0]))}}
     ys.sort((a,b)=>a-b);let best=null,bd=1e9;for(let i=0;i+1<ys.length;i+=2){const a=ys[i],b=ys[i+1];const d=y<a?a-y:y>b?y-b:0;if(d<bd){bd=d;best=a}}return best==null?y:best};
   for(const L of loops){const m=L.b.length;L.t=[];L.w=[];for(let i=0;i<m;i++){const[x,y]=L.b[i],[nx,ny]=L.n[i],h=L.h[i];
-    const g=Math.max(0,Math.min(1,(ny+.55)/.4)),gg=g*g*(3-2*g);const n0=yN(x-nx*2+.013,y-ny*2);const ty=Math.min(y,Math.max(y-h*gg,n0+8*gg));
-    L.t.push([x,ty]);L.w.push(h>1?Math.max(0,Math.min(1,(y-ty)/h)):0)}}}
+    /* the top is the footprint lifted by the wall height: full height on south and side edges, NL of it on north edges (Josh round 4: north
+       edges must read as raised too), never folded back past the north edge of the same column */
+    const NL=S2.v3nl==null?.42:S2.v3nl,g=Math.max(0,Math.min(1,(ny+.75)/.6)),gg=g*g*(3-2*g),f=NL+(1-NL)*gg;
+    const n0=yN(x-nx*2+.013,y-ny*2);let ty=y-h*f;if(gg>.02)ty=Math.max(ty,n0-NL*h+10);ty=Math.min(ty,y);
+    const side=Math.max(0,Math.abs(nx)-.25)/.75,ix=-nx*h*(S2.v3sw||.14)*side*gg;
+    L.t.push([x+ix,ty]);(L.nl||(L.nl=[])).push(ny<-.25?Math.min(1,(-ny-.25)/.45):0)}
+    {const t0=L.t.map(p=>p.slice());for(let i=0;i<m;i++){let ax=0,ay=0,w=0;for(let j=-6;j<=6;j++){const q=t0[(i+j+m)%m],f=7-Math.abs(j);ax+=q[0]*f;ay+=q[1]*f;w+=f}L.t[i]=[ax/w,Math.min(L.b[i][1],ay/w)]}
+     for(let i=0;i<m;i++){const h=L.h[i];L.w.push(h>1?Math.max(0,Math.min(1,(L.b[i][1]-L.t[i][1])/h)):0)}}}}
 /* rocky upland for the tops: weathered stone with grass growing in patches and in the cracks */
 const ROCKT=new Image();try{ROCKT.src=__PK[477]}catch(err){}let TOPT=null;
-function topTex(){if(TOPT)return TOPT;if(!ROCKT.complete||!ROCKT.naturalWidth)return null;const N=1024,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
-  g.drawImage(ROCKT,0,0,N,N);g.globalCompositeOperation='saturation';g.fillStyle='hsla(0,0%,50%,.55)';g.fillRect(0,0,N,N);
-  g.globalCompositeOperation='soft-light';g.fillStyle='rgba(200,196,182,.55)';g.fillRect(0,0,N,N);g.globalCompositeOperation='source-over';
-  /* crisp detail at 2x: grit, pebbles with a lit top and a shadow, hairline cracks */
-  for(let i=0;i<5200;i++){const x=hr(i,11,613)*N,y=hr(i,12,613)*N,v=hr(i,13,613);g.fillStyle=v<.5?'rgba(40,38,34,.32)':'rgba(236,232,220,.30)';g.fillRect(x,y,1.2+hr(i,14,613)*1.6,1.2+hr(i,15,613)*1.2)}
-  for(let i=0;i<420;i++){const x=hr(i,21,614)*N,y=hr(i,22,614)*N,r=2+hr(i,23,614)*5,q=.55+hr(i,24,614)*.35;
-    g.fillStyle='rgba(22,22,20,.35)';g.beginPath();g.ellipse(x+1,y+r*.5,r*1.05,r*q*.9,0,0,7);g.fill();
-    const l=120+((hr(i,25,614)*60)|0);g.fillStyle='rgb('+l+','+(l-3)+','+(l-10)+')';g.beginPath();g.ellipse(x,y,r,r*q,0,0,7);g.fill();
-    g.fillStyle='rgba(255,252,240,.35)';g.beginPath();g.ellipse(x-r*.25,y-r*q*.35,r*.55,r*q*.4,0,0,7);g.fill()}
-  g.lineCap='round';for(let i=0;i<70;i++){let x=hr(i,31,615)*N,y=hr(i,32,615)*N,a=hr(i,33,615)*6.3;g.strokeStyle='rgba(28,26,22,.45)';g.lineWidth=1.3;g.beginPath();g.moveTo(x,y);
-    for(let k=0;k<6;k++){a+=(hr(i,40+k,615)-.5)*1.2;x+=Math.cos(a)*14;y+=Math.sin(a)*14;g.lineTo(x,y)}g.stroke()}
-  /* grass patches: soft blobs (tiling), grass pattern clipped to them */
-  const m=document.createElement('canvas');m.width=m.height=N;const mg=m.getContext('2d');
-  for(let i=0;i<46;i++){const x=hr(i,1,611)*N,y=hr(i,2,611)*N,r=36+hr(i,3,611)*104,a=.55+hr(i,4,611)*.45;for(const dx of[-N,0,N])for(const dy of[-N,0,N]){const gr=mg.createRadialGradient(x+dx,y+dy,0,x+dx,y+dy,r);gr.addColorStop(0,'rgba(0,0,0,'+a+')');gr.addColorStop(.6,'rgba(0,0,0,'+a*.8+')');gr.addColorStop(1,'rgba(0,0,0,0)');mg.fillStyle=gr;mg.fillRect(x+dx-r,y+dy-r,2*r,2*r)}}
-  for(let i=0;i<2600;i++){const x=hr(i,5,612)*N,y=hr(i,6,612)*N;mg.fillStyle='rgba(0,0,0,.45)';mg.beginPath();mg.ellipse(x,y,.8+hr(i,7,612)*1.8,.6+hr(i,8,612)*1.2,0,0,7);mg.fill()}
-  const gc=document.createElement('canvas');gc.width=gc.height=N;const gg=gc.getContext('2d');const gp=GFX.pat(gg,'grass');if(gp&&gp.setTransform)gp.setTransform(new DOMMatrix().scale(2));gg.fillStyle=gp;gg.fillRect(0,0,N,N);gg.fillStyle='rgba(120,110,40,.18)';gg.fillRect(0,0,N,N);
-  gg.globalCompositeOperation='destination-in';gg.drawImage(m,0,0);g.drawImage(gc,0,0);
+function topTex(){if(TOPT)return TOPT;if(!FHD.complete||!FHD.naturalWidth)return null;const N=1024,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
+  const gp=GFX.pat(g,'grass');if(gp&&gp.setTransform)gp.setTransform(new DOMMatrix().scale(2));g.fillStyle=gp;g.fillRect(0,0,N,N);g.fillStyle='rgba(150,140,60,.10)';g.fillRect(0,0,N,N);
+  /* scattered small outcrops: wall stone, lit top-left, shadow bottom-right */
+  const rp=g.createPattern(FHD,'repeat');if(rp.setTransform)rp.setTransform(new DOMMatrix().scale(440/FHD.naturalWidth));
+  for(let i=0;i<34;i++){const x=hr(i,1,621)*N,y=hr(i,2,621)*N,r=18+hr(i,3,621)*34;for(const dx of[-N,0,N])for(const dy of[-N,0,N]){const X=x+dx,Y=y+dy;if(X<-60||Y<-60||X>N+60||Y>N+60)continue;
+    const P=[];for(let k=0;k<9;k++){const a=k/9*6.283,q=r*(.7+hr(i,10+k,622)*.45);P.push([X+Math.cos(a)*q,Y+Math.sin(a)*q*.7])}
+    g.fillStyle='rgba(10,14,8,.35)';g.beginPath();for(const[u,v]of P)g.lineTo(u+3,v+4);g.closePath();g.fill();
+    g.fillStyle=rp;g.beginPath();for(const[u,v]of P)g.lineTo(u,v);g.closePath();g.fill();
+    const lg=g.createLinearGradient(X-r,Y-r,X+r,Y+r);lg.addColorStop(0,'rgba(235,238,245,.32)');lg.addColorStop(.5,'rgba(0,0,0,0)');lg.addColorStop(1,'rgba(4,6,10,.35)');g.fillStyle=lg;g.fill();
+    /* grass tufts lapping its foot */
+    for(let k=0;k<6;k++){const a=.6+hr(i,30+k,623)*1.9,u=X+Math.cos(a)*r*.9,v=Y+Math.sin(a)*r*.62;g.strokeStyle=k%2?'#6f9a2e':'#86ad3a';g.lineWidth=2;g.beginPath();for(let b=-1;b<=1;b++){g.moveTo(u+b*2.4,v+2);g.lineTo(u+b*3.4,v-5-hr(i,40+k+b,624)*4)}g.stroke()}}}
   return TOPT=c}
+S2.topTexF=()=>{TOPT=null;return topTex()};
 S2.topTex=()=>topTex();
 const V3C=new Map();let V3K=0;S2.v3c=V3C;
 function v3path(c,s,key,dx,dy){c.beginPath();for(const L of s.loops){const A=L[key];c.moveTo(A[0][0]+(dx||0),A[0][1]+(dy||0));for(let i=1;i<A.length;i++)c.lineTo(A[i][0]+(dx||0),A[i][1]+(dy||0));c.closePath()}}
@@ -14259,11 +14261,22 @@ function v3slab(c,s){const fp=c.createPattern(FHD,'repeat');if(fp.setTransform)f
     c.lineCap='round';const band=(off,w,col,key)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();for(let i=0;i<=m;i++){const p=L[key][i%m];if(L.w[i%m]<.3){c.moveTo(p[0],p[1]+off);continue}c.lineTo(p[0],p[1]+off)}c.stroke()};
     band(-3,10,'rgba(6,8,12,.38)','b');band(-9,20,'rgba(6,8,12,.16)','b');band(5,8,'rgba(255,240,210,.10)','t')}
   c.restore();
+  /* waterline: wet dark rock and a crisp foam line where a wall stands in the sea */
+  c.lineCap='round';for(const L of s.loops){const m=L.b.length;const seg=(off,w,col,dash)=>{c.strokeStyle=col;c.lineWidth=w;c.setLineDash(dash||[]);c.beginPath();let on=false;for(let i=0;i<=m;i++){const p=L.b[i%m],q=L.wet[i%m]&&L.w[i%m]>.15;if(!q){on=false;continue}if(!on){c.moveTo(p[0],p[1]+off);on=true}else c.lineTo(p[0],p[1]+off)}c.stroke();c.setLineDash([])};
+    seg(-3,6,'rgba(4,10,16,.45)');seg(2.5,5,'rgba(230,248,250,.35)');seg(2,1.8,'rgba(250,255,255,.9)',[9,4,4,5]);seg(6,1.2,'rgba(235,250,252,.45)',[5,7])}
+  /* north and side edges: a soft contact shadow on whatever lies behind, and a few px of rock showing under the lip */
+  for(const L of s.loops){const m=L.t.length;const nrun=(off,w,col,min,pat)=>{c.strokeStyle=pat||col;c.lineWidth=w;c.beginPath();let on=false;for(let i=0;i<=m;i++){const p=L.t[i%m];if(L.nl[i%m]<min){on=false;continue}if(!on){c.moveTo(p[0],p[1]+off);on=true}else c.lineTo(p[0],p[1]+off)}c.stroke()};
+    nrun(-6,14,'rgba(6,10,14,.12)',.25);nrun(-3,6,'rgba(6,10,14,.16)',.25)}
   /* top: raised upland, a touch lighter and warmer than the ground below */
   c.save();v3path(c,s,'t');c.clip();const TT=topTex();if(TT){const tp=c.createPattern(TT,'repeat');if(tp.setTransform)tp.setTransform(new DOMMatrix().scale(S2.v3rs||.5));c.fillStyle=tp}else c.fillStyle=GFX.pat(c,'grass');
   c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);c.fillStyle='rgba(255,246,220,.06)';c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);
   /* soft inner shade along the back edge so the top reads as a surface */
-  if(s.k===1){c.strokeStyle='rgba(30,40,10,.18)';c.lineWidth=12;v3path(c,s,'t');c.stroke()}c.restore();
+  if(s.k===1){c.strokeStyle='rgba(30,40,10,.18)';c.lineWidth=12;v3path(c,s,'t');c.stroke()}
+  c.fillStyle='rgba(255,250,215,.07)';c.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);
+  /* north and side rims: a narrow bevel of the wall stone inside the top edge, so those edges read as the top of a drop (Josh round 4) */
+  for(const L of s.loops){const m=L.t.length;const brun=(w,st)=>{c.strokeStyle=st;c.lineWidth=w;c.beginPath();let on=false;for(let i=0;i<=m;i++){const p=L.t[i%m],k=Math.max(L.nl[i%m],Math.abs(L.n[i%m][0])>.6&&L.w[i%m]<.6?.6:0);if(k<.3){on=false;continue}if(!on){c.moveTo(p[0],p[1]);on=true}else c.lineTo(p[0],p[1])}c.stroke()};
+    c.lineCap='round';c.lineJoin='round';brun(9,fp);brun(9,'rgba(170,176,186,.22)');brun(3,'rgba(8,10,14,.25)')}
+  c.restore();
   /* the lip: a crisp dark line where the top breaks over, a lit edge on it */
   c.lineCap='round';for(const L of s.loops){const m=L.t.length;const run=(off,w,col,min)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();let on=false;for(let i=0;i<=m;i++){const p=L.t[i%m],ww=L.w[i%m];if(ww<min){on=false;continue}if(!on){c.moveTo(p[0],p[1]+off);on=true}else c.lineTo(p[0],p[1]+off)}c.stroke()};
     run(1.6,2,'rgba(16,16,10,.55)',.3);run(-.2,1.6,'rgba(236,240,186,.65)',.3);if(s.k===1){run(0,1.3,'rgba(24,30,12,.45)',-1);run(1.6,1.1,'rgba(232,238,182,.30)',-1)}}}
