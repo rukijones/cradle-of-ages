@@ -903,9 +903,12 @@ function ranchActs(one,P){
   if(tab==='s'&&!ranchSheep(one)){h+=sheepWingUI(one,P);}
   else if(tab==='s'){
     h+=line(sheep.length+' sheep'+(lambs?' · '+lambs+' lamb'+(lambs>1?'s':''):'')+' · room for '+sheepCap(one),(sh?'Ranch hands shear them for wool':'Needs a ranch hand for wool')+(PL.hayless?' · out of wood: no lambs':''));
-    h+=handBtns(one,sh);
-    if(sickS)h+=btn('medicine','Give medicine',costHtml({g:25*sickS}),THUMB.sheep,!canAfford(P,{g:25*sickS}),sickS,'wide danger',PILL('up','Sick'));
-    if(usesFor(one).length>1){const ud=USES[one.type].find(x=>x[0]===useOf(one));h+=btn('usemenu','Use: '+ud[1],'<span class="cost">'+(one.useT>0?'Switching '+Math.ceil(one.useT)+'s':'Tap to change')+'</span>','',false,0,'wide',one.useT>0?PILL('res','Switching'):PILL('new','Active'));}
+    /* r177 (Josh Oct 24): the Sheep tab gets the same-size buttons as the Cows tab: + hand, - hand, Wool, Mutton (the one in use outlined) */
+    {const iv=idleVills().length,u=useOf(one),sw=one.useT>0;
+    h+=btn('rhadd','Add hand','<span class="cost">'+sh+' of '+RHAND_MAX+(sh<RHAND_MAX&&!iv?' · no idle':'')+'</span>',THUMB.villager,sh>=RHAND_MAX||!iv);
+    h+=btn('rhrem','Remove hand','<span class="cost">'+sh+' of '+RHAND_MAX+'</span>',THUMB.villager,!sh);
+    for(const[k,ic,nm,to]of[['wool','✂️','Wool','→ 🧶 bales → 🪙'],['meat','🍖','Mutton','→ 🍞 food']]){if(!usesFor(one).some(x=>x[0]===k))continue;const on=u===k;h+=btn(on?'suse:none':'suse:'+k,ic+' '+nm,'<span class="cost">'+(on&&sw?'switching '+Math.ceil(one.useT)+'s':to)+'</span>',THUMB.sheep,false,0,on?'cpick':'',on?PILL(sw?'res':'new',sw?'Switching':'On'):'');}
+    if(sickS)h+=btn('medicine','Medicine',costHtml({g:25*sickS}),THUMB.sheep,!canAfford(P,{g:25*sickS}),sickS,'danger',PILL('up','Sick'));}
     if(!anySheep){const wild=G.ents.filter(e=>e.type==='sheep'&&e.owner>1&&!e.dead&&G.exp[0][ti(tl(e.x),tl(e.y))]).sort((a,b)=>Math.hypot(a.x-one.x,a.y-one.y)-Math.hypot(b.x-one.x,b.y-one.y))[0];
       h+='<div class="hint" style="max-width:230px">No sheep yet: send a villager next to wild sheep to collar them. '+(wild?'Nearest: '+Math.round(Math.hypot(wild.x-one.x,wild.y-one.y)/TILE)+' tiles '+dirName(wild.x-one.x,wild.y-one.y)+'.':'None seen yet: explore.')+'</div>';}
   }else if(tab==='c'){
@@ -2212,13 +2215,13 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   if(P.w>300&&P.g>150&&!blds.some(b=>b.mergeJob)){for(const c of blds){if(c.type!=='coop')continue;const g=yardFor(c);if(g){startYard(g);break;}}}
   if(age>=4&&P.s>250&&P.w>250&&!blds.some(b=>b.mergeJob)){const hs=blds.filter(b=>b.type==='house'&&b.built);let r=null;for(const h of hs){r=rowFor(h);if(r)break;}if(r)startMerge('row',r);}
   if(cap<POPMAX&&cap-used<=3&&!housing){if(!aiRowHouse(o,vills))B('house');}
-  else if(vills.length>=7&&!has('barracks'))B('barracks',0,4);
+  else if(vills.length>=7&&!has('barracks')&&!has('armybase'))B('barracks',0,4);/* r177: from the Industrial Age the barracks + range become the army base; the computer kept trying to rebuild them and never got to its station / textile mill */
   else if(vills.length>=Math.min(10,ai.ageV)&&!has('storage')){const t=nearestRes('tree',base.x,base.y,1e9);if(t)B('storage',t,1);}
   else if(age>=1&&(()=>{const nx=['bronze','iron','medieval','renaissance','industrial','modern'][age],rq=(nx&&TECH[nx].req)||[],PRE={bakery:'mill',market:'bakery',station:'market',factory:'station',workshop:'forge',stable:'barracks',range:'barracks',forge:'barracks'};
-    for(let t of rq){let k=0;while(t&&!has(t)&&!bAvail(o,t)&&k++<4)t=PRE[t];/* r175: a half-built required building gets 2 builders */{const ub=t&&G.ents.find(e=>e.owner===o&&e.type===t&&!e.dead&&!e.built);if(ub&&!G.ents.some(u=>!u.dead&&u.order&&u.order.type==='build'&&u.order.id===ub.id)){try{wingBuilders(ub,2)}catch(err){}}}if(!t||has(t)||G.ents.some(e=>e.owner===o&&e.type===t&&!e.dead))continue;if(!bAvail(o,t)||!ok(t))continue;if(!canAfford(P,DEF[t].cost))return false;{/* r175: a windmill goes by the biggest farm cluster (it used to be tried only next to the town center, failed when that was full, and the computer never reached the Renaissance) */let near=0,r0=4;if(t==='bakery'){const ml=blds.find(b=>b.type==='mill'&&!b.dead);if(ml){near=ml;r0=1}}else if(t==='mill'){const fs=blds.filter(b=>b.type==='farm'&&!b.dead);let bn=-1;for(const a of fs){const n=fs.filter(c=>Math.hypot(c.x-a.x,c.y-a.y)<6*TILE).length;if(n>bn){bn=n;near=a}}r0=2}if(!B(t,near||base,r0)&&!B(t,base,7))ai.fail[t]=G.t;}return true;}return false;})()){}
+    for(let t of rq){let k=0;while(t&&!has(t)&&!bAvail(o,t)&&k++<4)t=PRE[t];/* r175: a half-built required building gets 2 builders */{const ub=t&&G.ents.find(e=>e.owner===o&&e.type===t&&!e.dead&&!e.built);if(ub&&!G.ents.some(u=>!u.dead&&u.order&&u.order.type==='build'&&u.order.id===ub.id)){try{wingBuilders(ub,2)}catch(err){}}}if(!t||has(t)||G.ents.some(e=>e.owner===o&&e.type===t&&!e.dead))continue;if(!bAvail(o,t)||!ok(t))continue;if(!canAfford(P,DEF[t].cost))return false;{/* r175: a windmill goes by the biggest farm cluster (it used to be tried only next to the town center, failed when that was full, and the computer never reached the Renaissance) */let near=0,r0=4;if(t==='bakery'){const ml=blds.find(b=>b.type==='mill'&&!b.dead);if(ml){near=ml;r0=1}}else if(t==='mill'){const fs=blds.filter(b=>b.type==='farm'&&!b.dead);let bn=-1;for(const a of fs){const n=fs.filter(c=>Math.hypot(c.x-a.x,c.y-a.y)<6*TILE).length;if(n>bn){bn=n;near=a}}r0=2}if(!B(t,near||base,r0)&&!B(t,base,7)&&!B(t,{x:(base.x*2+MW*TILE/2)/3,y:(base.y*2+MH*TILE/2)/3},2)&&!B(t,{x:(base.x+MW*TILE/2)/2,y:(base.y+MH*TILE/2)/2},2))ai.fail[t]=G.t;/* r177: big buildings (railway station 4x4) also try open land toward the map centre when the town is full */}return true;}return false;})()){}
   else if(farms<farmsWanted){const ml=blds.find(b=>b.type==='mill'&&b.built&&!b.dead&&millCount(b)<MILL_N);B('farm',ml||0,ml?2:3);}
   else if(age>=1&&!has('forge'))B('forge',0,4);
-  else if(age>=1&&!has('range'))B('range',0,5);
+  else if(age>=1&&!has('range')&&!has('armybase'))B('range',0,5);
   else if(age>=1&&PS.siege&&!has('workshop')&&G.t>ai.bronzeT+60)B('workshop',0,5);
   else if(age>=1&&!has('stable')&&G.t>ai.bronzeT+(PS.stableEarly?0:90))B('stable',0,5);
   else if(count('tower')<PS.towers&&G.t>(PS.towers>2?200:360)){const a=(PS.walls&&ai.diff!=='easy')?wallAng(o,base,count('tower'),PS.towers):G.t*.7+count('tower')*2.1,nx={x:base.x+Math.cos(a)*6*TILE,y:base.y+Math.sin(a)*6*TILE};if(!(PS.walls&&ai.diff!=='easy'))B('tower',nx,1);else if(!aiWallTower(o,nx,vills,blds.filter(b=>b.type==='tower'),base)&&!count('tower'))B('tower',nx,1);}
@@ -2242,7 +2245,8 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(age>=1&&PS.ruins>=1&&vills.length>=18){const g=nearestRes('gold',base.x,base.y,1e9),dropNear=g&&blds.some(b=>DEF[b.type].drop&&Math.hypot(b.x-g.x,b.y-g.y)<6*TILE);if(g&&!dropNear&&count('storage')<3)B('storage',g,2);}
   if(ai.noDock&&G.t-ai.noDock>240)ai.noDock=0;
   /* r175: while a building the next age needs is missing (and the computer may age), it stops buying extra soldiers so it can afford it */const reqMiss=(()=>{try{if(age<2||!aiAgeOK(ai,age+1))return false;const nx=['bronze','iron','medieval','renaissance','industrial','modern'][age];const rq=(nx&&TECH[nx].req)||[];return rq.some(t=>!hasB(t))}catch(err){return false}})();
-  const spend=(army.length<4+3*age&&G.t>360)||((!saving&&!reqMiss&&!needPicks&&!savingIron&&!savingMed&&!savingRen&&!savingInd&&!savingMod)&&(G.t>=PS.army||age>=1))||threat||(PS.raid&&G.t>=PS.army&&!needPicks);
+  /* r177 (Josh Oct 24: reach the Modern Age): from the Medieval Age, while the computer may advance, it keeps its army at a cap and banks the rest for the age-up */const ageSave=age>=3&&age<6&&aiAgeOK(ai,age+1)&&army.length>=14+3*age;
+  const spend=(army.length<4+3*age&&G.t>360)||((!saving&&!reqMiss&&!ageSave&&!needPicks&&!savingIron&&!savingMed&&!savingRen&&!savingInd&&!savingMod)&&(G.t>=PS.army||age>=1))||threat||(PS.raid&&G.t>=PS.army&&!needPicks);
   const aiPick=(b,t)=>{if(canTrain(o,t))return t;const al=(DEF[b.type].trains||[]).filter(x=>canTrain(o,x)&&(!DEF[x].needTech||P.tech[DEF[x].needTech]));return al[al.length-1]||t;};
   const bar=bld('barracks'),enemyRiders=G.ents.some(e=>e.owner===en&&e.type==='rider');if(army.length<4+3*age&&G.t>360&&bar&&bar.queue.filter(k=>DEF[k]).length<2)enqueue(bar,aiPick(bar,up('clubman')));
   if(spend&&bar&&bar.queue.length<2&&(vills.length>=ai.targetV*.55||P.f>=110)){
@@ -12908,6 +12912,9 @@ function sheepChain(b){try{if(!b||b.type!=='ranch'||G.rtab!=='s'||!ranchSheep(b)
     pill('🫏',car&&!car.dead?(car.type==='donkey'?'donkey on the way':'hand carrying'):'carrier',true,false),pill(D?(D.type==='factory'?'🏭':'🏪'):'🏪',D?(D.type==='factory'?'Textile mill':'Market'):'needs a market',!!D,false),pill('🪙','Gold',!!D,false)];
   return '<div style="font-size:9px;color:var(--muted)">Wool supply chain</div><div style="display:flex;align-items:center;gap:2px">'+parts.join('<span style="color:var(--muted)">›</span>')+'</div>'}catch(err){return ''}}
 try{chHtml=(function(prev){return function(b){if(b&&b.type==='ranch'&&G.rtab==='s')return sheepChain(b);return prev.apply(this,arguments)}})(chHtml)}catch(err){}
+/* r177: Sheep tab Wool / Mutton buttons (same switch as the old Use menu: 20 s to change) */
+try{$('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act^="suse:"]');if(!b||!G)return;e.stopPropagation();const k=b.dataset.act.split(':')[1];const one=G.sel&&G.sel.length===1?G.byId.get(G.sel[0]):null;if(!one||k==='none'||!USES[one.type])return;
+  if(useOf(one)!==k){one.use=k;one.useT=20;toast(DEF[one.type].name+' switching to '+useName(one).toLowerCase());panelKeyLast='';}},true)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
