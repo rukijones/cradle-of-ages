@@ -13098,6 +13098,12 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
     if(c){c.lthR=R.id;c.lleg='load';c.lthC=0;c.lnf=0;c.park=null;c.parked=false;c.order=null;c.path=null;R.lcar=c.id;R.llT=G.t;}}}
 }catch(err){}return r}})(railTick)}catch(err){}
 
+/* ===== r182 economy cleanup (Josh, Oct 24): the butcher, weaver, corral, smelter, roadside inn and radar could never be built;
+   they are taken out of the building lists (their code stays so old saved games still load). The storage pit is called the
+   Warehouse from the Industrial Age (trucks unload there). ===== */
+try{for(const k of ['butcher','weaver','corral','smelter','inn','radar']){const i=BUILDS.indexOf(k);if(i>=0)BUILDS.splice(i,1);for(const t of BTABS){const j=t[2].indexOf(k);if(j>=0)t[2].splice(j,1)}try{delete UNLOCK_HINT[k]}catch(e){}}}catch(err){}
+try{const ag=()=>{try{return G.players[0].age|0}catch(e){return 0}};Object.defineProperty(DEF.storage,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Warehouse':'Storage pit'},set(v){}});}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
