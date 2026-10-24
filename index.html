@@ -296,7 +296,7 @@ const DEF={
   arquebus:{kind:'unit',name:'Arquebusier',plural:'Arquebusiers',hp:52,atk:16,arm:0,range:6,cd:3.2,speed:72,sight:8,r:8,cost:{f:50,g:50},time:22,age:4},
   bombard:{kind:'unit',name:'Bombard',plural:'Bombards',hp:190,atk:85,arm:1,range:12,cd:6.5,speed:24,sight:12,r:15,cost:{w:220,g:250},time:45,age:4,splash:1.3},
   tradecart:{kind:'unit',name:'Trade cart',plural:'Trade carts',hp:80,atk:0,range:0,cd:2,speed:64,sight:5,r:12,cost:{w:100,g:50},time:20,age:4},
-  castle:{kind:'bld',name:'Castle',hp:2600,size:4,sight:10,atk:6,range:8,cd:1.3,pop:10,trains:['longsword','crossbow','knight','halberdier','infantry','tank'],cost:{s:600,w:200},time:120,age:3},
+  castle:{kind:'bld',name:'Castle',hp:2600,size:4,sight:10,atk:6,range:8,cd:1.3,pop:10,cost:{s:600,w:200},time:120,age:3},
   caravan:{kind:'unit',name:'Donkey caravan',plural:'Donkey caravans',hp:60,atk:0,range:0,cd:2,speed:60,sight:4,r:9,cost:{f:80,w:40},time:75,age:2,animal:1},
   donkey:{kind:'unit',name:'Pack donkey',plural:'Pack donkeys',hp:45,atk:0,range:0,cd:2,speed:58,sight:3,r:8,cost:{f:60,w:20},time:60,age:2,animal:1},
   ox:{kind:'unit',name:'Ox',plural:'Oxen',hp:90,atk:0,range:0,cd:2,speed:36,sight:3,r:10,cost:{f:90,w:20},time:75,age:2,animal:1},
@@ -306,12 +306,12 @@ const DEF={
   towncenter:{kind:'bld',name:'Town center',hp:700,size:3,sight:7,pop:5,drop:1,atk:4,range:6,cd:1.6,trains:['villager','settler'],techs:['bronze','iron','medieval','renaissance','industrial','modern'],cost:{w:275},time:60},
   house:{kind:'bld',name:'House',hp:150,size:2,sight:3,pop:5,cost:{w:30},time:15},
   storage:{kind:'bld',name:'Storage pit',hp:250,size:2,sight:4,drop:1,techs:['axes','plow','wheel','coppicing','forestry'],cost:{w:100},time:20},
-  barracks:{kind:'bld',name:'Barracks',hp:350,size:3,sight:5,trains:['clubman','axeman','slinger','spearman','pikeman','halberdier','swordsman','legionary','longsword','bazooka']/* gameplay chat 1 (Josh Oct 22): arquebusiers, riflemen and infantry train at the archery range only */,techs:['axemen','vetsling','pikes','legion','halberds','longswords'],cost:{w:125},time:30},
+  barracks:{kind:'bld',name:'Barracks',hp:350,size:3,sight:5,trains:['clubman','axeman','slinger','spearman','pikeman','halberdier','legionary','longsword','rifleman','infantry','bazooka']/* r179 (Josh Oct 24): one line each; riflemen + infantry train here (the range becomes a bunker later) */,techs:['axemen','pikes','legion','halberds','longswords','rifles','automatic'],cost:{w:125},time:30},
   swordsman:{kind:'unit',needTech:'bronzework',name:'Swordsman',plural:'Swordsmen',hp:60,atk:7,arm:1,range:0,cd:1.3,speed:82,sight:5,r:9,cost:{f:50,g:30},time:18,age:1},
   bowman:{kind:'unit',name:'Bowman',plural:'Bowmen',hp:32,atk:4,range:6,cd:1.5,speed:80,sight:8,r:8,cost:{f:35,w:40},time:18,age:1},
   rider:{kind:'unit',name:'Horse rider',plural:'Horse riders',hp:85,atk:6,range:0,cd:1.4,speed:108,sight:7,r:11,cost:{f:70,g:40},time:22,age:1},
   farm:{kind:'bld',name:'Farm',hp:120,size:3,sight:1,cost:{w:100},time:12,age:1},
-  range:{kind:'bld',name:'Archery range',hp:350,size:3,sight:5,trains:['bowman','compbow','crossbow','arquebus','rifleman','infantry'],techs:['composite','crossbows','rifles','automatic'],cost:{w:150},time:35,age:1},
+  range:{kind:'bld',name:'Archery range',hp:350,size:3,sight:5,trains:['slinger','bowman','compbow','crossbow','arquebus'],techs:['bows','composite','crossbows'],cost:{w:150},time:35,age:1},
   stable:{kind:'bld',name:'Stable',hp:350,size:3,sight:5,trains:['rider','cavalry','knight','cuirassier','armoredcar','tank','scout'],techs:['cavtech','chivalry','cuirass','motorize'],cost:{w:150},time:35,age:1},
   forge:{kind:'bld',name:'Forge',hp:300,size:2,sight:4,techs:['bronzework','weapons','bronzearmor','sentry','ironweap','chainmail','guardtower','steel','plate','keeps','ballistics'],cost:{w:120,s:40},time:30,age:1},
   tower:{kind:'bld',name:'Watchtower',hp:250,size:2,sight:8,atk:4,range:6,cd:1.8,cost:{w:25,s:75},time:30},
@@ -391,7 +391,7 @@ const VEHICLES=new Set(['tank','armoredcar','truck']);
 const AAOK=new Set(['infantry','rifleman','armoredcar','heli']);
 const BONUS={bazooka:{vs:['tank','armoredcar','truck'],amt:110,label:'Tanks, vehicles'},heli:{vs:['bazooka','tank','armoredcar','infantry','rifleman','artillery','atgun','truck'],amt:10,label:'Tanks, ground troops'},infantry:{vs:['bazooka','rifleman','arquebus','bowman','compbow','crossbow','longsword','halberdier','swordsman','pikeman'],amt:4,label:'Older troops'},tank:{vs:['infantry','rifleman','arquebus','armoredcar','artillery','fieldgun'],amt:25,label:'Infantry, guns'},armoredcar:{vs:['infantry','rifleman','arquebus','artillery','atgun','truck'],amt:6,label:'Infantry, guns'},atgun:{vs:['tank','armoredcar','truck'],amt:150,label:'Tanks, vehicles'},artillery:{vs:[],amt:0,label:'Buildings, groups'},rifleman:{vs:['knight','cuirassier','cavalry','longsword','halberdier'],amt:7,label:'Armored troops'},cuirassier:{vs:['bowman','compbow','crossbow','arquebus','rifleman','bombard','fieldgun'],amt:8,label:'Gunners, archers, guns'},fieldgun:{vs:[],amt:0,label:'Buildings, groups'},arquebus:{vs:['knight','cavalry','longsword','legionary','halberdier'],amt:6,label:'Armored troops'},bombard:{vs:[],amt:0,label:'Buildings, groups'},trebuchet:{vs:[],amt:0,label:'Buildings, castles'},halberdier:{vs:['rider','cavalry','knight'],amt:18,label:'All cavalry'},knight:{vs:['bowman','compbow','crossbow','slinger','catapult','trebuchet'],amt:6,label:'Archers, siege'},longsword:{vs:['clubman','axeman','spearman','pikeman','halberdier','slinger','swordsman','legionary'],amt:4,label:'Foot soldiers'},crossbow:{vs:['legionary','longsword','pikeman','halberdier'],amt:3,label:'Heavy infantry'},ram:{vs:[],amt:0,label:'Buildings, walls'},catapult:{vs:[],amt:0,label:'Buildings, groups'},pikeman:{vs:['rider','cavalry'],amt:12,label:'Riders, cavalry'},cavalry:{vs:['bowman','compbow','slinger','catapult'],amt:5,label:'Archers, catapults'},legionary:{vs:['clubman','axeman','spearman','pikeman','slinger','swordsman'],amt:3,label:'Foot soldiers'},scout:{vs:['catapult','ram'],amt:6,label:'Siege'},spearman:{vs:['rider','cavalry'],amt:8,label:'Horse riders'},rider:{vs:['bowman','compbow','slinger','catapult'],amt:4,label:'Bowmen, slingers'},slinger:{vs:['bowman','compbow'],amt:3,label:'Bowmen'},swordsman:{vs:['clubman','axeman','spearman','slinger'],amt:2,label:'Foot soldiers'},axeman:{vs:['clubman','spearman'],amt:2,label:'Clubmen, spearmen'}};
 const WEAK={bazooka:'Infantry, helicopters',heli:'Anti-aircraft guns',infantry:'Tanks, artillery',tank:'Anti-tank guns, bazooka men, Tesla coils',armoredcar:'Tanks, anti-tank guns, bazooka men',atgun:'Infantry, armored cars',artillery:'Anything that reaches it',rifleman:'Cavalry up close',cuirassier:'Riflemen in numbers',fieldgun:'Cavalry',arquebus:'Cavalry up close',bombard:'Cavalry',knight:'Halberdiers',crossbow:'Knights',longsword:'Crossbows, siege',halberdier:'Archers',trebuchet:'Everything up close',legionary:'Archers, catapults',pikeman:'Archers',compbow:'Cavalry',cavalry:'Pikemen',catapult:'Cavalry',scout:'Most soldiers',bowman:'Horse riders',slinger:'Horse riders',rider:'Spearmen',clubman:'Swordsmen',axeman:'Swordsmen',spearman:'Bowmen',swordsman:'Bowmen'};
-const CONV={axemen:['clubman','axeman'],legion:['swordsman','legionary'],pikes:['spearman','pikeman'],composite:['bowman','compbow'],cavtech:['rider','cavalry'],chivalry:['cavalry','knight'],crossbows:['compbow','crossbow'],longswords:['legionary','longsword'],halberds:['pikeman','halberdier'],rifles:['arquebus','rifleman'],cuirass:['knight','cuirassier'],shells:['bombard','fieldgun'],automatic:['rifleman','infantry'],motorize:['cuirassier','armoredcar'],howitzers:['fieldgun','artillery']};
+const CONV={axemen:['clubman','axeman'],legion:['axeman','legionary'],bows:['slinger','bowman'],pikes:['spearman','pikeman'],composite:['bowman','compbow'],cavtech:['rider','cavalry'],chivalry:['cavalry','knight'],crossbows:['compbow','crossbow'],longswords:['legionary','longsword'],halberds:['pikeman','halberdier'],rifles:['arquebus','rifleman'],cuirass:['knight','cuirassier'],shells:['bombard','fieldgun'],automatic:['rifleman','infantry'],motorize:['cuirassier','armoredcar'],howitzers:['fieldgun','artillery']};
 const WORK={pub:{max:2,rate:{},label:'brewers'},shaft:{max:3,rate:{},label:'miners'},factory:{max:4,rate:{g:.22},fuel:{w:.1,s:.05},label:'extra factory hands'},bakery:{max:3,rate:{f:2.1},fuel:{w:.12},label:'bakers'},dairy:{max:2,rate:{f:.7},label:'dairy workers'},weaver:{max:2,rate:{},label:'weavers'}};
 const NONMIL=new Set(['villager','settler','fishboat','transport','sheep','cow','deer','wolf','tradecart','donkey','ox','explorer','truck','caravan']);
 const USES={
@@ -1476,6 +1476,7 @@ function damage(t,amt,src,ranged){
   if(t.kind==='bld'&&src&&src.kind==='unit'&&src.type!=='ram'&&src.type!=='catapult'&&src.type!=='trebuchet'&&src.type!=='bombard'&&src.type!=='fieldgun'&&src.type!=='artillery'&&src.type!=='tank')amt*=ranged?.15:.35;
   if(t.type==='ram'&&ranged)amt*=.25;
   if(t.type==='deer'&&src&&src.x!==undefined){const a=Math.atan2(t.y-src.y,t.x-src.x);orderMove([t],t.x+Math.cos(a)*3*TILE,t.y+Math.sin(a)*3*TILE);}
+  if(t.kind==='unit'&&src&&(src.type==='slinger'||src.type==='bowman'||src.type==='compbow'||src.type==='crossbow'||src.type==='tower'||src.type==='castle')&&(t.type==='axeman'||t.type==='spearman'||t.type==='legionary'||t.type==='cavalry'||t.type==='knight'))amt-=2;/* r179 shields */
   if(t.kind==='unit')amt=Math.max(1,amt-armOf(t)*(src&&(src.type==='arquebus'||src.type==='rifleman'||src.type==='infantry')&&!VEHICLES.has(t.type)?.3:1));
   if(t.kind==='bld'&&t.type!=='castle'&&G.ents.some(cs=>cs.type==='castle'&&cs.owner===t.owner&&cs.built&&!cs.dead&&Math.hypot(cs.x-t.x,cs.y-t.y)<11*TILE))amt*=.5;
   t.hp-=amt;t.flash=.18;t.hitT=G.t;if(t.owner===0&&src&&src.owner===1&&!(t.kind==='unit'&&DEF[t.type]&&DEF[t.type].animal)){const HU=G.hurt||(G.hurt=[]),l=HU[HU.length-1];if(!l||G.t-l.t>.5||Math.hypot(l.x-t.x,l.y-t.y)>6*TILE){HU.push({x:t.x,y:t.y,t:G.t});if(HU.length>12)HU.shift();}else l.t=G.t;}if(src&&src.owner!==undefined&&src.owner!==t.owner){t.lastBy=src.owner;t.lastSrc=src.id;}
@@ -2273,7 +2274,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   if(age>=1&&P.f>220){const fg=bld('forge'),sp=bld('storage');
     if(sp&&sp.queue.length===0){for(const k of['axes','plow'])if(enqueue(sp,k))break;}
     if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['sentry','bronzearmor','weapons']:['weapons','bronzearmor','sentry']))if(enqueue(fg,k))break;}
-    if(bar&&bar.queue.length===0&&P.f>300){for(const k of['axemen','vetsling','legion','pikes'])if(enqueue(bar,k))break;}
+    if(bar&&bar.queue.length===0&&P.f>300){for(const k of['axemen','legion','pikes'])if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0&&P.f>200)enqueue(rng,'bows');
     if(age>=2&&P.f>350){if(rng&&rng.queue.length===0)enqueue(rng,'composite');if(stb&&stb.queue.length===0)enqueue(stb,'cavtech');if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['guardtower','chainmail','ironweap']:['ironweap','chainmail','guardtower']))if(enqueue(fg,k))break;}if(sp&&sp.queue.length===0)enqueue(sp,'wheel');}
     if(age>=3&&P.f>450){if(bar&&bar.queue.length===0){for(const k of['longswords','halberds'])if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0)enqueue(rng,'crossbows');if(stb&&stb.queue.length===0)enqueue(stb,'chivalry');if(age>=5){const rg5=bld('range'),st5=bld('stable'),ws5=bld('workshop'),fc5=bld('factory');if(rg5&&rg5.queue.length===0)enqueue(rg5,'rifles');if(st5&&st5.queue.length===0)enqueue(st5,'cuirass');if(ws5&&ws5.queue.length===0)enqueue(ws5,'shells');if(fc5&&fc5.queue.length===0){if(!P.tech.steam)enqueue(fc5,'steam');else enqueue(fc5,'harvesters');}}
   {const un=bld('university');if(un&&un.queue.length===0)for(const k of['printing','medicine','chemistry','cartography'])if(!P.tech[k]&&P.g>350&&enqueue(un,k))break;}
@@ -13028,6 +13029,27 @@ try{(function(){
   window.__sites=SITES;
 })()}catch(err){}
 /* ===== END computer fights for sites ===== */
+/* ===== r179 unit lines (Josh, Oct 24): nothing retires, one line each, castle = defense only.
+   Slinger -> Bowman (research Bows at the range; slingers move from the barracks to the range once you have one).
+   Clubman -> Axeman -> Legionary (Swordsman and Veteran slinger cut). Riflemen + infantry train at the barracks.
+   No Army barracks any more: from the Industrial Age the barracks itself shows the army-barracks pictures.
+   The stable is called the Motor pool from the Modern Age, the siege workshop the Arsenal from the Industrial Age. ===== */
+try{TECH.bows={name:'Bows',desc:'Slingers become bowmen',cost:{f:100,w:60},time:30,age:1};
+  TECH.legion.desc='Axemen become legionaries';TECH.axemen.desc='Clubmen become axemen';
+  TECH.bronzework.desc='Discover how to make bronze. Unlocks legionaries, bronze weapons, bronze armor and bronze tools';
+  for(const k of Object.keys(RETIRE))if(k!=='caravan')delete RETIRE[k];
+}catch(err){}
+try{const mt=BTABS.find(t=>t[0]==='mil')[2],i=mt.indexOf('armybase');if(i>=0)mt.splice(i,1);}catch(err){}
+try{const i=BUILDS.indexOf('armybase');if(i>=0)BUILDS.splice(i,1);const j=MILQ.indexOf('armybase');if(j>=0)MILQ.splice(j,1);}catch(err){}
+try{nextBuilds=(function(prev){return function(o){const s=prev.apply(this,arguments);try{s.delete('armybase')}catch(err){}return s}})(nextBuilds)}catch(err){}
+try{abTick=function(){};}catch(err){}
+try{const ag=()=>{try{return G.players[0].age|0}catch(e){return 0}};
+  Object.defineProperty(DEF.stable,'name',{configurable:true,enumerable:true,get(){return ag()>=6?'Motor pool':'Stable'},set(v){}});
+  Object.defineProperty(DEF.workshop,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Arsenal':'Siege workshop'},set(v){}});
+}catch(err){}
+setTimeout(()=>{try{const prev=bldSpr0;bldSpr0=function(e){if(e&&e.type==='barracks'&&GFX.armySpr){try{if(G.players[e.owner].age>=5){const sp=GFX.armySpr(Object.assign({},e,{type:'armybase',size:3}));if(sp)return sp}}catch(err){}}return prev.apply(this,arguments)}}catch(err){}},0);
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{const P=G.players[0];if(P&&!P.slRange&&G.ents.some(e=>e.owner===0&&e.type==='range'&&e.built&&!e.dead)){P.slRange=1;if(G.t>5)toast('Slingers now train at the Archery range');}}catch(err){}return r}})(railTick)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -13561,7 +13583,7 @@ function renderPanel(sel){
     if(one.kind==='bld'&&one.owner===0&&one.built){
       const d=DEF[one.type];
       if(d.trains){
-        for(const t of d.trains){if(!canTrain(0,t))continue;if(DEF[t].needTech&&!P.tech[DEF[t].needTech])continue;const n=one.queue.filter(q=>q===t).length;const uk=unitUpgFor(one,t,P),tb=btn('train:'+t,uname(t,0),costHtml(DEF[t].cost),unitIcon(t),!canAfford(P,DEF[t].cost)||one.queue.length>=5,n,'',unitPill(t,0));acts+=uk?'<div class="ucard">'+tb+'<button class="upa'+(techState(0,uk)==='queued'?' busy':'')+'" data-act="upq:'+uk+'" aria-label="Upgrade"><img alt="" src="'+UPG_ARROW+'"></button></div>':tb;}
+        for(const t of d.trains){if(!canTrain(0,t))continue;if(t==='slinger'&&one.type==='barracks'&&G.ents.some(e=>e.owner===0&&e.type==='range'&&e.built&&!e.dead))continue;if(DEF[t].needTech&&!P.tech[DEF[t].needTech])continue;const n=one.queue.filter(q=>q===t).length;const uk=unitUpgFor(one,t,P),tb=btn('train:'+t,uname(t,0),costHtml(DEF[t].cost),unitIcon(t),!canAfford(P,DEF[t].cost)||one.queue.length>=5,n,'',unitPill(t,0));acts+=uk?'<div class="ucard">'+tb+'<button class="upa'+(techState(0,uk)==='queued'?' busy':'')+'" data-act="upq:'+uk+'" aria-label="Upgrade"><img alt="" src="'+UPG_ARROW+'"></button></div>':tb;}
       }
       if(d.techs)for(const k of d.techs){const it=TECH[k];if((it.age||0)>P.age||techState(0,k))continue;if(upgFrom(k)&&d.trains&&d.trains.includes(upgFrom(k))&&canTrain(0,upgFrom(k)))continue;if(upgTo(k)&&RETIRE[upgTo(k)]&&P.age>=RETIRE[upgTo(k)])continue;if(it.needTech&&!P.tech[it.needTech])continue;const miss=reqMissing(0,k);
         acts+=btn('train:'+k,UPSHORT[k]||it.name,miss?reqIcons(it.req,miss):costHtml(it.cost),techIcon(k),!!miss||!canAfford(P,it.cost)||one.queue.length>=5,0,miss?'tech needs':'tech',techPill(k));}
