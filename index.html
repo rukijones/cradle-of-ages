@@ -248,7 +248,7 @@ const DEF={
   goldmine:{kind:'bld',name:'Gold mine',hp:300,size:2,sight:3,drop:1,dropOnly:'g',cost:{w:150},time:30,age:2},
   stonemine:{kind:'bld',name:'Stone mine',hp:300,size:2,sight:3,drop:1,dropOnly:'s',cost:{w:150},time:30,age:2},
   coop:{kind:'bld',name:'Chicken coop',hp:100,size:2,sight:2,techs:[],cost:{w:75},time:15,age:2},
-  pen:{kind:'bld',name:'Sheep wing',hp:200,size:3,sight:3,techs:[],cost:{w:150},time:25,age:4,walkable:1},
+  pen:{kind:'bld',name:'Sheep wing',hp:200,size:3,sight:3,techs:[],cost:{w:150},time:25,age:3,walkable:1}/* r176: Medieval (was Renaissance) */,
   butcher:{kind:'bld',name:'Butcher',hp:200,size:2,sight:3,drop:1,dropOnly:'f',cost:{w:120},time:25,age:2},
   dock:{kind:'bld',name:'Dock',hp:250,size:2,sight:5,drop:1,dropOnly:'f',trains:['fishboat','transport'],cost:{w:120},time:25,age:1},
   outpost:{kind:'bld',name:'Outpost',hp:150,size:1,sight:9,cost:{w:40,s:25},time:15,age:2},
@@ -335,16 +335,16 @@ const TECH={
   cavtech:{name:'Cavalry',desc:'Horse riders become cavalry',cost:{f:180,g:120},time:40,age:2},
   ironweap:{name:'Iron weapons',desc:'Soldiers +2 attack',cost:{f:220,g:140},time:45,age:2},
   chainmail:{name:'Chain mail',desc:'Soldiers +2 armor',cost:{f:200,g:160},time:45,age:2},
-  renaissance:{name:'Renaissance',desc:'Advance to the Renaissance Age',cost:{f:1800,g:800},time:100,age:3,req:['bakery','stable']},
+  renaissance:{name:'Renaissance',desc:'Advance to the Renaissance Age',cost:{f:1350,g:600},time:80/* r175: was {f:1800,g:800},time:100 */,age:3,req:['bakery','stable']},
   bronzework:{name:'Bronze working',desc:'Discover how to make bronze. Unlocks swordsmen, bronze weapons, bronze armor and bronze tools',cost:{w:150,s:100},time:50,age:1},
   bronzetools:{name:'Bronze tools',desc:'Villagers gather everything 20% faster',needTech:'bronzework',cost:{w:150,g:60},time:35,age:1},
   bronzearmor:{name:'Bronze armor',desc:'Soldiers +3 armor',needTech:'bronzework',cost:{f:120,g:80},time:40,age:1},
   coppicing:{name:'Coppicing',desc:'Trees you cut near your town regrow from the stump',cost:{f:100,w:150},time:35,age:2},
-  industrial:{name:'Industrial Age',desc:'Advance to the Industrial Age',cost:{f:2500,g:1200},time:110,age:4,req:['market','bakery']},
+  industrial:{name:'Industrial Age',desc:'Advance to the Industrial Age',cost:{f:1900,g:900},time:88/* r175: was {f:2500,g:1200},time:110 */,age:4,req:['market','bakery']},
   automatic:{name:'Automatic rifles',desc:'Riflemen become infantry: rapid fire, tougher',cost:{f:400,g:300},time:50,age:6},
   motorize:{name:'Motorized cavalry',desc:'Cuirassiers become armored cars',cost:{w:300,g:350},time:50,age:6},
   howitzers:{name:'Howitzers',desc:'Field guns become long-range artillery',cost:{w:350,g:350},time:55,age:6},
-  modern:{name:'Modern Age',desc:'Advance to the Modern Age',cost:{f:3500,g:2000},time:120,age:5,req:['factory','station']},
+  modern:{name:'Modern Age',desc:'Advance to the Modern Age',cost:{f:2600,g:1500},time:96/* r175: was {f:3500,g:2000},time:120 */,age:5,req:['factory','station']},
   grandbake:{name:'Grand bakery',desc:'Bakeries make cakes from flour + eggs: 2.2x the grain as food, cake crates sell for 30 gold. Coops nearby send their eggs',cost:{w:250,g:200},time:40,age:4},
   bakeworks:{name:'Bakery works',desc:'Steam ovens: 2 built-in machines, 1.5x speed. Add milk from a dairy for the full line: 3.4x food, pastry crates 40 gold',cost:{w:400,s:300,g:300},time:60,age:5},
   harvesters:{name:'Steam harvesters',desc:'Machines work every farm: no farmers needed, they replant themselves and burn a little wood',cost:{w:400,g:350},time:55,age:5},
@@ -360,7 +360,7 @@ const TECH={
   chemistry:{name:'Chemistry',desc:'Guns and cannons do 15% more damage',cost:{s:250,g:300},time:50,age:4},
   banking:{name:'Banking',desc:'Trade carts earn 25% more',cost:{f:200,g:250},time:40,age:4},
   ballistics:{name:'Ballistics',desc:'Archers and guns +1 range',cost:{w:250,g:250},time:45,age:4},
-  medieval:{name:'Medieval Age',desc:'Advance to the Medieval Age',cost:{f:1300,g:500},time:90,age:2,req:['stable','workshop']},
+  medieval:{name:'Medieval Age',desc:'Advance to the Medieval Age',cost:{f:1000,g:400},time:72/* r175: was {f:1300,g:500},time:90 */,age:2,req:['stable','workshop']},
   chivalry:{name:'Chivalry',desc:'Cavalry become knights',cost:{f:300,g:220},time:50,age:3},
   crossbows:{name:'Crossbows',desc:'Composite bowmen become crossbowmen',cost:{f:200,w:120,g:100},time:45,age:3},
   longswords:{name:'Long swords',desc:'Legionaries become long swordsmen',cost:{f:260,g:160},time:45,age:3},
@@ -708,7 +708,7 @@ function startKit(tc,age){
   let mill=null,bak=null;
   if(age>=3){mill=place('mill',7);if(mill&&age>=4)bak=near('bakery',mill,0);if(mill)for(let i=0;i<nf;i++){const f=near('farm',mill,0);if(f)farms.push(f);}}
   for(let i=farms.length;i<nf;i++){const f=place('farm',3);if(f)farms.push(f);}
-  if(age>=2){place('forge',5);place('range',6);{const rc=place('ranch',7);if(rc&&age>=3)try{aiWing(rc,true);}catch(err){}if(rc&&age>=4)try{aiSWing(rc,true);}catch(err){}}place('tower',8);place('tower',8);}
+  if(age>=2){place('forge',5);place('range',6);{const rc=place('ranch',7);if(rc&&age>=3)try{aiWing(rc,true);}catch(err){}if(rc&&age>=3)try{aiSWing(rc,true);}catch(err){}}place('tower',8);place('tower',8);}
   if(age>=3){place('stable',6);place('workshop',7);place('coop',6);}
   if(age>=4){if(!bak)bak=place('bakery',7);place('pub',7);}
   if(age>=5){place('market',7);place('university',8);}
@@ -731,7 +731,7 @@ function startKit(tc,age){
   let need=Math.min(POPMAX,popUsed(o)+8);while(popCap(o)<need){if(!place('house',3))break;}
   try{aiForest(o);}catch(err){}
   if(age>=3)for(const rc of G.ents.filter(e=>e.type==='ranch'&&e.owner===o&&!e.dead&&!e.wing))try{aiWing(rc,true);}catch(err){}
-  if(age>=4)for(const rc of G.ents.filter(e=>e.type==='ranch'&&e.owner===o&&!e.dead&&!e.swing))try{aiSWing(rc,true);}catch(err){}
+  if(age>=3)for(const rc of G.ents.filter(e=>e.type==='ranch'&&e.owner===o&&!e.dead&&!e.swing))try{aiSWing(rc,true);}catch(err){}
   if(G.ais[o])G.ais[o].bronzeT=1;
 }
 
@@ -911,7 +911,7 @@ function ranchActs(one,P){
   }else if(tab==='c'){
     if(!dairy){const W=one.wing&&G.byId.get(one.wing);
       if(W&&!W.dead&&!W.built){const nb=G.ents.filter(u=>u.order&&u.order.type==='build'&&u.order.id===W.id&&!u.dead).length;h+=line('Dairy wing: being built',Math.round((W.progress||0)*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('wingb','Send builders','','',false,0,'wide'));}
-      else if(P.age<3)h+=line('No cows yet','The dairy wing comes in the Medieval Age: it joins the ranch at a gate, with 2 cows for milk or cheese. Sheep follow in the Renaissance');
+      else if(P.age<3)h+=line('No cows yet','The dairy wing comes in the Medieval Age: it joins the ranch at a gate, with 2 cows for milk or cheese. The sheep wing comes in the Medieval Age too');
       else h+=btn('mkwing','Dairy wing',costHtml(DEF.dairy.cost),bldIcon('dairy',THUMB.dairy||THUMB.ranch),!canAfford(P,DEF.dairy.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds the dairy onto the ranch at one of its gates. 2 cows join; the shepherds milk them for food or cheese</div>';
     }else{
       /* r172 (Josh Oct 22: "make the buttons on the cow section better UI... the work animals section is simple and easy... the size of the buttons could be more uniform... the supply chain thing on the bakery, could do something similar"):
@@ -1190,10 +1190,10 @@ function flourRun(u,o){const b=G.byId.get(o.bk);if(!alive(b)||!b.built){if(u.flo
 function flourStall(b){if(b.chute)return flourMill(b,0)?'Needs flour: the windmill has none yet. Put farmers on the farms around it':'Needs flour: build a windmill near your farms';const dk=bakeDonkey(b);if(dk&&(dk.leg==='go'||dk.flourC))return 'Needs flour: the pack donkey is bringing it';if(dk&&!flourMillFar(b,0))return 'Needs flour: no windmill within 45 tiles for the pack donkey. Build one near your farms';if(dk&&!flourMillFar(b,4))return flourMill(b,0)?'Needs flour: the windmill has none yet. Put farmers on the farms around it':'Needs flour: build a windmill near your farms';if(bakeRunner(b))return 'Needs flour: a baker went to the windmill for it. A pack donkey from the corral would haul it faster';if(!flourMill(b,0))return 'Needs flour: build a windmill near your farms';return 'Needs flour: waiting for the windmill';}
 function weaverTick(b,dt){const n=b.gar?b.gar.length:0,P=G.players[b.owner];b.wool=b.wool||0;b.working=false;b.stall='';if(!n)return;const need=.1*n*dt;if(b.wool<need){b.stall='Needs wool: set a sheep pen to Wool cloth';return;}
   b.wool-=need;const g=.16*n*dt*(P.tech.guilds?1.25:1);if(!(b.export&&exportTo(b.owner,'cloth',g/8))){P.g+=g*(b.owner===1?G.aiMult:1);inc(b.owner,'g',g,'weaver');}b.working=true;}
-const GOODV={bread:12,cheese:16,cloth:20,beer:14,cake:30,pastry:40,textile:30},GOODN={bread:'bread',cheese:'cheese',cloth:'cloth',beer:'beer',cake:'cakes',pastry:'pastries',textile:'textiles'};
+const GOODV={bread:12,cheese:16,cloth:20,beer:14,cake:30,pastry:40,textile:30,wool:10},GOODN={bread:'bread',cheese:'cheese',cloth:'cloth',beer:'beer',cake:'cakes',pastry:'pastries',textile:'textiles',wool:'wool'};
 function expAt(b,k,amt){const ok=exportTo(b.owner,k,amt);if(ok){b._crate=(b._crate||0)+amt;if(b._crate>=1){b._crate-=1;bEv(b,'crate');}}return ok;}
 function exportTo(o,k,crates){const m=G.ents.find(e=>e.type==='market'&&e.owner===o&&e.built&&!e.dead);if(!m)return false;m.goods=m.goods||{bread:0,cheese:0,cloth:0};let tot=0;for(const q in m.goods)tot+=m.goods[q];if(tot>=200)return false;m.goods[k]=(m.goods[k]||0)+crates;return true;}
-function loadCart(u,m){u.goods={};if(!m.goods)return;let room=6;for(const k of['pastry','cake','textile','cloth','cheese','beer','bread']){const take=Math.min(room,Math.floor(m.goods[k]||0));if(take>0){m.goods[k]-=take;u.goods[k]=take;room-=take;bEv(m,'load');}}}
+function loadCart(u,m){u.goods={};if(!m.goods)return;let room=6;for(const k of['pastry','cake','textile','cloth','cheese','beer','bread','wool']){const take=Math.min(room,Math.floor(m.goods[k]||0));if(take>0){m.goods[k]-=take;u.goods[k]=take;room-=take;bEv(m,'load');}}}
 function oxAlive(f){const ox=f.ox&&G.byId.get(f.ox);return ox&&!ox.dead&&ox.owner===f.owner?ox:null;}
 /* ---- planned-city rules (Josh): farm rows, windmill block, flour chute, military quarter ---- */
 const MILL_R=8,MILL_N=18,MILL_GAP=5;
@@ -1854,7 +1854,7 @@ function updBld(b,dt){
   else if(WORK[b.type]){const W=WORK[b.type],P=G.players[b.owner],n=(b.gar?b.gar.length:0)+(b.type==='factory'?2:0);let ok=n>0;b.stall='';
     if(ok&&W.fuel){for(const k in W.fuel)if(P[k]<W.fuel[k]*n*dt){ok=false;b.stall=b.type==='factory'?'Needs wood and stone for the machines':'Needs wood for the ovens';}}
     if(ok&&b.type==='weaver'){const sh=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&!(e.born&&G.t-e.born<60)).length;if(sh<4){ok=false;b.stall='Needs 4 adult sheep for wool';}}
-    b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){if((b.wool||0)>=amt/4){b.wool-=amt/4;if(expAt(b,'textile',amt/5))continue;P.g+=amt*1.6*(b.owner===1?G.aiMult:1);inc(b.owner,'g',amt*1.6,'textiles');continue;}b.stall='Needs wool: set a livestock pen to Wool (runs at half speed without it)';if(expAt(b,'cloth',amt/12))continue;P[k]+=amt*.5*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt*.5,b.type);continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
+    b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){/* r176 (Josh Oct 24): the mill turns wool into textiles, which are sold at the market by trade carts */if((b.wool||0)>=amt/4){if(expAt(b,'textile',amt/5)){b.wool-=amt/4;continue;}b.stall='Needs a market with room: textiles are sold there by trade carts';b.working=false;continue;}b.stall='Needs wool: ranch hands shear the sheep and a pack donkey brings the bales here';b.working=false;continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
   if(b.type==='coop'){if(!b.birds)b.birds=[-999];b.layT=(b.layT||0)+dt*(b.yard?YARD_K:1);if(b.birds.length<6&&b.layT>=45&&coopHens(b)){b.layT=0;b.birds.push(G.t);}
     let h=0,ch=0,eg=0;for(const t0 of b.birds){const a=G.t-t0;if(a>=60)h++;else if(a>=20)ch++;else eg++;}
     if(b.owner===0&&b.hens&&h>b.hens&&G.t-(G.lastHenMsg||-99)>25){G.lastHenMsg=G.t;toast('A chick grew into a laying hen');}
@@ -1866,7 +1866,7 @@ function updBld(b,dt){
     b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(fl.length>=4&&!b.sickN&&sickOK(b.owner)&&Math.random()<.3*(.08+fl.length*.012)*(G.players[b.owner].tech.medicine?.5:1)){const s=fl[(Math.random()*fl.length)|0];s.sick=G.t;s.sickB=b.id;G.players[b.owner].sickT=G.t;if((MPHU(b.owner))&&MPTW(b.owner)){sickAlarm();toast('A sheep is sick! Tap it, then tap Give medicine (25 gold) within 2 minutes or the flock dies');G.ping={x:b.x,y:b.y,t:5};}}}
     for(const s of fl)if(s.sick){const age=G.t-s.sick;if(age>SICK_SPREAD&&!s.spread){s.spread=1;const h=fl.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if((MPHU(b.owner))&&MPTW(b.owner)){toast('The sickness is spreading through your flock!');G.ping={x:b.x,y:b.y,t:5};}}
       if(age>SICK_DIE){for(const e of fl){e.diseased=1;kill(e);}if((MPHU(b.owner))&&MPTW(b.owner))toast('Disease wiped out your flock');break;}}
-    if(b.useT>0)b.useT-=dt;const hay=BON(b.owner).hay;if(useOf(b)==='wool'&&!(b.useT>0)&&G.ents.some(e=>pIds.includes(e.shep))){const wv=G.ents.find(e=>e.type==='weaver'&&e.owner===b.owner&&e.built&&!e.dead),fac=G.ents.find(e=>e.type==='factory'&&e.owner===b.owner&&e.built&&!e.dead&&(e.wool||0)<200);if(fac)fac.wool=(fac.wool||0)+.06*n*dt/3;else if(wv)wv.wool=Math.min(600,(wv.wool||0)+.06*n*dt);else if(!expAt(b,'cloth',.06*n*dt*1.6/8))addWare(b,'wool',.06*n/6,dt,6);}
+    if(b.useT>0)b.useT-=dt;const hay=BON(b.owner).hay;if(b.type!=='ranch'&&useOf(b)==='wool'&&!(b.useT>0)&&G.ents.some(e=>pIds.includes(e.shep))){const wv=G.ents.find(e=>e.type==='weaver'&&e.owner===b.owner&&e.built&&!e.dead),fac=G.ents.find(e=>e.type==='factory'&&e.owner===b.owner&&e.built&&!e.dead&&(e.wool||0)<200);if(fac)fac.wool=(fac.wool||0)+.06*n*dt/3;else if(wv)wv.wool=Math.min(600,(wv.wool||0)+.06*n*dt);else if(!expAt(b,'cloth',.06*n*dt*1.6/8))addWare(b,'wool',.06*n/6,dt,6);}
     if(n>=2&&fl.length<sheepCap(b)){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.1*dt*pnN);b.breedT=(b.breedT||0)+dt*(hay?1.3:1)*pnN;b.hayless=false;}else b.hayless=true;}
     if(b.breedT>=50){b.breedT=0;
     if(n>=2&&n<sheepCap(b)){const ps=penSpot(b),sh=mkUnit('sheep',b.owner,(ps[0]+.5)*TILE,(ps[1]+.5)*TILE);sh.hx=ps[0];sh.hy=ps[1];sh.born=G.t;sh.penId=b.id;if(b.owner===0&&G.t-(G.lastLambMsg||-99)>30){G.lastLambMsg=G.t;toast('A lamb was born');}}}}
@@ -2139,7 +2139,7 @@ function newAI(o,diff,pers){
   return {pers,targetV:Math.round(P.targetV*(e?.75:1)),ageV:Math.min(P.ageV,Math.round(P.targetV*(e?.75:1))),nextAttack:P.first+(e?150:0),wave:Math.max(3,P.wave-(e?2:0)),probe:true,probeN:e?3:(pers==='raider'?5:4),squad:null,diff,attacking:false,flip:0,belled:0,bronzeT:0,detail:{},guards:[],scout:0};
 }
 // Pacing (Josh: a full game should run 1-1.5 h). Earliest game time (s) at which the computer starts saving for each age.
-const AI_AGE_AT=[0,0,900,1590,2280,3000,3600],AI_PACE={'Fast ager':.88,Raider:1.05};
+const AI_AGE_AT=[0,0,780,1200,1740,2280,2820]/* r175 pacing (Josh Oct 24): was [0,0,900,1590,2280,3000,3600]; games ended (~50-65 min) before the later ages could start */,AI_PACE={'Fast ager':.88,Raider:1.05};
 function aiAgeOK(ai,n){const P=PERS[ai.pers];return G.t+(G.aiOff||0)>=AI_AGE_AT[n]*((P&&AI_PACE[P.name])||1)*(ai.diff==='easy'?1.12:1);}
 // Attack escalation by the computer's own age: Stone-Iron = raids (small squad, short, avoids the town center and towers);
 // Medieval-Renaissance = big timed assaults that pull back after heavy losses; Industrial+ = all-out.
@@ -2190,12 +2190,12 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   const savingMed=age===2&&aiAgeOK(ai,3)&&vills.length>=(PS.ageV2||22)+4&&hasB('stable')&&hasB('workshop')&&G.t>(ai.ironT||1e9)+(PS.ironAt||400)+120;
   if(savingMed&&tc&&tc.queue.length===0&&enqueue(tc,'medieval')&&isRed)toast('The red tribe is advancing to the Medieval Age');
   if(age>=4&&!ai.renT)ai.renT=G.t;
-  const savingRen=age===3&&aiAgeOK(ai,4)&&vills.length>=(PS.ageV2||22)+8&&hasB('bakery')&&hasB('stable')&&G.t>(ai.medT||1e9)+300;
+  const savingRen=age===3&&aiAgeOK(ai,4)&&vills.length>=(PS.ageV2||22)+2&&hasB('bakery')&&hasB('stable')&&G.t>(ai.medT||1e9)+240;
   if(savingRen&&tc&&tc.queue.length===0&&enqueue(tc,'renaissance')&&isRed)toast('The red tribe is advancing to the Renaissance');
   if(age>=5&&!ai.indT)ai.indT=G.t;
-  const savingMod=age===5&&aiAgeOK(ai,6)&&vills.length>=(PS.ageV2||22)+12&&hasB('factory')&&hasB('station')&&G.t>(ai.indT||1e9)+300;
+  const savingMod=age===5&&aiAgeOK(ai,6)&&vills.length>=(PS.ageV2||22)+6&&hasB('factory')&&hasB('station')&&G.t>(ai.indT||1e9)+240;
   if(savingMod&&tc&&tc.queue.length===0&&enqueue(tc,'modern')&&isRed)toast('The red tribe is advancing to the Modern Age');
-  const savingInd=age===4&&aiAgeOK(ai,5)&&vills.length>=(PS.ageV2||22)+10&&hasB('market')&&hasB('bakery')&&G.t>(ai.renT||1e9)+300;
+  const savingInd=age===4&&aiAgeOK(ai,5)&&vills.length>=(PS.ageV2||22)+4&&hasB('market')&&hasB('bakery')&&G.t>(ai.renT||1e9)+240;
   if(savingInd&&tc&&tc.queue.length===0&&enqueue(tc,'industrial')&&isRed)toast('The red tribe is advancing to the Industrial Age');
   if(age>=1&&!P.tech.picks){const sp=bld('storage');if(sp&&sp.queue.length===0)enqueue(sp,'picks');}
   const needPicks=age>=1&&!P.tech.picks&&techState(o,'picks')!=='queued'&&hasB('storage');
@@ -2215,7 +2215,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(vills.length>=7&&!has('barracks'))B('barracks',0,4);
   else if(vills.length>=Math.min(10,ai.ageV)&&!has('storage')){const t=nearestRes('tree',base.x,base.y,1e9);if(t)B('storage',t,1);}
   else if(age>=1&&(()=>{const nx=['bronze','iron','medieval','renaissance','industrial','modern'][age],rq=(nx&&TECH[nx].req)||[],PRE={bakery:'mill',market:'bakery',station:'market',factory:'station',workshop:'forge',stable:'barracks',range:'barracks',forge:'barracks'};
-    for(let t of rq){let k=0;while(t&&!has(t)&&!bAvail(o,t)&&k++<4)t=PRE[t];if(!t||has(t)||G.ents.some(e=>e.owner===o&&e.type===t&&!e.dead))continue;if(!bAvail(o,t)||!ok(t))continue;if(!canAfford(P,DEF[t].cost))return false;{const ml=t==='bakery'&&blds.find(b=>b.type==='mill'&&!b.dead);T(t,ml||0,ml?1:4);}return true;}return false;})()){}
+    for(let t of rq){let k=0;while(t&&!has(t)&&!bAvail(o,t)&&k++<4)t=PRE[t];/* r175: a half-built required building gets 2 builders */{const ub=t&&G.ents.find(e=>e.owner===o&&e.type===t&&!e.dead&&!e.built);if(ub&&!G.ents.some(u=>!u.dead&&u.order&&u.order.type==='build'&&u.order.id===ub.id)){try{wingBuilders(ub,2)}catch(err){}}}if(!t||has(t)||G.ents.some(e=>e.owner===o&&e.type===t&&!e.dead))continue;if(!bAvail(o,t)||!ok(t))continue;if(!canAfford(P,DEF[t].cost))return false;{/* r175: a windmill goes by the biggest farm cluster (it used to be tried only next to the town center, failed when that was full, and the computer never reached the Renaissance) */let near=0,r0=4;if(t==='bakery'){const ml=blds.find(b=>b.type==='mill'&&!b.dead);if(ml){near=ml;r0=1}}else if(t==='mill'){const fs=blds.filter(b=>b.type==='farm'&&!b.dead);let bn=-1;for(const a of fs){const n=fs.filter(c=>Math.hypot(c.x-a.x,c.y-a.y)<6*TILE).length;if(n>bn){bn=n;near=a}}r0=2}if(!B(t,near||base,r0)&&!B(t,base,7))ai.fail[t]=G.t;}return true;}return false;})()){}
   else if(farms<farmsWanted){const ml=blds.find(b=>b.type==='mill'&&b.built&&!b.dead&&millCount(b)<MILL_N);B('farm',ml||0,ml?2:3);}
   else if(age>=1&&!has('forge'))B('forge',0,4);
   else if(age>=1&&!has('range'))B('range',0,5);
@@ -2241,7 +2241,8 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(age>=1&&!has('dock')&&!ai.noDock&&P.w>=150){if(!B('dock',0,2))ai.noDock=G.t;}
   else if(age>=1&&PS.ruins>=1&&vills.length>=18){const g=nearestRes('gold',base.x,base.y,1e9),dropNear=g&&blds.some(b=>DEF[b.type].drop&&Math.hypot(b.x-g.x,b.y-g.y)<6*TILE);if(g&&!dropNear&&count('storage')<3)B('storage',g,2);}
   if(ai.noDock&&G.t-ai.noDock>240)ai.noDock=0;
-  const spend=(army.length<4+3*age&&G.t>360)||((!saving&&!needPicks&&!savingIron&&!savingMed&&!savingRen&&!savingInd&&!savingMod)&&(G.t>=PS.army||age>=1))||threat||(PS.raid&&G.t>=PS.army&&!needPicks);
+  /* r175: while a building the next age needs is missing (and the computer may age), it stops buying extra soldiers so it can afford it */const reqMiss=(()=>{try{if(age<2||!aiAgeOK(ai,age+1))return false;const nx=['bronze','iron','medieval','renaissance','industrial','modern'][age];const rq=(nx&&TECH[nx].req)||[];return rq.some(t=>!hasB(t))}catch(err){return false}})();
+  const spend=(army.length<4+3*age&&G.t>360)||((!saving&&!reqMiss&&!needPicks&&!savingIron&&!savingMed&&!savingRen&&!savingInd&&!savingMod)&&(G.t>=PS.army||age>=1))||threat||(PS.raid&&G.t>=PS.army&&!needPicks);
   const aiPick=(b,t)=>{if(canTrain(o,t))return t;const al=(DEF[b.type].trains||[]).filter(x=>canTrain(o,x)&&(!DEF[x].needTech||P.tech[DEF[x].needTech]));return al[al.length-1]||t;};
   const bar=bld('barracks'),enemyRiders=G.ents.some(e=>e.owner===en&&e.type==='rider');if(army.length<4+3*age&&G.t>360&&bar&&bar.queue.filter(k=>DEF[k]).length<2)enqueue(bar,aiPick(bar,up('clubman')));
   if(spend&&bar&&bar.queue.length<2&&(vills.length>=ai.targetV*.55||P.f>=110)){
@@ -2254,7 +2255,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   for(const pb of blds)if(WORK[pb.type]&&pb.built){const n=(pb.gar||[]).length+vills.filter(v=>v.order&&v.order.type==='work'&&v.order.id===pb.id).length;if(n<2){const v=vills.find(v=>!v.order)||vills.find(v=>v.order&&v.order.type==='gather'&&v.order.rtype==='tree');if(v)assignWorkers(pb,[v]);}}
   {const sp=bld('storage');if(age>=2&&sp&&sp.queue.length===0&&!P.tech.coppicing&&P.f>220&&P.w>220)enqueue(sp,'coppicing');}
   {const fg1=bld('forge');if(fg1&&fg1.queue.length===0&&!P.tech.bronzework&&P.w>200&&P.s>120)enqueue(fg1,'bronzework');const st1=bld('storage');if(st1&&st1.queue.length===0&&P.tech.bronzework&&!P.tech.bronzetools&&P.g>120&&P.w>200)void 0;const fg2=bld('forge');if(fg2&&fg2.queue.length===0&&P.tech.bronzework&&!P.tech.bronzearmor&&P.g>140&&P.f>200)enqueue(fg2,'bronzearmor');}
-  {const rc=bld('ranch');if(rc&&age>=3&&rc.built&&!rc.wing&&P.w>350)aiWing(rc);if(rc&&age>=4&&rc.built&&!rc.swing&&P.w>300)try{aiSWing(rc);}catch(err){}const st=bld('storage');if(st&&age>=3&&st.queue.length===0&&!P.tech.forestry&&vills.length>24&&P.w>300&&P.g>120)enqueue(st,'forestry');const pb=bld('pub');if(pb&&!hasInn(pb)&&!(pb.innUpT>0)&&P.g>260&&canAfford(P,INNUP_COST)){pay(P,INNUP_COST);pb.innUpT=30;}}
+  {const rc=bld('ranch');if(rc&&age>=3&&rc.built&&!rc.wing&&P.w>350)aiWing(rc);if(rc&&age>=3&&rc.built&&!rc.swing&&P.w>300)try{aiSWing(rc);}catch(err){}const st=bld('storage');if(st&&age>=3&&st.queue.length===0&&!P.tech.forestry&&vills.length>24&&P.w>300&&P.g>120)enqueue(st,'forestry');const pb=bld('pub');if(pb&&!hasInn(pb)&&!(pb.innUpT>0)&&P.g>260&&canAfford(P,INNUP_COST)){pay(P,INNUP_COST);pb.innUpT=30;}}
   {const cor=bld('ranch')||bld('corral');if(cor&&cor.queue.length===0){const nf=G.ents.filter(e=>e.type==='farm'&&e.owner===o&&!e.dead).length,no=mine.filter(u=>u.type==='ox').length,nd=mine.filter(u=>u.type==='donkey').length;if(no<Math.min(4,nf))enqueue(cor,'ox');else if(nd<Math.min(5,vills.length>>2)+G.ents.filter(e=>(e.type==='bakery'||e.type==='inn')&&e.owner===o&&e.built&&!e.dead).length)enqueue(cor,'donkey');}}
   for(const f of G.ents)if(f.type==='farm'&&f.owner===o&&f.fallow&&!f.dead&&P.w>=60)replantFarm(f);
   {const bk=bld('bakery');if(bk){if(bk.queue.length===0&&age>=4&&!P.tech.grandbake&&P.g>300&&P.w>300)enqueue(bk,'grandbake');else if(age>=5&&!bk.steam&&!bk.steamOf&&bk.built&&P.g>400&&P.s>350&&canAfford(P,STEAM_COST)){pay(P,STEAM_COST);bk.steam=true;bk.sgrp={k:'steam',ids:[bk.id],anchor:bk.id,x0:bk.tx,y0:bk.ty,x1:bk.tx+bk.size,y1:bk.ty+bk.size};}if(bld('market'))bk.exp=50;}}
@@ -8794,7 +8795,7 @@ function cmdToBuilding(mine,hit){
       if(!hit.built&&v.length){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(canRepair(hit,0)&&v.length&&!WORK[hit.type]&&!isPen(hit)&&!(hit.type==='house'&&hit.upT>0)){v.forEach(u=>orderBuild(u,hit));mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.type==='ranch'&&hit.built&&isDairy(hit)){const cw=mine.filter(u=>u.type==='cow');if(cw.length){for(const q of cw)q.dairyId=hit.id;const z=penSpot(hit,'c');orderMove(cw,(z[0]+.5)*TILE,(z[1]+.5)*TILE);mark(hit.x,hit.y,'#ffd25a');toast(cw.length>1?cw.length+' cows heading into the ranch':'Cow heading into the ranch');return true;}}
-      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){const LD=penLead(hit);let use=vv;if(LD.type==='ranch'){const have=G.ents.filter(e=>e.shep===LD.id&&!e.dead&&!vv.includes(e)).length+rhMilk(LD),room=Math.max(0,RHAND_MAX-have);if(!room){toast('The ranch has '+RHAND_MAX+' ranch hands already');return true}use=vv.slice(0,room)}use.forEach(u=>{u.order=null;u.path=null;u.shep=LD.id;});mark(hit.x,hit.y,'#ffd25a');toast(LD.type==='ranch'?(use.length>1?use.length+' ranch hands assigned':'Ranch hand assigned')+(use.length<vv.length?' (a ranch takes '+RHAND_MAX+')':''):(use.length>1?use.length+' shepherds assigned':'Shepherd assigned'));return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<4?'Sheep join the ranch in the Renaissance Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
+      if(isPen(hit)){const sh=mine.filter(u=>u.type==='sheep');const vv=mine.filter(u=>u.type==='villager');if(vv.length&&hit.built&&!sh.length){const LD=penLead(hit);let use=vv;if(LD.type==='ranch'){const have=G.ents.filter(e=>e.shep===LD.id&&!e.dead&&!vv.includes(e)).length+rhMilk(LD),room=Math.max(0,RHAND_MAX-have);if(!room){toast('The ranch has '+RHAND_MAX+' ranch hands already');return true}use=vv.slice(0,room)}use.forEach(u=>{u.order=null;u.path=null;u.shep=LD.id;});mark(hit.x,hit.y,'#ffd25a');toast(LD.type==='ranch'?(use.length>1?use.length+' ranch hands assigned':'Ranch hand assigned')+(use.length<vv.length?' (a ranch takes '+RHAND_MAX+')':''):(use.length>1?use.length+' shepherds assigned':'Shepherd assigned'));return true;}if(sh.length&&hit.type==='ranch'&&!ranchSheep(hit)){toast(G.players[0].age<3?'Sheep join the ranch in the Medieval Age, with a sheep wing':'Add a sheep wing to the ranch first (Sheep tab)');return true;}if(sh.length){for(const s of sh)s.penId=hit.id;orderMove(sh,hit.x,hit.y);mark(hit.x,hit.y,'#ffd25a');return true;}}
       if((hit.type==='house'||hit.type==='coop')&&hit.upT>0&&v.length){v.forEach(u=>{u.shep=0;u.order={type:'upgrade',id:hit.id};u.path=null;});mark(hit.x,hit.y,'#ffd25a');return true;}
       if((hit.built&&isLodge(hit)&&MPHU(hit.owner)&&v.length)&&MPTW(hit.owner)){let n=foresterN(hit),k=0;for(const u of v){if(n>=FORESTERS)break;if(u.forester===hit.id)continue;u.forester=hit.id;u.order=null;u.path=null;u.shep=0;n++;k++;}toast(k?k+' forester'+(k>1?'s':'')+' at work':'The lodge already has '+FORESTERS+' foresters');mark(hit.x,hit.y,'#ffd25a');return true;}
       if(hit.built&&WORK[hit.type]&&v.length){const n=assignWorkers(hit,v);toast(n?n+' assigned to the '+DEF[hit.type].name.toLowerCase():'The '+DEF[hit.type].name.toLowerCase()+' is full');mark(hit.x,hit.y,'#ffd25a');return true;}
@@ -8901,7 +8902,7 @@ function shepBtns(one,sh){let h='';if(G.prevSelFor===one.id){const pv=(G.prevSel
   if(!sh)h+='<div class="hint" style="max-width:220px">Select villagers, tap the ranch, then tap Make shepherds.</div>';return h;}
 function sheepWingUI(one,P){const line=(b,t)=>'<div class="hint"><b>'+b+'</b>'+(t?'<br>'+t:'')+'</div>';const W=swingOf(one);
   if(W&&!W.built){const nb=G.ents.filter(u=>u.order&&u.order.type==='build'&&u.order.id===W.id&&!u.dead).length;return line('Sheep wing: being built',Math.round((W.progress||0)*100)+'% · '+(nb?nb+' building':'nobody building it'))+(nb?'':btn('swingb','Send builders','','',false,0,'wide'));}
-  if(P.age<4)return line('No sheep yet','The sheep wing comes in the Renaissance Age: a fold on the side of the ranch, with 3 sheep for wool or mutton');
+  if(P.age<3)return line('No sheep yet','The sheep wing comes in the Medieval Age: a fold on the side of the ranch, with 3 sheep for wool or mutton');
   return btn('mkswing','Sheep wing',costHtml(DEF.pen.cost),bldIcon('pen',THUMB.pen||THUMB.ranch),!canAfford(P,DEF.pen.cost),0,'wide',PILL('up','Expand'))+'<div class="hint" style="max-width:210px">Builds a sheep fold onto a side of the ranch. 3 sheep join; a shepherd keeps them for wool or mutton (up to 8)</div>';}
 /* health check (Oct 15): the computer treats sick animals (25 gold each, like you), 10-40 seconds after they fall ill */
 function aiCure(o){const P=G.players[o];for(const e of G.ents){if(e.owner!==o||e.dead||!e.sick||(e.type!=='cow'&&e.type!=='sheep'))continue;if(G.t-e.sick<(e.aiCureAt||(e.aiCureAt=10+Math.random()*30)))continue;if(P.g<25)return;P.g-=25;e.sick=0;e.spread=0;e.aiCureAt=0;}}
@@ -9349,7 +9350,7 @@ const AIECO={off:false};
       if(best)return best;}
     return null;}
   function give(o,v,t,r){if(t.type==='deer'){orderAttack([v],t);v._aiFood=1;}else{orderGather(v,t);v._aiFood=0;}if(!v.order)return false;v._aiT=G.t;v._aiTgt=t.id;return true;}
-  function shares(P){const pk=P.tech.picks,w={f:pk?.37:.5,w:pk?.41:.42,s:pk?.07:.08,g:pk?.15:0};
+  function shares(P){const pk=P.tech.picks,w={f:pk?.37:.5,w:pk?.41:.42,s:pk?.07:.08,g:pk?.15:0};/* r175: from the Medieval Age the age-ups and units need much more gold */if(pk&&P.age>=3){w.f=.32;w.w=.37;w.s=.06;w.g=.25}else if(pk&&P.age>=2){w.f=.34;w.w=.41;w.s=.06;w.g=.19}
     for(const k in w){const s=P[k];if(s<100)w[k]*=1.7;else if(s<200)w[k]*=1.3;else if(s>1500)w[k]*=.2;else if(s>800)w[k]*=.35;else if(s>400)w[k]*=.6;}
     return w;}
   aiTick=function(o){
@@ -12033,7 +12034,7 @@ const MYS_RNAME=['Broken Arch','Lion Gate','Moss Steps','Sunken Court','Pillar H
 function expedCoast(tx0,ty0){let best=null,bd=1e9;const T=G.terrain;for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++){if(T[ti(x,y)]!==0||!walk(x,y))continue;
     let sea=false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(T[ti(nx,ny)]===1&&Math.min(nx,ny,MW-1-nx,MH-1-ny)<=24){sea=true;break}}if(!sea)continue;
     const d=Math.hypot(x-tx0,y-ty0);if(d<bd){bd=d;best=[x,y]}}return best}
-try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{G._shT=(G._shT||0)+dt;if(G._shT>=6){G._shT=0;for(const b of G.ents){if(b.owner!==0||b.dead||!b.built||!isPen(b)||penLead(b)!==b||useOf(b)!=='wool'||b.useT>0)continue;
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{G._shT=(G._shT||0)+dt;if(G._shT>=6){G._shT=0;for(const b of G.ents){if(b.owner!==0||b.dead||!b.built||!isPen(b)||b.type==='ranch'||penLead(b)!==b||useOf(b)!=='wool'||b.useT>0)continue;
   const pIds=b.mgrp?b.mgrp.ids:[b.id];if(!G.ents.some(e=>pIds.includes(e.shep)&&!e.dead))continue;const W=b.type==='ranch'?swingOf(b):null;if(b.type==='ranch'&&!(W&&W.built))continue;const at=W||b;
   if(!G.ents.some(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&inPenArea(b,e,.8)))continue;G.fx.push({type:'float',x:at.x,y:at.y-24,t:1.4,text:'✂️ wool',col:'#f4ecd8'})}}}catch(err){}return r}})(tick)}catch(err){}
 function shoreFor(bt,us){const cx=us&&us.length?us.reduce((a,u)=>a+u.x,0)/us.length:bt.x,cy=us&&us.length?us.reduce((a,u)=>a+u.y,0)/us.length:bt.y,isl=(x,y)=>typeof islAt==='function'&&islAt(x,y);
@@ -12126,7 +12127,7 @@ const AI2={off:false,gap:150,minArmy:7,load:40,sail:90};
       const P=G.players[o];if(G.islands&&G.islands.length&&P.age>=1&&!G.gentle){const U=P.unlock||(P.unlock={});if(!U.fish){U.fish=1;ai.noDock=0;}}   // the dock needs a fish caught from the shore; the computer skips that step on island maps
       const army=G.ents.filter(u=>u.owner===o&&isSold(u));threat(o,ai,army);ferry(o,ai,army);}catch(err){}
     return r;};
-  window.__ai2=AI2;
+  AI2.pop=o=>{try{return [popUsed(o),popCap(o)]}catch(e){return String(e)}};window.__ai2=AI2;
 }
 /* ===== END smarter computer: islands + sacred threats ===== */
 /* ===== Ruin puzzle: carry the flame, gameplay chat 2 (Josh, Oct 19 2026: "a torch lit in the middle of the room and you need to grab it
@@ -12776,6 +12777,111 @@ try{const prevRO2=GFX._ranchOutline;if(prevRO2)GFX._ranchOutline=function(c,e){t
    shepherds of its own (the ranch hands shear its sheep), but tapping it showed the old pen panel: "No shepherd", "Needs a shepherd".
    Now tapping the sheep wing selects its ranch on the Sheep tab, where the hands, the Wool setting and the supply chain are. ===== */
 try{renderPanel=(function(prev){return function(){try{if(G&&G.sel&&G.sel.length===1&&!G.place){const e=G.byId.get(G.sel[0]);if(e&&e.type==='pen'&&e.sranch&&e.owner===0){const R=G.byId.get(e.sranch);if(R&&!R.dead&&R.type==='ranch'){G.sel=[R.id];G.rtab='s';panelKeyLast=''}}}}catch(err){}return prev.apply(this,arguments)}})(renderPanel)}catch(err){}
+/* ===== Computer keeps up in the late game, gameplay chat 2 (Josh, Oct 24 2026: picked "Computer keeps up") =====
+   Test games from "start industrial" / "start modern" showed the computer (both sides) falling behind the new late chains:
+   1. WOOL: its textile mill ran at half speed all game ("Needs wool"): it never set its sheep to Wool. Now, once it has a textile mill,
+      its ranch / sheep wings with sheep are set to Wool.
+   2. POWER: it never built a power plant, so it never got an airfield, bombers or a helipad either (aiExtra needs power). Now, in the
+      Modern Age, it builds one next to its textile mill (or bakery / town center) when it can afford it, plus a pylon toward the next
+      busy building if that is out of reach.
+   3. POP CAP: both sides sat at the 150 population cap from about minute 6 with 10,000+ gold unspent and only small attacks.
+      Now, at the cap (within 4) with a big bank (food+gold >= 3000) and 25+ soldiers, it attacks with its whole army sooner
+      (no scouting probe; at least 100 s apart), so units get used up and the bank turns back into soldiers.
+   4. MARKET: it piled up gold while short of wood/stone (so it couldn't afford an airfield, power or pylons). Now, with a market, it buys
+      100 wood or stone at the market price (same rule and shared prices as the player's Buy 100 button) when it has 1500+ gold and that
+      resource is under 500, keeping at least 1000 gold.
+   Wraps aiTick only (every ~6 s per computer side). LATE.off=true turns it all off. */
+const LATE={off:false,bank:3000,gap:100};
+try{(function(){
+  const own=(o,t)=>G.ents.filter(e=>e.owner===o&&e.type===t&&!e.dead);
+  const isSold=u=>u&&u.kind==='unit'&&!u.dead&&!NONMIL.has(u.type)&&!(DEF[u.type]&&DEF[u.type].animal)&&!u.naval&&!u.air;
+  function wool(o){const fac=own(o,'factory').find(e=>e.built);if(!fac)return;
+    for(const b of G.ents){if(b.owner!==o||b.dead||!b.built||(b.type!=='ranch'&&b.type!=='pen'))continue;
+      try{if(usesFor(b).some(x=>x[0]==='wool')&&b.use!=='wool'){b.use='wool';b.aiUse=1;}}catch(err){}}}
+  function power(o,ai){const P=G.players[o];if(P.age<6||G.t<(ai.lpT||0))return;ai.lpT=G.t+45;
+    const vs=G.ents.filter(e=>e.owner===o&&e.type==='villager'&&!e.dead&&!e.mdig&&!e.mwork&&(!e.order||e.order.type==='gather'));if(vs.length<10)return;
+    const plants=own(o,'power');
+    if(!plants.length){const near=own(o,'factory')[0]||own(o,'bakery')[0]||own(o,'towncenter')[0];if(near&&canAfford(P,DEF.power.cost))aiBuild('power',near,vs.slice(0,2),3,o);return;}
+    if(!plants.some(p=>p.built))return;
+    // a pylon toward the nearest busy building that isn't powered yet (one at a time)
+    if(own(o,'pylon').some(p=>!p.built))return;
+    const want=G.ents.find(e=>e.owner===o&&!e.dead&&e.built&&['factory','bakery','barracks','stable','workshop','armybase','range','shaft'].includes(e.type)&&!e.powered);
+    if(want&&canAfford(P,DEF.pylon.cost)&&own(o,'pylon').length<6){const src=plants.concat(own(o,'pylon')).filter(p=>p.built).sort((a,b)=>Math.hypot(a.x-want.x,a.y-want.y)-Math.hypot(b.x-want.x,b.y-want.y))[0];
+      if(src){const d=Math.hypot(want.x-src.x,want.y-src.y);if(d>8*TILE){const k=Math.min(.9,8*TILE/d);aiBuild('pylon',{x:src.x+(want.x-src.x)*k,y:src.y+(want.y-src.y)*k},vs.slice(0,1),1,o);}}}}
+  function capPush(o,ai){const P=G.players[o];if(P.age<4||ai.attacking||G.gentle)return;let pu,pc;try{pu=popUsed(o);pc=popCap(o);}catch(err){return;}
+    if(pu<pc-4||(P.f+P.g)<LATE.bank)return;const army=G.ents.filter(u=>u.owner===o&&isSold(u));if(army.length<25)return;
+    if(G.t-(ai.lateAtkT||-1e9)<LATE.gap)return;
+    if(ai.nextAttack>G.t){ai.nextAttack=G.t;ai.probe=false;ai.lateAtkT=G.t;}}
+  function market(o){const P=G.players[o],pr=G.prices;if(!pr||P.age<4||P.g<1500)return;if(!own(o,'market').some(m=>m.built))return;
+    for(let i=0;i<3;i++){const k=['w','s'].filter(r=>(P[r]||0)<500).sort((a,b)=>(P[a]||0)-(P[b]||0))[0];if(!k||P.g-pr[k]<1000)break;
+      P.g-=Math.round(pr[k]);P[k]+=100;pr[k]=Math.min(300,pr[k]*1.07);}}
+  const _ai=aiTick;aiTick=function(o){const r=_ai.apply(this,arguments);
+    try{const ai=G.ais&&G.ais[o];if(LATE.off||!ai||G.over||(G.cheat&&G.cheat.peace))return r;if((ai.ltT=(ai.ltT||0)-1)>0)return r;ai.ltT=6;
+      wool(o);market(o);power(o,ai);capPush(o,ai);}catch(err){}
+    return r;};
+  window.__late=LATE;
+})()}catch(err){}
+/* ===== END late game computer ===== */
+/* ===== gameplay chat 1 r176: the wool chain (Josh, Oct 24: "I want the shephard to sheer them and the sheep loose all their wool and just show
+   skin after they are cut. And then it takes some time for the wool to grow back... I think it should need to be sold somewhere. Then when you
+   have the textile factory, the wool gets sent there and converted into higher value stuff to then be sold"; sheep wing moved to the Medieval Age).
+   1. Each adult sheep in a ranch set to Wool grows a fleece (WOOL.grow s). A free ranch hand walks to a woolly sheep and shears it (WOOL.shear s):
+      the sheep is left bare (s.wool=0, drawn shorn) and its wool grows back.
+   2. The fleece becomes a wool bale stored at the ranch (R.woolB, up to WOOL.cap; shearing stops when full).
+   3. When WOOL.trip bales are ready, a free pack donkey (or a ranch hand if there is none) carries up to WOOL.carry bales to the textile mill
+      (Industrial), or else to the market. At the market they are wool crates (10 gold each) that trade carts sell; at the textile mill each bale
+      becomes about 24 gold of textiles, also sold at the market. No market and no mill = the bales wait at the ranch.
+   Art: s.wool<.35 = shorn sheep (art chat 1 may draw it from GFX.sheepShorn(u)); carriers have u.woolC>0. ===== */
+const WOOL={off:false,grow:90,shear:3,cap:30,trip:6,carry:10,millK:1};
+function woolDst(R){const o=R.owner;let best=null,bd=1e18;for(const e of G.ents){if(e.owner!==o||e.dead||!e.built||(e.type!=='factory'&&e.type!=='market'))continue;const d=Math.hypot(e.x-R.x,e.y-R.y)+(e.type==='market'?1e9:0);if(d<bd){bd=d;best=e}}return best}
+function woolSheep(R){return G.ents.filter(e=>e.type==='sheep'&&e.owner===R.owner&&!e.dead&&!e.sick&&!(e.born&&G.t-e.born<60)&&inPenArea(R,e,.8,'s'))}
+function woolOn(R){return !WOOL.off&&R&&R.type==='ranch'&&!R.dead&&R.built&&R.owner<2&&ranchSheep(R)&&useOf(R)==='wool'&&!(R.useT>0)}
+GFX.sheepShorn=u=>!!(u&&u.type==='sheep'&&typeof u.wool==='number'&&u.wool<.35);
+function woolClear(u){const R=G.byId.get(u.woolR||u.shearR);if(u.woolC&&R&&!R.dead)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+u.woolC);if(R&&R.wcar===u.id)R.wcar=0;u.woolR=0;u.woolC=0;u.wleg=0;u.wto=0;u.shearS=0;u.shearR=0;u.shT=0;u.working=false;}
+let WOOLT=0;
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(WOOL.off||!G||!G.ents)return r;
+  for(const e of G.ents)if(e.type==='sheep'&&!e.dead){if(typeof e.wool!=='number')e.wool=1;else if(e.wool<1)e.wool=Math.min(1,e.wool+dt/WOOL.grow);}
+  WOOLT-=dt;if(WOOLT>0)return r;WOOLT=1;
+  for(const R of G.ents){if(!woolOn(R))continue;R.woolB=R.woolB||0;
+    const busy=new Set(G.ents.filter(u=>u.shearS&&!u.dead).map(u=>u.shearS));
+    if(R.woolB<WOOL.cap){const free=rhList(R).filter(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR&&!(h.carry&&h.carry.amt>0));
+      if(free.length){const ws=woolSheep(R).filter(s=>s.wool>=1&&!busy.has(s.id));for(const h of free){if(!ws.length)break;ws.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));const s=ws.shift();h.shearS=s.id;h.shearR=R.id;h.shT=0;busy.add(s.id);}}}
+    const car=R.wcar&&G.byId.get(R.wcar);if(car&&!car.dead&&car.woolR===R.id)continue;R.wcar=0;
+    if(R.woolB<1||!(R.woolB>=WOOL.trip||G.t-(R.wlT||0)>90))continue;const D=woolDst(R);if(!D)continue;
+    let c=null,bd=40*TILE;for(const d of G.ents){if(d.type!=='donkey'||d.owner!==R.owner||d.dead||d.woolR||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
+    if(!c)c=rhList(R).find(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR)||null;
+    if(c){c.woolR=R.id;c.wleg='load';c.woolC=0;c.wnf=0;R.wcar=c.id;R.wlT=G.t;if(c.order&&c.order.auto){c.order=null;c.path=null}}}
+  }catch(err){}return r}})(railTick)}catch(err){}
+function woolStep(u,dt){
+  if(u.shearS){const S=G.byId.get(u.shearS),R=G.byId.get(u.shearR);if(!S||S.dead||!(S.wool>=1)||!woolOn(R)||(R.woolB||0)>=WOOL.cap){woolClear(u);return false}
+    const d=Math.hypot(S.x-u.x,S.y-u.y);if(d>TILE*.9){u.working=false;const r=approach(u,S,TILE*.6);if(r==='fail'){woolClear(u);return false}if(r!==true)return true}
+    u.path=null;u.moving=false;u.working=true;u.face=Math.atan2(S.y-u.y,S.x-u.x);S.order=null;S.path=null;S.moving=false;S.wt=Math.max(S.wt||0,2);
+    u.shT=(u.shT||0)+dt;if(u.shT<WOOL.shear)return true;
+    S.wool=0;R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);if(R.owner===0&&V0(S))G.fx.push({type:'float',x:S.x,y:S.y-20,t:1.4,text:'✂️ +1 🧶',col:'#f4ecd8'});woolClear(u);return true}
+  if(u.woolR){const R=G.byId.get(u.woolR);if(!R||R.dead||R.owner!==u.owner){u.woolC=0;woolClear(u);return false}
+    if(u.wleg==='load'){const r=approach(u,R,TILE*1.2);if(r==='fail'){if(++u.wnf>=4){woolClear(u);return false}u.path=null;return true}if(r!==true)return true;
+      const take=Math.min(WOOL.carry,Math.floor(R.woolB||0));const D=woolDst(R);if(!take||!D){woolClear(u);return false}R.woolB-=take;u.woolC=take;u.wto=D.id;u.wleg='go';u.wnf=0;u.path=null;return true}
+    let D=G.byId.get(u.wto);if(!D||D.dead||!D.built||D.owner!==u.owner){D=woolDst(R);if(!D){woolClear(u);return false}u.wto=D.id}
+    const r=approach(u,D,TILE*1.1);if(r==='fail'){if(++u.wnf>=4){woolClear(u);return false}u.path=null;return true}if(r!==true)return true;
+    let ok=true;if(D.type==='factory')D.wool=(D.wool||0)+u.woolC*WOOL.millK;else ok=exportTo(u.owner,'wool',u.woolC);
+    if(ok){if(u.owner===0&&V0(D))G.fx.push({type:'float',x:D.x,y:D.y-30,t:1.6,text:'+'+u.woolC+' 🧶 wool',col:'#f4ecd8'});u.woolC=0}
+    woolClear(u);return true}
+  return false}
+try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&(u.shearS||u.woolR)&&u.owner<2){if(u.order&&!u.order.auto){woolClear(u)}else{try{if(woolStep(u,dt))return}catch(err){woolClear(u)}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+/* shorn sheep: drawn smaller and pinkish until art chat 1 paints a bare sheep */
+try{const db=GFX.drawBeast;if(db)GFX.drawBeast=function(c,u,x,y,now,t,k){if(t==='sheep'&&GFX.sheepShorn(u)&&!GFX.SHORN_ART){c.save();try{c.filter='saturate(.55) sepia(.45) hue-rotate(-28deg) brightness(1.06)';c.translate(x,y);c.scale(.86,.82);c.translate(-x,-y);return db.apply(this,arguments)}finally{c.restore()}}return db.apply(this,arguments)}}catch(err){}
+/* a wool bale over carriers, and the bale count over a ranch that has some */
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{c.save();c.font='bold 11px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
+  for(const u of G.ents){if(!u.woolC||u.dead||(u.owner!==0&&!V0(u)))continue;const y=u.y-(u.type==='donkey'?30:34);c.fillStyle='rgba(30,20,10,.7)';c.beginPath();c.arc(u.x,y,8,0,7);c.fill();c.fillText('🧶',u.x,y+1)}
+  c.restore()}catch(err){}return r}})(drawBirds)}catch(err){}
+/* Sheep tab supply chain strip: 🐑 sheep › ✂️ hands › 🧶 bales › 🫏 carrier › 🏪/🏭 › 🪙 */
+function sheepChain(b){try{if(!b||b.type!=='ranch'||G.rtab!=='s'||!ranchSheep(b))return '';const sh=woolSheep(b),wooly=sh.filter(s=>s.wool>=1).length,hands=rhList(b).length+rhMilk(b),D=woolDst(b),car=b.wcar&&G.byId.get(b.wcar),wool=useOf(b)==='wool';
+  const pill=(ic,txt,ok,cur)=>'<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:7px;font-size:10px;white-space:nowrap;border:1px solid '+(cur?'var(--gold)':ok?'rgba(143,191,84,.6)':'#d65a46')+';'+(cur?'background:rgba(227,171,63,.18);':'')+(ok?'':'color:#ffb4a4;')+'">'+ic+' '+txt+(ok?'':' ✗')+'</span>';
+  if(!wool)return '<div style="font-size:9px;color:var(--muted)">Supply chain</div><div style="display:flex;align-items:center;gap:2px">'+pill('🐑',sh.length+' sheep',sh.length>0,false)+'<span style="color:var(--muted)">›</span>'+pill('🍖','Mutton',true,true)+'<span style="color:var(--muted)">›</span>'+pill('🍞','Food',true,false)+'</div>';
+  const parts=[pill('🐑',sh.length+' sheep · '+wooly+' woolly',sh.length>0,false),pill('✂️',hands?hands+' hand'+(hands>1?'s':''):'no hands',hands>0,false),pill('🧶',Math.floor(b.woolB||0)+'/'+WOOL.cap+' bales',true,true),
+    pill('🫏',car&&!car.dead?(car.type==='donkey'?'donkey on the way':'hand carrying'):'carrier',true,false),pill(D?(D.type==='factory'?'🏭':'🏪'):'🏪',D?(D.type==='factory'?'Textile mill':'Market'):'needs a market',!!D,false),pill('🪙','Gold',!!D,false)];
+  return '<div style="font-size:9px;color:var(--muted)">Wool supply chain</div><div style="display:flex;align-items:center;gap:2px">'+parts.join('<span style="color:var(--muted)">›</span>')+'</div>'}catch(err){return ''}}
+try{chHtml=(function(prev){return function(b){if(b&&b.type==='ranch'&&G.rtab==='s')return sheepChain(b);return prev.apply(this,arguments)}})(chHtml)}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
