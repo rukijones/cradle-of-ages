@@ -6210,7 +6210,7 @@ GFX.TCK=Object.assign({1:1,2:1},GFX.TCK||{}); // Josh: Bronze and Iron town cent
    Oct 20 (Josh: "smooth swivel"): hull 16 directions (vtank.webp: 9 rows + mirrors, 2 walk frames + idle), turret 32 directions (inline strip). Armored car the same way (Oct 20): hull 16 dirs with 4 wheel frames in vacar.webp, turret strip inline (TURS.vacar). ===== */
 try{(function(){
   const V=GFX.VEH3D=GFX.VEH3D||{};
-  Object.assign(V,{"vacar":{"file":"vacar","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,4],"idle":[4,1]},"rows5":1,"nc":5,"v":2,"pack":{"walk":{"f":"vacar","x":0,"n":4},"idle":{"f":"vacar","x":4,"n":1}},"size":38,"rows":9,"tt":{"cw":86,"ch":69,"cx":43.0,"tur":[[43.0,35.7,43.0,55.8],[41.0,35.8,51.2,55.3],[39.1,36.1,59.0,54.0],[37.4,36.7,66.2,51.8],[35.8,37.4,72.6,48.8],[34.6,38.3,77.8,45.1],[33.6,39.3,81.6,41.0],[33.0,40.4,84.0,36.5],[32.8,41.5,84.8,31.8],[33.0,42.7,84.0,27.1],[33.6,43.8,81.6,22.6],[34.6,44.8,77.8,18.5],[35.8,45.6,72.6,14.8],[37.4,46.4,66.2,11.9],[39.1,46.9,59.0,9.6],[41.0,47.2,51.2,8.3],[43.0,47.4,43.0,7.8]],"hull":[[105.0,52.7],[101.1,53.1],[97.8,54.4],[95.6,56.3],[94.8,58.5],[95.6,60.8],[97.8,62.6],[101.1,63.9],[105.0,64.4]]},"step":1.6},"varty":{"file":"varty","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,8]},"rows5":1,"nc":17,"v":2,"pack":{"walk":{"f":"varty","x":0,"n":8},"idle":{"f":"varty","x":8,"n":1},"attack":{"f":"varty","x":9,"n":8}},"size":56,"mz":[[105.0,118.9],[164.9,104.7],[189.7,70.3],[164.9,36.0],[105.0,21.7]]},"vatgun":{"file":"vatgun","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,6]},"rows5":1,"nc":15,"v":2,"pack":{"walk":{"f":"vatgun","x":0,"n":8},"idle":{"f":"vatgun","x":8,"n":1},"attack":{"f":"vatgun","x":9,"n":6}},"size":38,"mz":[[105.0,142.5],[164.9,128.2],[189.7,93.9],[164.9,59.6],[105.0,45.3]]},"vbomber":{"file":"vbomber","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,1]},"rows5":1,"nc":1,"v":2,"pack":{"idle":{"f":"vbomber","x":0,"n":1}},"size":48},"vfgun":{"file":"vfgun","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,8]},"rows5":1,"nc":17,"v":2,"pack":{"walk":{"f":"vfgun","x":0,"n":8},"idle":{"f":"vfgun","x":8,"n":1},"attack":{"f":"vfgun","x":9,"n":8}},"size":40,"mz":[[105.0,145.2],[164.9,131.0],[189.7,96.7],[164.9,62.3],[105.0,48.1]]},"vheli":{"file":"vheli","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,6]},"rows5":1,"nc":6,"v":2,"pack":{"idle":{"f":"vheli","x":0,"n":6}},"size":42,"mz":[[105.0,159.8],[158.9,147.0],[181.2,116.1],[158.9,85.2],[105.0,72.4]]},"vtank":{"file":"vtank","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,2],"idle":[2,1]},"rows5":1,"nc":3,"v":2,"pack":{"walk":{"f":"vtank","x":0,"n":2},"idle":{"f":"vtank","x":2,"n":1}},"size":50,"tt":{"cw":174,"ch":112,"cx":87.0,"tur":[[87.0,60.7,87.0,107.5],[84.7,60.8,103.7,106.6],[82.5,61.2,119.8,103.8],[80.4,61.9,134.6,99.2],[78.6,62.7,147.6,93.1],[77.1,63.7,158.3,85.7],[76.0,64.9,166.2,77.2],[75.4,66.2,171.0,67.9],[75.1,67.5,172.7,58.4],[75.4,68.8,171.0,48.8],[76.0,70.1,166.2,39.5],[77.1,71.3,158.3,31.1],[78.6,72.3,147.6,23.6],[80.4,73.2,134.6,17.5],[82.5,73.8,119.8,12.9],[84.7,74.2,103.7,10.2],[87.0,74.3,87.0,9.2]],"hull":[[105.0,85.7],[100.5,86.2],[96.6,87.7],[94.0,89.9],[93.1,92.5],[94.0,95.1],[96.6,97.3],[100.5,98.8],[105.0,99.3]]},"step":6,"rows":9},"vtrain":{"file":"vtrain","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,1]},"rows5":1,"nc":1,"v":2,"pack":{"idle":{"f":"vtrain","x":0,"n":1}},"size":64},"vtruck":{"file":"vtruck","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"vtruck","x":0,"n":8},"idle":{"f":"vtruck","x":8,"n":1}},"size":40}});
+  Object.assign(V,{"vacar":{"file":"vacar","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,4],"idle":[4,1]},"rows5":1,"nc":5,"v":2,"pack":{"walk":{"f":"vacar","x":0,"n":4},"idle":{"f":"vacar","x":4,"n":1}},"size":38,"rows":9,"tt":{"cw":86,"ch":69,"cx":43.0,"tur":[[43.0,35.7,43.0,55.8],[41.0,35.8,51.2,55.3],[39.1,36.1,59.0,54.0],[37.4,36.7,66.2,51.8],[35.8,37.4,72.6,48.8],[34.6,38.3,77.8,45.1],[33.6,39.3,81.6,41.0],[33.0,40.4,84.0,36.5],[32.8,41.5,84.8,31.8],[33.0,42.7,84.0,27.1],[33.6,43.8,81.6,22.6],[34.6,44.8,77.8,18.5],[35.8,45.6,72.6,14.8],[37.4,46.4,66.2,11.9],[39.1,46.9,59.0,9.6],[41.0,47.2,51.2,8.3],[43.0,47.4,43.0,7.8]],"hull":[[105.0,52.7],[101.1,53.1],[97.8,54.4],[95.6,56.3],[94.8,58.5],[95.6,60.8],[97.8,62.6],[101.1,63.9],[105.0,64.4]]},"step":1.6},"varty":{"file":"varty","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,8]},"rows5":1,"nc":17,"v":2,"pack":{"walk":{"f":"varty","x":0,"n":8},"idle":{"f":"varty","x":8,"n":1},"attack":{"f":"varty","x":9,"n":8}},"size":56,"mz":[[105.0,86.0],[163.0,70.0],[185.0,40.0],[163.0,6.0],[105.0,4.0]]},"vatgun":{"file":"vatgun","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,6]},"rows5":1,"nc":15,"v":2,"pack":{"walk":{"f":"vatgun","x":0,"n":8},"idle":{"f":"vatgun","x":8,"n":1},"attack":{"f":"vatgun","x":9,"n":6}},"size":46,"mz":[[105.0,142.5],[164.9,128.2],[189.7,93.9],[164.9,59.6],[105.0,45.3]]},"vbomber":{"file":"vbomber","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,1]},"rows5":1,"nc":1,"v":2,"pack":{"idle":{"f":"vbomber","x":0,"n":1}},"size":48},"vfgun":{"file":"vfgun","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1],"attack":[9,8]},"rows5":1,"nc":17,"v":2,"pack":{"walk":{"f":"vfgun","x":0,"n":8},"idle":{"f":"vfgun","x":8,"n":1},"attack":{"f":"vfgun","x":9,"n":8}},"size":60,"mz":[[105.0,145.2],[164.9,131.0],[189.7,96.7],[164.9,62.3],[105.0,48.1]]},"vheli":{"file":"vheli","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,6]},"rows5":1,"nc":6,"v":2,"pack":{"idle":{"f":"vheli","x":0,"n":6}},"size":42,"mz":[[105.0,159.8],[158.9,147.0],[181.2,116.1],[158.9,85.2],[105.0,72.4]]},"vtank":{"file":"vtank","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,2],"idle":[2,1]},"rows5":1,"nc":3,"v":2,"pack":{"walk":{"f":"vtank","x":0,"n":2},"idle":{"f":"vtank","x":2,"n":1}},"size":50,"tt":{"cw":174,"ch":112,"cx":87.0,"tur":[[87.0,60.7,87.0,107.5],[84.7,60.8,103.7,106.6],[82.5,61.2,119.8,103.8],[80.4,61.9,134.6,99.2],[78.6,62.7,147.6,93.1],[77.1,63.7,158.3,85.7],[76.0,64.9,166.2,77.2],[75.4,66.2,171.0,67.9],[75.1,67.5,172.7,58.4],[75.4,68.8,171.0,48.8],[76.0,70.1,166.2,39.5],[77.1,71.3,158.3,31.1],[78.6,72.3,147.6,23.6],[80.4,73.2,134.6,17.5],[82.5,73.8,119.8,12.9],[84.7,74.2,103.7,10.2],[87.0,74.3,87.0,9.2]],"hull":[[105.0,85.7],[100.5,86.2],[96.6,87.7],[94.0,89.9],[93.1,92.5],[94.0,95.1],[96.6,97.3],[100.5,98.8],[105.0,99.3]]},"step":6,"rows":9},"vtrain":{"file":"vtrain","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"idle":[0,1]},"rows5":1,"nc":1,"v":2,"pack":{"idle":{"f":"vtrain","x":0,"n":1}},"size":64},"vtruck":{"file":"vtruck","fw":210,"fh":210,"upx":169.35,"foot":132.7,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"vtruck","x":0,"n":8},"idle":{"f":"vtruck","x":8,"n":1}},"size":40}});
   const MAP={truck:'vtruck',armoredcar:'vacar',tank:'vtank',artillery:'varty',fieldgun:'vfgun',atgun:'vatgun',heli:'vheli'};
   const RM=[[2,0],[1,0],[0,0],[1,1],[2,1],[3,1],[4,0],[3,0]];
   const dirOf=u=>((Math.round((u.face||0)/(Math.PI/4))%8)+8)%8;
@@ -6250,7 +6250,7 @@ try{(function(){
     c.save();if(mir){c.translate(x,0);c.scale(-1,1);x=0}
     const sw=im.width/n,sh=im.height/(S.rows||5);c.drawImage(im,f*sw,row*sh,sw,sh,x-w/2,dy,w,h);
     if(u.flash>0){c.globalCompositeOperation='lighter';c.globalAlpha=.35;c.drawImage(im,f*sw,row*sh,sw,sh,x-w/2,dy,w,h)}c.restore();return true}
-  function muzzle(c,S,row,mir,x,y,t,big){if(!S.mz)return;const sc=S.size/S.upx,m=S.mz[row],mx=x+(mir?-1:1)*(m[0]-S.fw/2)*sc,my=y+(m[1]-S.foot)*sc,D=big?.8:.25,k=Math.min(1,t/D);
+  function muzzle(c,S,row,mir,x,y,t,big){if(!S.mz)return;const sc=S.size/S.upx,m=S.mz[row],mx=x+(mir?-1:1)*(m[0]-S.fw/2)*sc,my=y+(m[1]-S.foot)*sc,D=big?.8:.25,k=Math.min(1,t/D);if(GFX.hgMz){try{if(GFX.hgMz(c,S.file,mx,my,x,y,t))return}catch(e){}}
     c.save();const fl=big?.12:.06;if(t<fl){c.globalCompositeOperation='lighter';c.fillStyle='rgba(255,210,90,.9)';circ(c,mx,my,(big?6:3)*(1-t/fl)+2);c.fill();c.fillStyle='rgba(255,255,220,.95)';circ(c,mx,my,big?2.6:1.5);c.fill()}
     if(big){c.globalCompositeOperation='source-over';c.globalAlpha=.5*(1-k);c.fillStyle='#d8d4cc';for(let i=0;i<3;i++){circ(c,mx+(i-1)*5*k,my-3-k*10-i*2,3+k*7);c.fill()}}c.restore()}
   function draw(c,u,x,y,now){const S=V[MAP[u.type]];if(!S)return false;if(u.type==='heli')return heli(c,S,u,x,y,now);const q=track(u,x,y),D=(DEF[u.type]&&DEF[u.type].cd)||3,t=D-(u.cd||0);
@@ -6880,6 +6880,60 @@ try{(function(){if(typeof GFX==='undefined')return;GFX.PZROOM=true;GFX.PZFIG3=tr
     try{const prev=bldSpr0;bldSpr0=function(e){if(e&&e.type==='coop'){try{if(spr(e))return yard(e)}catch(err){}}return prev.apply(this,arguments)}}catch(err){}},0);
   GFX.COOPH3_DOOR=[.56,.42];GFX.COOPH3_DOOR6=[.42,.56];
 }catch(err){}})();
+
+/* ===== art chat 3: heavy guns (Josh Oct 24: "The field gun looks too small and weak for the amount of damage it makes").
+   Field gun drawn 1.5x (veh spec size 40 -> 60) (crew code in place but off: the 3D soldier drawer doesn't keep stand-in figures alive; GFX.GUNCREW=true to try),
+   anti-tank gun 1.2x (38 -> 46); artillery already tank-sized. Firing (field gun, artillery, AT gun): big two-part muzzle flash,
+   a drifting smoke cloud, dust kicked up at the wheels, a visible shell with a smoke trail, and on impact a bigger blast
+   (fireball, dirt clods, smoke ring about 1.4 tiles). No gameplay changes (built on 627c). GFX.HEAVYGUN=false = off; GFX.GUNCREW=false = no crew. ===== */
+try{(function(){if(typeof GFX==='undefined')return;GFX.HEAVYGUN=true;GFX.GUNCREW=false;
+  const BIG={fieldgun:{k:1,r:1.4},artillery:{k:1.15,r:1.6},atgun:{k:.75,r:.8}};
+  const crewT=o=>{let a=5;try{a=G.players[o].age|0}catch(e){}return a>=6&&DEF.infantry?'infantry':(DEF.rifleman?'rifleman':'infantry')};
+  const CREW=new Map();
+  function crewOf(u){let L=CREW.get(u.id);if(!L){L=[0,1].map(i=>({id:-(9e6+u.id*3+i),type:crewT(u.owner),owner:u.owner,kind:'unit',hp:1,maxHp:1,x:0,y:0,face:0,cd:0,_crew:1}));CREW.set(u.id,L)}
+    for(const m of L)m.type=crewT(u.owner);return L}
+  const FX=[];GFX._hgFX=FX;
+  const KF={vfgun:BIG.fieldgun,varty:BIG.artillery,vatgun:BIG.atgun};
+  GFX.hgMz=function(c,file,mx,my,x,y,t){const B=KF[file];if(!GFX.HEAVYGUN||!B)return false;let dx=mx-x,dy=(my-(y-14*B.k))*1.6;const dl=Math.hypot(dx,dy)||1;dx/=dl;dy/=dl;const k=Math.min(1,t/.9);c.save();
+    if(t<.14){const f=1-t/.14;c.globalCompositeOperation='lighter';const R=20*B.k*f+5;
+      const g=c.createRadialGradient(mx,my,1,mx,my,R);g.addColorStop(0,'rgba(255,245,200,.95)');g.addColorStop(.35,'rgba(255,170,60,.8)');g.addColorStop(1,'rgba(255,90,20,0)');c.fillStyle=g;c.beginPath();c.arc(mx,my,R,0,7);c.fill();
+      c.fillStyle='rgba(255,205,95,.9)';c.beginPath();c.moveTo(mx-dy*4,my+dx*2.5);c.lineTo(mx+dx*26*B.k*f,my+dy*15*B.k*f);c.lineTo(mx+dy*4,my-dx*2.5);c.closePath();c.fill()}
+    c.globalCompositeOperation='source-over';
+    for(let i=0;i<6;i++){const d=3+k*(10+i*4),s=(3.5+k*(7+i*1.8))*B.k;c.globalAlpha=.6*(1-k)*(1-i*.08);c.fillStyle=i%2?'#bdb7ab':'#dcd6ca';
+      c.beginPath();c.arc(mx+dx*d+(i-2.5)*k*4+k*5,my+dy*d*.6-k*(8+i*3),s,0,7);c.fill()}
+    c.restore();return true};
+  // crew + firing effects drawn with the gun
+  try{drawUnit=(function(prev){return function(c,u,x,y,now){
+    if(!GFX.HEAVYGUN||GFX.mode!=='V23D'||!u||u.dead||u.owner>1||!BIG[u.type]||u._crew)return prev.apply(this,arguments);
+    const a=u.face||0,ca=Math.cos(a),sa=Math.sin(a);
+    const crew=GFX.GUNCREW&&u.type==='fieldgun'&&!(u.moving&&u.order&&u.order.type==='move')?crewOf(u):null;
+    const put=(m,i)=>{const side=i?1:-1;m.x=x-ca*24+(-sa)*side*19;m.y=y-sa*13+ca*side*11+4;m.face=a;m.moving=false;m.working=false};
+    if(crew){crew.forEach(put);for(const m of crew)if(m.y<y){try{prev.call(this,c,m,m.x,m.y,now)}catch(e){}}}
+    const r=prev.apply(this,arguments);
+    if(crew){for(const m of crew)if(m.y>=y){try{prev.call(this,c,m,m.x,m.y,now)}catch(e){}}}
+    try{const D=(DEF[u.type]&&DEF[u.type].cd)||3,t=D-(u.cd||0),B=BIG[u.type];
+      if(u.cd>0&&t>=0&&t<1.6){c.save();
+        if(t<.7){const kd=t/.7;for(let i=0;i<5;i++){c.globalAlpha=.5*(1-kd);c.fillStyle='#9a8466';c.beginPath();c.arc(x-ca*(8+kd*14)+(i-2)*6,y+3-kd*4-(i%2)*2,(3+kd*6)*B.k,0,7);c.fill()}}
+        c.restore()}}catch(e){}
+    return r}})(drawUnit)}catch(e){}
+  // shells: tag shots from the heavy guns, draw the shell, blast on impact
+  const tag=(src,n)=>{if(G.projs.length>n&&src&&BIG[src.type]){const p=G.projs[G.projs.length-1];p.hg=src.type}};
+  try{const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);try{tag(src,n)}catch(e){}return r}}catch(e){}
+  try{const _sa=shootAt;shootAt=function(src){const n=G.projs.length;const r=_sa.apply(this,arguments);try{tag(src,n)}catch(e){}return r}}catch(e){}
+  const LIVE=new Map();
+  try{const _dp=drawParts;drawParts=function(c){const r=_dp.apply(this,arguments);try{if(GFX.HEAVYGUN&&GFX.mode==='V23D'){const Vv=G.vis&&G.vis[0],now=performance.now(),seen=new Set();
+      for(const p of G.projs){if(!p.hg)continue;seen.add(p);const f=Math.min(1,p.trav/p.d0),bx=p.x,by=p.y-6-Math.sin(f*Math.PI)*(p.hg==='atgun'?2:10);LIVE.set(p,[bx,by+6,p.hg]);
+        if(Vv&&!Vv[ti(tl(p.x),tl(p.y))])continue;const T=p.trl2||(p.trl2=[]);T.push([bx,by]);if(T.length>10)T.shift();
+        for(let i=0;i<T.length;i++){const q=T[i],k=i/T.length;c.fillStyle='rgba(210,205,195,'+(.4*k).toFixed(3)+')';c.beginPath();c.arc(q[0],q[1]-(1-k)*2,1+(1-k)*2.6,0,7);c.fill()}
+        c.save();c.translate(bx,by);c.rotate(Math.atan2(p.vy,p.vx));c.fillStyle='#2b2a26';c.beginPath();c.ellipse(0,0,4.2,2.2,0,0,7);c.fill();c.fillStyle='#8a7442';c.fillRect(-3.4,-1.6,1.6,3.2);c.restore()}
+      for(const [p,v] of LIVE){if(seen.has(p))continue;LIVE.delete(p);FX.push({x:v[0],y:v[1],t0:now,r:(BIG[v[2]]||BIG.fieldgun).r})}
+      for(let i=FX.length-1;i>=0;i--){const e=FX[i],k=(now-e.t0)/900;if(k>1){FX.splice(i,1);continue}if(Vv&&!Vv[ti(tl(e.x),tl(e.y))])continue;const R=e.r*TILE;c.save();
+        c.globalAlpha=.35*(1-k);c.fillStyle='#3a2c1c';c.beginPath();c.ellipse(e.x,e.y,R*.55,R*.28,0,0,7);c.fill();
+        if(k<.35){const f=1-k/.35;c.globalAlpha=1;c.globalCompositeOperation='lighter';const g=c.createRadialGradient(e.x,e.y-6,1,e.x,e.y-6,R*.5*f+6);g.addColorStop(0,'rgba(255,240,190,.95)');g.addColorStop(.4,'rgba(255,150,50,.8)');g.addColorStop(1,'rgba(200,60,10,0)');c.fillStyle=g;c.beginPath();c.arc(e.x,e.y-6,R*.5*f+6,0,7);c.fill();c.globalCompositeOperation='source-over'}
+        for(let j=0;j<8;j++){const an=j*.785+e.t0%1,dd=R*.5*Math.min(1,k*2.2),h=Math.sin(Math.min(1,k*1.6)*Math.PI)*R*.45;c.globalAlpha=1-k;c.fillStyle=j%2?'#5a4630':'#7a6244';c.fillRect(e.x+Math.cos(an)*dd-1.5,e.y+Math.sin(an)*dd*.5-h-1.5,3,3)}
+        for(let j=0;j<5;j++){const an=j*1.257,dd=R*(.15+.45*k);c.globalAlpha=.55*(1-k);c.fillStyle=j%2?'#8c857a':'#a8a196';c.beginPath();c.arc(e.x+Math.cos(an)*dd,e.y+Math.sin(an)*dd*.5-8-k*16,4+k*10,0,7);c.fill()}
+        c.restore()}}}catch(e){}return r}}catch(e){}
+})()}catch(err){}
 /* ===== END art chat 3: late ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
