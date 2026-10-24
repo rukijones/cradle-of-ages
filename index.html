@@ -12725,7 +12725,7 @@ try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,argume
     /* Josh Oct 22: with a dairy wing, the first 2 hands are the milkers in the dairy (the ones you see milking), the others work in the ranch */
     const Wd=R.wing&&G.byId.get(R.wing);if(Wd&&!Wd.dead&&Wd.built&&Wd.type==='dairy'){const busy=(Wd.gar?Wd.gar.length:0)+G.ents.filter(e=>e!==u&&!e.dead&&e.order&&e.order.type==='work'&&e.order.id===Wd.id).length;
       const milkers=L.filter(h=>h.order&&h.order.type==='work'&&h.order.id===Wd.id).length+rhMilk(R);
-      if(busy<WORK.dairy.max&&milkers<2){u.order={type:'work',id:Wd.id,rhand:1};u.path=null;return r;}}
+      if(busy<WORK.dairy.max&&milkers<(typeof rhMilkCap==='function'?rhMilkCap(R):2)){u.order={type:'work',id:Wd.id,rhand:1};u.path=null;return r;}}
     const Lr=L.filter(h=>!(h.order&&h.order.type==='work')&&!(h.gar)),j=Lr.indexOf(u);if(j>=0){const[px,py]=rhPost(R,j),dx=px-u.x,dy=py-u.y,d=Math.hypot(dx,dy);
     if(d>1.2*TILE){u.order={type:'move',x:tl(px),y:tl(py),rh:1};u.path=null;}
     else if(d>2){const st=Math.min(d,speedOf(u)*dt);u.x+=dx/d*st;u.y+=dy/d*st;u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt;}
@@ -12915,6 +12915,21 @@ try{chHtml=(function(prev){return function(b){if(b&&b.type==='ranch'&&G.rtab==='
 /* r177: Sheep tab Wool / Mutton buttons (same switch as the old Use menu: 20 s to change) */
 try{$('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act^="suse:"]');if(!b||!G)return;e.stopPropagation();const k=b.dataset.act.split(':')[1];const one=G.sel&&G.sel.length===1?G.byId.get(G.sel[0]):null;if(!one||k==='none'||!USES[one.type])return;
   if(useOf(one)!==k){one.use=k;one.useT=20;toast(DEF[one.type].name+' switching to '+useName(one).toLowerCase());panelKeyLast='';}},true)}catch(err){}
+/* ===== gameplay chat 1 r178 (Josh Oct 24: "The shephard isn't making wool"). Two causes: (1) with a dairy wing, the first 2 ranch hands
+   always went into the dairy, so a ranch with 1-2 hands had nobody left to shear; (2) a hand sent to a sheep it could not reach (other side
+   of a fence) waited forever. Now, when the ranch makes wool, one hand is kept out of the dairy for shearing (rhMilkCap), a milker is
+   called out of the dairy if needed, and a shearer gives up on a sheep it can't reach within 15 s (that sheep is skipped for a minute) and
+   can shear across a fence from 1.4 tiles. ===== */
+function rhMilkCap(R){try{const tot=rhList(R).length+rhMilk(R);if(woolOn(R)&&woolSheep(R).length)return Math.max(0,Math.min(2,tot-1));}catch(err){}return 2}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!G||!G.ents||(G._rhT=(G._rhT||0)-dt)>0)return r;G._rhT=2;
+  for(const R of G.ents){if(!woolOn(R))continue;const W=R.wing&&G.byId.get(R.wing);if(!W||W.dead||!W.gar)continue;if(rhMilk(R)<=rhMilkCap(R))continue;
+    const i=W.gar.findIndex(h=>h&&h.shep===R.id);if(i<0)continue;const h=W.gar.splice(i,1)[0];h.prevOrder=null;release(W,h);h.order=null;h.garIn=0;}
+  }catch(err){}return r}})(railTick)}catch(err){}
+try{const ws0=woolStep;woolStep=function(u,dt){try{if(u.shearS){const S=G.byId.get(u.shearS);if(S&&!S.dead){u.shW=(u.shW||0)+dt;const d=Math.hypot(S.x-u.x,S.y-u.y);
+    if(d<=TILE*1.4&&d>TILE*.9){u.shW=0;u.path=null;u.moving=false;u.working=true;u.face=Math.atan2(S.y-u.y,S.x-u.x);S.order=null;S.path=null;S.moving=false;S.wt=Math.max(S.wt||0,2);u.shT=(u.shT||0)+dt;
+      if(u.shT>=WOOL.shear){const R=G.byId.get(u.shearR);S.wool=0;if(R)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);if(R&&R.owner===0&&V0(S))G.fx.push({type:'float',x:S.x,y:S.y-20,t:1.4,text:'✂️ +1 🧶',col:'#f4ecd8'});u.shW=0;woolClear(u)}return true}
+    if(d<=TILE*.9)u.shW=0;else if(u.shW>15){S.noShear=G.t+60;u.shW=0;woolClear(u);return false}}}}catch(err){}return ws0.apply(this,arguments)}}catch(err){}
+try{const wsh=woolSheep;woolSheep=function(R){return wsh(R).filter(s=>!(s.noShear>G.t))}}catch(err){}
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
