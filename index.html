@@ -257,8 +257,8 @@ const DEF={
   longsword:{kind:'unit',needTech:'bronzework',name:'Long swordsman',plural:'Long swordsmen',hp:95,atk:12,arm:3,range:0,cd:1.25,speed:76,sight:5,r:9,cost:{f:55,g:40},time:20,age:3},
   halberdier:{kind:'unit',name:'Halberdier',plural:'Halberdiers',hp:65,atk:6,arm:1,range:0,cd:1.3,speed:76,sight:5,r:9,cost:{f:35,w:30},time:16,age:3},
   trebuchet:{kind:'unit',name:'Trebuchet',plural:'Trebuchets',hp:170,atk:70,arm:1,range:13,cd:7,speed:22,sight:13,r:15,cost:{w:260,g:200},time:45,age:3},
-  ranch:{kind:'bld',name:'Ranch',hp:350,size:7,sight:4,trains:['donkey','caravan','tradecart','ox','truck'],techs:[],cost:{w:200},time:35,age:2,walkable:1},
-  corral:{kind:'bld',name:'Corral',hp:200,size:3,sight:3,trains:['donkey','caravan','ox','truck'],cost:{w:120},time:25,age:2,walkable:1},
+  ranch:{kind:'bld',name:'Ranch',hp:350,size:7,sight:4,trains:['donkey','caravan','tradecart','ox'],techs:[],cost:{w:200},time:35,age:2,walkable:1},
+  corral:{kind:'bld',name:'Corral',hp:200,size:3,sight:3,trains:['donkey','caravan','ox'],cost:{w:120},time:25,age:2,walkable:1},
   university:{kind:'bld',name:'University',hp:450,size:3,sight:6,trains:['explorer'],techs:['surveying','printing','cartography','medicine','chemistry'],cost:{w:300,s:150,g:200},time:60,age:4},
   airfield:{kind:'bld',name:'Airfield',hp:1200,size:4,sight:7,trains:['bomber'],cost:{w:250,s:450,g:300},time:70,age:6},
   helipad:{kind:'bld',name:'Helipad',hp:500,size:2,sight:6,trains:['heli'],cost:{w:150,s:150,g:100},time:35,age:6},
@@ -269,7 +269,7 @@ const DEF={
   tesla:{kind:'bld',name:'Tesla coil',hp:700,size:2,sight:8,cost:{s:250,g:300},time:45,age:6},
   shaft:{kind:'bld',name:'Mine shaft',hp:450,size:2,sight:5,techs:['pumps'],cost:{w:200,s:100},time:45,age:4},
   station:{kind:'bld',name:'Railway station',hp:800,size:4,sight:6,cost:{w:250,s:200},time:50,age:5},
-  depot:{kind:'bld',name:'Rail depot',hp:350,size:2,sight:5,drop:1,cost:{w:150,s:60},time:30,age:5},
+  depot:{kind:'bld',name:'Rail depot',hp:350,size:2,sight:5,drop:1,trains:['truck'],cost:{w:150,s:60},time:30,age:5},
   factory:{kind:'bld',name:'Textile mill',hp:900,size:4,sight:5,techs:['steam','harvesters'],cost:{w:250,s:350},time:60,age:5},
   inn:{kind:'bld',name:'Roadside inn',hp:180,size:2,sight:6,cost:{w:120,g:60},time:30,age:3},
   pub:{kind:'bld',name:'Pub',hp:300,size:3,sight:4,cost:{w:150,s:100},time:40,age:3},
@@ -282,7 +282,7 @@ const DEF={
   market:{kind:'bld',name:'Market',hp:500,size:3,sight:5,trains:['tradecart'],techs:['banking','guilds'],cost:{w:250},time:45,age:4},
   bomber:{kind:'unit',name:'Bomber',plural:'Bombers',hp:1,atk:0,range:0,cd:9,speed:0,sight:0,r:1,cost:{w:150,g:250},time:35,age:6,pop:2},
   heli:{kind:'unit',name:'Attack helicopter',plural:'Attack helicopters',hp:300,atk:16,arm:3,range:5,cd:.6,speed:125,sight:10,r:13,cost:{w:150,g:300},time:35,age:6,pop:2,air:1},
-  truck:{kind:'unit',name:'Truck',plural:'Trucks',hp:140,atk:0,range:0,cd:2,speed:115,sight:5,r:11,cost:{w:120,g:60},time:20,age:6},
+  truck:{kind:'unit',name:'Truck',plural:'Trucks',hp:140,atk:0,range:0,cd:2,speed:115,sight:5,r:11,cost:{w:120,g:60},time:20,age:5},
   explorer:{kind:'unit',name:'Explorer',plural:'Explorers',hp:70,atk:0,range:0,cd:2,speed:70,sight:10,r:8,cost:{f:100,g:100},time:25,age:4},
   infantry:{kind:'unit',name:'Infantry',plural:'Infantry',hp:85,atk:9,arm:2,range:6,cd:.9,speed:78,sight:9,r:8,cost:{f:70,g:40},time:20,age:6},
   tank:{kind:'unit',name:'Tank',plural:'Tanks',hp:620,atk:45,arm:6,range:6,cd:2.6,speed:48,sight:8,r:15,cost:{s:180,g:220},time:40,age:6,pop:3},
@@ -1088,7 +1088,7 @@ function breadDst(b){let best=null,bd=1e9;for(const e of G.ents){if(e.owner!==b.
 function breadCarrier(b){const c=b.bcar&&G.byId.get(b.bcar);return c&&!c.dead&&c.owner===b.owner&&(c.breadB===b.id||(c.order&&c.order.type==='bread'&&c.order.bk===b.id))?c:null;}
 function breadDrop(o,amt,at){const Q=G.players[o],a=amt*(o===1?G.aiMult:1);Q.f+=a;inc(o,'f',amt,'bakery');if(o===0&&at&&V0(at))G.fx.push({type:'float',x:at.x,y:at.y-34,t:1.6,text:'+'+Math.round(a)+' food',col:'#9fd07a'});}
 function breadSend(b){if(breadCarrier(b))return;b.bcar=0;const dst=breadDst(b);if(!dst)return;b.dT=G.t;
-  let d=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.innD||u.penned||u.asgV||u.pubD||u.breadB||u.flourC||(u.order&&!u.order.auto))continue;
+  let d=null,bs=1e9;for(const u of G.ents){if(!DKOK(u)||u.owner!==b.owner||u.dead||u.raise||u.innD||u.penned||u.asgV||u.pubD||u.breadB||u.flourC||(u.order&&!u.order.auto))continue;
     if(u.bake&&(u.bake!==b.id||u.leg!=='home'))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q-(u.bake===b.id?1e6:0)+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;d=u;}}
   if(d){if(d.bake!==b.id){const v=d.buddy&&G.byId.get(d.buddy);if(v&&v.donkey===d.id)v.donkey=0;d.buddy=0;d.home=0;}d.order=null;d.path=null;d.breadB=b.id;d.breadC=0;d.bto=dst.id;d.bleg='load';d.bnf=0;b.bcar=d.id;return;}
   if(b.gar&&b.gar.length){const u=b.gar.shift();release(b,u);u.sheltered=false;u.breadC=b.fstock;b.fstock=0;bEv(b,'trip');u.order={type:'bread',bk:b.id,to:dst.id};u.path=null;b.bcar=u.id;return;}
@@ -1139,7 +1139,7 @@ function innPub(b,min){let best=null,bd=1e9;for(const e of G.ents)if(e.type==='p
 function innDonkeyOf(b){const d=b.donk&&G.byId.get(b.donk);return d&&!d.dead&&d.owner===b.owner&&d.innD===b.id?d:null;}
 function innSupply(b,dt){if(!b.built)return;let d=innDonkeyOf(b);if(!d)b.donk=0;if(d)return;b.dscan=(b.dscan||0)-dt;if(b.dscan>0)return;b.dscan=3;
   if((b.beer||0)>=8||!innPub(b,2))return;let best=null,bs=1e9;
-  for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.raise||u.bake||u.innD||u.penned||u.asgV||u.pubD||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>70*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
+  for(const u of G.ents){if(!DKOK(u)||u.owner!==b.owner||u.dead||u.raise||u.bake||u.innD||u.penned||u.asgV||u.pubD||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>70*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
   if(!best){if(b.owner===0&&G.t-(b.noDk||-99)>90){b.noDk=G.t;toast('Your roadside inn needs a pack donkey to bring beer from the pub. Train one at the ranch');}return;}
   const v=best.buddy&&G.byId.get(best.buddy);if(v&&v.donkey===best.id)v.donkey=0;best.buddy=0;best.home=0;best.order=null;best.path=null;best.innD=b.id;best.ileg='home';best.beerC=0;b.donk=best.id;}
 function donkeyInn(u,dt){const b=G.byId.get(u.innD);
@@ -1171,7 +1171,7 @@ function bakeRunner(b){const r=b.runner&&G.byId.get(b.runner);return r&&!r.dead&
 function bakeryHaul(b,dt){b.flour=b.flour||0;if(b.trip){const t=b.trip;t.t+=dt;if(t.t>=t.dur){b.flour+=t.amt;b.trip=null;}return;}
   {const cm=chuteMill(b);b.chute=cm?cm.id:0;if(cm){const dk=bakeDonkey(b);if(dk){if(dk.flourC){b.flour+=dk.flourC;dk.flourC=0;}dk.bake=0;dk.leg=0;}b.donk=0;b.runner=0;const a=Math.min(cm.flour||0,Math.max(0,80-b.flour),20*dt);if(a>0){cm.flour-=a;b.flour+=a;}return;}}
   let d=bakeDonkey(b);if(!d)b.donk=0;
-  if(!d){b.dscan=(b.dscan||0)-dt;if(b.dscan<=0){b.dscan=2;let best=null,bs=1e9;for(const u of G.ents){if(u.type!=='donkey'||u.owner!==b.owner||u.dead||u.bake||u.innD||u.penned||u.asgV||u.pubD||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
+  if(!d){b.dscan=(b.dscan||0)-dt;if(b.dscan<=0){b.dscan=2;let best=null,bs=1e9;for(const u of G.ents){if(!DKOK(u)||u.owner!==b.owner||u.dead||u.bake||u.innD||u.penned||u.asgV||u.pubD||(u.order&&!u.order.auto))continue;const q=Math.hypot(u.x-b.x,u.y-b.y);if(q>40*TILE)continue;const sc=q+(u.buddy?20*TILE:0);if(sc<bs){bs=sc;best=u;}}
     if(best){const v=best.buddy&&G.byId.get(best.buddy);if(v&&v.donkey===best.id)v.donkey=0;best.buddy=0;best.order=null;best.path=null;best.bake=b.id;best.leg='home';best.flourC=0;b.donk=best.id;d=best;}}}
   if(d){b.runner=0;return;}
   if(!bakeRunner(b))b.runner=0;
@@ -1519,7 +1519,7 @@ function updUnit(u,dt){
     if(!tg&&u.ammo>0){let best=null,bd=d.sight*TILE;for(const e of G.ents){if(e.dead||e.owner===u.owner||e.owner>1||e.owner<0||e.kind!=='unit'||LIVE[e.type]||e.type==='deer')continue;const q=Math.hypot(e.x-u.x,e.y-u.y);if(q<bd){bd=q;best=e;}}if(best){tg=best;u.order={type:'attack',id:best.id,auto:true};}}
     if(tg&&u.ammo>0){const rr=rangeOf(u)*TILE+(tg.r||0)+(tg.kind==='bld'?tg.size*TILE/2:0);if(fly(tg.x,tg.y,rr*.9)&&u.cd<=0){shoot(u,tg,hitAmt(u,tg),'bullet');u.cd=d.cd;u.ammo--;}}
     return;}
-  if(u.type==='truck'&&u.owner<2){u.load=u.load||{};const tot=Object.values(u.load).reduce((a,v)=>a+v,0);u.scan=(u.scan||0)-dt;
+  if(u.type==='truck'&&u.owner<2&&TRJOB(u)){u.park=null;u.parked=false;}if(u.type==='truck'&&u.owner<2&&!TRJOB(u)){u.load=u.load||{};const tot=Object.values(u.load).reduce((a,v)=>a+v,0);u.scan=(u.scan||0)-dt;
     if(u.haul){const d=G.byId.get(u.haul);if(!d||d.dead)u.haul=0;else{const r=approach(u,d,TILE*1.2);if(r===true){const P=G.players[u.owner];let sum=0;for(const k in u.load){P[k]+=u.load[k]*(u.owner===1?G.aiMult:1);sum+=u.load[k];}u.load={};u.loadT=0;u.haul=0;u.park=null;u.parked=false;if(u.owner===0&&sum>=1&&V0(d))G.fx.push({type:'float',x:d.x,y:d.y-30,t:1.6,text:'+'+Math.round(sum)+' by truck',col:'#cfe8ff'});}else if(r==='fail')u.haul=0;return;}}
     if(tot>=150||(tot>0&&u.loadT&&G.t-u.loadT>40)){const home=G.ents.filter(e=>e.owner===u.owner&&e.built&&!e.dead&&(e.type==='storage'||e.type==='towncenter')).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y))[0];if(home){u.haul=home.id;u.path=null;u.parked=false;return;}}
     if(u.scan<=0){u.scan=3;const sh=G.ents.find(e=>e.type==='shaft'&&e.owner===u.owner&&!e.dead&&e.stock&&Object.values(e.stock).reduce((a,v)=>a+v,0)>=40&&!G.ents.some(t=>t!==u&&t.type==='truck'&&t.park&&t.park.shaft===e.id));
@@ -1548,10 +1548,10 @@ function updUnit(u,dt){
       for(const e of G.ents){if(e.owner!==u.owner||e.kind!=='bld'||!e.built||e.dead)continue;let v=e.ware?Object.values(e.ware).reduce((a,x)=>a+x,0):0;if(e.type==='pub')v+=Math.max(0,(e.beer||0)-15);
         if(v>bv&&!G.ents.some(c=>c!==u&&(c.type==='caravan'||c.type==='tradecart')&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
       if(best){u.cv={leg:'load',id:best.id};u.path=null;return;}}if(!TCv)return;}}
-  if(u.type==='donkey'&&u.owner<2&&u.breadB&&donkeyBread(u,dt))return;
-  if(u.type==='donkey'&&u.owner<2&&u.pubD&&donkeyPub(u,dt))return;
-  if(u.type==='donkey'&&u.owner<2&&u.innD&&donkeyInn(u,dt))return;
-  if(u.type==='donkey'&&u.owner<2&&u.bake&&donkeyBake(u,dt))return;
+  if((u.type==='donkey'||u.type==='truck')&&u.owner<2&&u.breadB&&donkeyBread(u,dt))return;
+  if((u.type==='donkey'||u.type==='truck')&&u.owner<2&&u.pubD&&donkeyPub(u,dt))return;
+  if((u.type==='donkey'||u.type==='truck')&&u.owner<2&&u.innD&&donkeyInn(u,dt))return;
+  if((u.type==='donkey'||u.type==='truck')&&u.owner<2&&u.bake&&donkeyBake(u,dt))return;
   if(u.type==='donkey'&&MPHU(u.owner)&&u.asgV&&!u.raise){if(u.order&&!u.order.auto)u.asgV=0;else{const v=G.byId.get(u.asgV);if(!v||v.dead||v.owner!==u.owner)u.asgV=0;else{v.donkey=u.id;u.buddy=v.id;v.idleT=0;u.scan=(u.scan||0)-dt;const d=Math.hypot(v.x-u.x,v.y-u.y);
     if(d>1.3*TILE&&(u.scan<=0||!u.path||!u.path.length)){u.scan=.8;u.order=null;orderMove([u],v.x-Math.cos(v.face)*16,v.y-Math.sin(v.face)*10);if(u.order)u.order.auto=true;}else if(d<=1.3*TILE&&u.order&&u.order.auto){u.order=null;u.path=null;}
     if(!(u.order&&u.order.type==='move'))return;}}}
@@ -1798,8 +1798,8 @@ function smelterTick(b,dt){const n=b.gar?b.gar.length:0;b.working=n>0;b.stall=''
   const P=G.players[b.owner];P.b=(P.b||0)+amt*(b.owner===1?G.aiMult:1);if(Math.random()<dt*2)emit('spark',b.x+6,b.y-4,1,'#ffb24a');}
 function dairyTick(b,dt){const P=G.players[b.owner],herd=G.ents.filter(e=>e.type==='cow'&&e.owner===b.owner&&!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<5*TILE),adults=herd.filter(e=>!youngOf(e)),healthy=adults.filter(e=>!e.sick);
   b.flock=herd.length;b.sickN=herd.filter(e=>e.sick).length;b.cowsA=adults.length;
-  const hay=BON(b.owner).hay;if(healthy.length>=2&&herd.length<8){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.08*dt);b.breedT=(b.breedT||0)+dt*(hay?1.3:1);b.hayless=false;}else b.hayless=true;}
-  if(b.breedT>=60){b.breedT=0;if(healthy.length>=2&&herd.length<8){const ex=exitTile(b,tl(b.x),tl(b.y)+3,(Math.random()*8)|0);const cf=mkUnit('cow',b.owner,(ex.x+.5)*TILE,(ex.y+.5)*TILE);cf.born=G.t;cf.dairyId=b.id;if(b.owner===0&&G.t-(G.lastCalfMsg||-99)>30){G.lastCalfMsg=G.t;toast('A calf was born at your dairy');}}}
+  const hay=BON(b.owner).hay;if(healthy.length>=2&&(herd.length<COWCAP(b)||P.age>=5)){if(hay||P.w>0){if(!hay)P.w=Math.max(0,P.w-.08*dt);b.breedT=(b.breedT||0)+dt*(hay?1.3:1);b.hayless=false;}else b.hayless=true;}
+  if(b.breedT>=60){b.breedT=0;if(healthy.length>=2&&herd.length>=COWCAP(b)&&P.age>=5){leatherCull(b,healthy);}else if(healthy.length>=2&&herd.length<COWCAP(b)){const ex=exitTile(b,tl(b.x),tl(b.y)+3,(Math.random()*8)|0);const cf=mkUnit('cow',b.owner,(ex.x+.5)*TILE,(ex.y+.5)*TILE);cf.born=G.t;cf.dairyId=b.id;if(b.owner===0&&G.t-(G.lastCalfMsg||-99)>30){G.lastCalfMsg=G.t;toast('A calf was born at your dairy');}}}
   b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(herd.length>=4&&!b.sickN&&sickOK(b.owner)&&Math.random()<.3*(.06+herd.length*.01)*(G.players[b.owner].tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;sc.sickB=b.id;G.players[b.owner].sickT=G.t;if((MPHU(b.owner))&&MPTW(b.owner)){sickAlarm();toast('A cow is sick! Tap it, then tap Give medicine (25 gold) within 2 minutes or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
   for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>SICK_SPREAD&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if((MPHU(b.owner))&&MPTW(b.owner)){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>SICK_DIE){for(const e of herd){e.diseased=1;kill(e);}if((MPHU(b.owner))&&MPTW(b.owner))toast('Disease wiped out your herd');break;}}
   const n=b.gar?b.gar.length:0,milked=Math.min(n*3,healthy.length);b.milked=milked;b.stall=n&&!healthy.length?'No healthy adult cows to milk':'';
@@ -2235,7 +2235,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(age>=4&&!has('market')&&ok('market'))T('market',0,5);
   else if(age>=4&&!has('university')&&ok('university')&&vills.length>24)T('university',0,6);
   else if(age>=5&&!has('station')&&ok('station'))T('station',0,5);
-  else if(age>=5&&!has('factory')&&ok('factory'))T('factory',0,6);
+  else if(age>=5&&!has('depot')&&ok('depot'))T('depot',0,4);   else if(age>=5&&!has('factory')&&ok('factory'))T('factory',0,6);
   else if(age>=6&&!has('power')&&ok('power'))T('power',0,7);
   else if(age>=6&&ok('tesla')&&G.ents.filter(e=>e.owner===o&&e.type==='tesla'&&!e.dead).length<2&&P.s>300&&P.g>350)T('tesla',0,4);
   else if(age>=2&&!has('corral')&&!has('ranch')&&ok('ranch')&&vills.length>=16)T('ranch',0,6);
@@ -2265,7 +2265,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   for(const f of G.ents)if(f.type==='farm'&&f.owner===o&&f.fallow&&!f.dead&&P.w>=60)replantFarm(f);
   {const bk=bld('bakery');if(bk){if(bk.queue.length===0&&age>=4&&!P.tech.grandbake&&P.g>300&&P.w>300)enqueue(bk,'grandbake');else if(age>=5&&!bk.steam&&!bk.steamOf&&bk.built&&P.g>400&&P.s>350&&canAfford(P,STEAM_COST)){pay(P,STEAM_COST);bk.steam=true;bk.sgrp={k:'steam',ids:[bk.id],anchor:bk.id,x0:bk.tx,y0:bk.ty,x1:bk.tx+bk.size,y1:bk.ty+bk.size};}if(bld('market'))bk.exp=50;}}
   {const cor=bld('ranch')||bld('corral');if(cor&&age>=2&&age<4&&cor.queue.length===0&&(bld('pen')||bld('dairy')||(bld('ranch')&&P.tech.dairyfarm))&&mine.filter(u=>u.type==='caravan').length<2&&P.f>200)enqueue(cor,'caravan');}
-  {const cor=bld('ranch')||bld('corral');if(age>=6&&cor&&cor.queue.length===0&&mine.filter(u=>u.type==='truck').length<3)enqueue(cor,'truck');}
+  {const dp=bld('depot');if(age>=5&&dp&&dp.queue.length===0&&mine.filter(u=>u.type==='truck').length<4)enqueue(dp,'truck');}
   const mkt=bld('market');if(mkt&&mkt.queue.length<1&&mine.filter(u=>u.type==='tradecart').length<(PS.name==='Expander'||PS.name==='Boomer'?5:3))enqueue(mkt,'tradecart');
   const dk=bld('dock');if(dk&&dk.queue.length<1&&mine.filter(u=>u.type==='fishboat').length<3)enqueue(dk,'fishboat');
   for(const bt of mine)if(bt.type==='fishboat'&&!bt.order){const f=nearestRes('fish',bt.x,bt.y,40*TILE);if(f)orderGather(bt,f);}
@@ -11714,8 +11714,8 @@ try{swOff=(function(prev){return function(R){const L=prev.apply(this,arguments);
    your nearest free donkey to the market; when the cart is ready the donkey is hitched to it (it becomes the cart). No free donkey =
    no cart (the market says so). The computer is not limited this way. ===== */
 try{DEF.ranch.trains=DEF.ranch.trains.filter(k=>k!=='tradecart')}catch(err){}
-const cartFree=d=>d&&d.type==='donkey'&&!d.dead&&!d.raise&&!d.cartFor&&!d.asgV&&!d.pubD&&!d.bake&&!d.innD&&!d.breadB;
-try{enqueue=(function(prev){return function(b,k){if(k!=='tradecart'||!b||b.type!=='market'||!MPHU(b.owner))return prev.apply(this,arguments);
+const cartFree=d=>d&&DKOK(d)&&!d.dead&&!d.raise&&!d.cartFor&&!d.asgV&&!d.pubD&&!d.bake&&!d.innD&&!d.breadB;
+try{enqueue=(function(prev){return function(b,k){if(k!=='tradecart'||!b||b.type!=='market'||!MPHU(b.owner)||G.players[b.owner].age>=5)return prev.apply(this,arguments);
   const ds=G.ents.filter(d=>d.owner===b.owner&&cartFree(d)).sort((a,c)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(c.x-b.x,c.y-b.y));
   if(!ds.length){if(MPTW(b.owner))toast('🫏 A trade cart needs a pack donkey to pull it. Train one at a ranch first');return false}
   const r=prev.apply(this,arguments);if(!r)return r;const d=ds[0];try{donkFree(d)}catch(e){}d.cartFor=b.id;d.home=0;d.penned=0;d.order={type:'move',x:b.tx+1,y:b.ty+b.size,cart:1};d.path=null;
@@ -12933,7 +12933,7 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
       if(free.length){const ws=woolSheep(R).filter(s=>s.wool>=1&&!busy.has(s.id));for(const h of free){if(!ws.length)break;ws.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));const s=ws.shift();h.shearS=s.id;h.shearR=R.id;h.shT=0;busy.add(s.id);}}}
     const car=R.wcar&&G.byId.get(R.wcar);if(car&&!car.dead&&car.woolR===R.id)continue;R.wcar=0;
     if(R.woolB<1||!(R.woolB>=WOOL.trip||G.t-(R.wlT||0)>90))continue;const D=woolDst(R);if(!D)continue;
-    let c=null,bd=40*TILE;for(const d of G.ents){if(d.type!=='donkey'||d.owner!==R.owner||d.dead||d.woolR||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
+    let c=null,bd=40*TILE;for(const d of G.ents){if(!DKOK(d)||d.owner!==R.owner||d.dead||d.woolR||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
     if(!c)c=rhList(R).find(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR)||null;
     if(c){c.woolR=R.id;c.wleg='load';c.woolC=0;c.wnf=0;R.wcar=c.id;R.wlT=G.t;if(c.order&&c.order.auto){c.order=null;c.path=null}}}
   }catch(err){}return r}})(railTick)}catch(err){}
@@ -13049,6 +13049,54 @@ try{const ag=()=>{try{return G.players[0].age|0}catch(e){return 0}};
 }catch(err){}
 setTimeout(()=>{try{const prev=bldSpr0;bldSpr0=function(e){if(e&&e.type==='barracks'&&GFX.armySpr){try{if(G.players[e.owner].age>=5){const sp=GFX.armySpr(Object.assign({},e,{type:'armybase',size:3}));if(sp)return sp}}catch(err){}}return prev.apply(this,arguments)}}catch(err){}},0);
 try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{const P=G.players[0];if(P&&!P.slRange&&G.ents.some(e=>e.owner===0&&e.type==='range'&&e.built&&!e.dead)){P.slRange=1;if(G.t>5)toast('Slingers now train at the Archery range');}}catch(err){}return r}})(railTick)}catch(err){}
+
+/* ===== r180 Industrial logistics (Josh, Oct 24): no pack animals in the Industrial Age.
+   On reaching the Industrial Age every donkey, caravan and ox is sold (15 / 30 / 20 gold) and the ranch stops training them.
+   Trucks are built at the rail depot and take over the donkeys' jobs (flour to the bakery, bread to the market, wool to the
+   textile mill, inn beer) on top of parking by far-off workers and hauling from mine shafts. Trade carts no longer need a donkey
+   and are drawn as trucks. ===== */
+function DKOK(u){return !!u&&(u.type==='donkey'||(u.type==='truck'&&u.owner<2&&!u.dead&&!u.haul&&!(u.load&&Object.keys(u.load).some(k=>u.load[k]>0))))}
+function TRJOB(u){return !!(u.breadB||u.pubD||u.innD||u.bake||u.woolR||u.cartFor)}
+const RETIRE_G={donkey:15,caravan:30,ox:20};
+try{RETIRE.donkey=5;RETIRE.ox=5;}catch(err){}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{G._retS=(G._retS||0)-dt;if(G._retS<=0){G._retS=1.5;
+  for(let o=0;o<2;o++){const P=G.players[o];if(!P||P.age<5)continue;let g=0,n=0;
+    for(const u of G.ents){if(u.owner!==o||u.dead||!RETIRE_G[u.type])continue;
+      try{donkFree(u)}catch(e){}try{corralFree(u)}catch(e){}if(u.cartFor){u.cartFor=0}
+      u.dead=true;g+=RETIRE_G[u.type];n++;try{G.sel=G.sel.filter(i=>i!==u.id)}catch(e){}}
+    for(const b of G.ents){if(b.owner!==o||b.dead||!b.queue||!b.queue.length)continue;const keep=[];for(const q of b.queue){if(RETIRE_G[q]){try{refund(P,itemOf(q).cost)}catch(e){}}else keep.push(q)}if(keep.length!==b.queue.length){b.queue=keep;if(!keep.length)b.trainT=0}}
+    if(n){P.g+=g;if(o===0)toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the rail depot do the hauling now');}}}
+}catch(err){}return r}})(railTick)}catch(err){}
+try{const ag=o=>{try{return G.players[o==null?0:o].age|0}catch(e){return 0}};
+  Object.defineProperty(DEF.tradecart,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade truck':'Trade cart'},set(v){}});
+  Object.defineProperty(DEF.tradecart,'plural',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade trucks':'Trade carts'},set(v){}});
+  drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='tradecart'&&u.owner<2&&ag(u.owner)>=5&&typeof drawTruck==='function'){try{return drawTruck(c,u,x,y,now)}catch(err){}}return prev.apply(this,arguments)}})(drawUnit);
+  toast=(function(prev){return function(m){try{if(typeof m==='string'&&ag(0)>=5){m=m.replace(/Train one at the ranch|Train one at a ranch( first)?/g,'Build a truck at the rail depot').replace(/a pack donkey/g,'a truck').replace(/A pack donkey/g,'A truck').replace(/pack donkeys/g,'trucks')}}catch(e){}return prev.apply(this,[m].concat([].slice.call(arguments,1)))}})(toast);
+}catch(err){}
+
+/* ===== r181 leather + bigger pens (Josh, Oct 24). Industrial Age: a dairy herd holds 12 cows (was 8) and a ranch 12 sheep (was 8;
+   sheep wings 15 each, was 10). When the herd is full, every breeding cycle (60 s) the oldest cow becomes a leather bale stored at
+   the dairy. A free truck carries the bales to the textile mill, where each bale counts as 2 wool (leather goods). ===== */
+function COWCAP(b){try{return G.players[b.owner].age>=5?12:8}catch(e){return 8}}
+function leatherCull(b,healthy){const ad=healthy.slice().sort((a,c)=>(a.born||0)-(c.born||0)||a.id-c.id);const cw=ad[0];if(!cw)return;
+  cw.dead=true;try{G.sel=G.sel.filter(i=>i!==cw.id)}catch(e){}b.leatherB=Math.min(12,(b.leatherB||0)+1);
+  if(b.owner===0&&V0(b))G.fx.push({type:'float',x:cw.x,y:cw.y-20,t:1.6,text:'🟤 +1 leather',col:'#d9a066'});}
+try{sheepCap=(function(prev){return function(b){const n=prev.apply(this,arguments);try{if(G.players[b.owner].age>=5)return Math.round(n*1.5)}catch(e){}return n}})(sheepCap)}catch(err){}
+function lthDst(o){return G.ents.find(e=>e.type==='factory'&&e.owner===o&&e.built&&!e.dead)||null}
+function lthClear(u){const R=G.byId.get(u.lthR);if(u.lthC&&R&&!R.dead)R.leatherB=(R.leatherB||0)+u.lthC;if(R&&R.lcar===u.id)R.lcar=0;u.lthR=0;u.lthC=0;u.lleg=0;u.lnf=0}
+function lthStep(u,dt){const R=G.byId.get(u.lthR);if(!R||R.dead||R.owner!==u.owner){u.lthC=0;lthClear(u);return false}
+  if(u.lleg==='load'){const r=approach(u,R,TILE*1.4);if(r==='fail'){if(++u.lnf>=4){lthClear(u);return false}u.path=null;return true}if(r!==true)return true;
+    const take=Math.min(6,Math.floor(R.leatherB||0));if(!take||!lthDst(u.owner)){lthClear(u);return false}R.leatherB-=take;u.lthC=take;u.lleg='go';u.lnf=0;u.path=null;return true}
+  const D=lthDst(u.owner);if(!D){lthClear(u);return false}const r=approach(u,D,TILE*1.4);if(r==='fail'){if(++u.lnf>=4){lthClear(u);return false}u.path=null;return true}if(r!==true)return true;
+  D.wool=(D.wool||0)+u.lthC*2;D.leatherIn=(D.leatherIn||0)+u.lthC;if(u.owner===0&&V0(D))G.fx.push({type:'float',x:D.x,y:D.y-30,t:1.6,text:'+'+u.lthC+' 🟤 leather',col:'#d9a066'});u.lthC=0;lthClear(u);return true}
+try{const tj=TRJOB;TRJOB=function(u){return tj(u)||!!u.lthR}}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.lthR&&u.owner<2){if(u.order&&!u.order.auto){lthClear(u)}else{try{if(lthStep(u,dt))return}catch(err){lthClear(u)}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{G._lthS=(G._lthS||0)-dt;if(G._lthS<=0){G._lthS=2;
+  for(const R of G.ents){if(R.type!=='dairy'||R.dead||!R.built||R.owner>1||!(R.leatherB>=1))continue;const car=R.lcar&&G.byId.get(R.lcar);if(car&&!car.dead&&car.lthR===R.id)continue;R.lcar=0;
+    if(!(R.leatherB>=3||G.t-(R.llT||0)>60))continue;if(!lthDst(R.owner))continue;
+    let c=null,bd=1e18;for(const t of G.ents){if(t.type!=='truck'||t.owner!==R.owner||t.dead||!DKOK(t)||TRJOB(t)||(t.order&&!t.order.auto))continue;const q=Math.hypot(t.x-R.x,t.y-R.y);if(q<bd){bd=q;c=t}}
+    if(c){c.lthR=R.id;c.lleg='load';c.lthC=0;c.lnf=0;c.park=null;c.parked=false;c.order=null;c.path=null;R.lcar=c.id;R.llT=G.t;}}}
+}catch(err){}return r}})(railTick)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
