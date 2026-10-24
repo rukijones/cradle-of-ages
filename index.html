@@ -14519,6 +14519,21 @@ try{(function(){if(typeof GFX==='undefined')return;const U={"h0": "data:image/we
     c.drawImage(I[d+a],dx,dy,bw,dh);if(k>0&&b!==a){c.globalAlpha*=k;c.drawImage(I[d+b],dx,dy,bw,dh)}c.restore();return true};
 })()}catch(err){}
 /* ===== END art chat 1: long farm ===== */
+/* ===== art chat 1: windmill shadow (Oct 14 ask). The tower's shadow comes from the shared shadow layer; the 3D sails (GFX._millSails,
+   16 frames) now cast their own soft shadow every frame, turning with the sails, same light direction as the buildings. GFX.MILLSH=false = off. ===== */
+try{(function(){if(typeof GFX==='undefined'||typeof shadowLayer!=='function')return;const SIL=[];let SRC=null;
+  const sil=(im,f,n)=>{if(SRC!==im){SRC=im;SIL.length=0}if(SIL[f])return SIL[f];const fw=im.width/n,fh=im.height,k=.5,c=document.createElement('canvas');c.width=Math.ceil(fw*k)+8;c.height=Math.ceil(fh*k)+8;
+    const g=c.getContext('2d');g.filter='blur(1.4px)';g.drawImage(im,f*fw,0,fw,fh,4,4,fw*k,fh*k);g.filter='none';g.globalCompositeOperation='source-in';g.fillStyle='#0d1408';g.fillRect(0,0,c.width,c.height);c._k=k;return SIL[f]=c};
+  const _sl=shadowLayer;shadowLayer=function(c){_sl.apply(this,arguments);try{if(GFX.MILLSH===false||GFX.mode!=='V23D')return;const im=GFX._millSails;if(!im||!im.complete||!im.naturalWidth||!GFX.millInfo)return;
+    const vx=cam.x,vy=cam.y,vw=W/cam.z,vh=H/cam.z;
+    for(const e of G.ents){if(e.type!=='mill'||e.dead||!e.built)continue;if(e.owner!==0&&!G.exp[0][ti(e.tx,e.ty)])continue;if(e.x<vx-200||e.x>vx+vw+300||e.y<vy-250||e.y>vy+vh+300)continue;
+      const M=GFX.millInfo(e.size);if(!M||!M.w)continue;const n=16,f=Math.floor((e._ma||0)/90*n)%n,s=sil(im,f,n),S=(e.size||3)*TILE;
+      const x0=e.tx*TILE-M.dx,y0=e.ty*TILE-M.ov,base=M.ov+S*.8,k=s._k*(im.width/n)/M.w,pad=4/k;
+      c.save();c.globalAlpha=.32;c.translate(x0,y0+base);c.transform(1,0,-.95,-.34,0,0);
+      c.beginPath();c.rect(-pad,-base,M.w+2*pad,base);c.clip();c.drawImage(s,0,0,s.width,s.height,-pad,-base-pad,M.w+2*pad,(s.height/k));c.restore()}
+  }catch(err){}};
+})()}catch(err){}
+/* ===== END art chat 1: windmill shadow ===== */
 
 window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
