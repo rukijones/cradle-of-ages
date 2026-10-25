@@ -14830,7 +14830,7 @@ try{(function(){if(typeof GFX==='undefined')return;const U={"t0": "data:image/we
   const prevF=GFX.drawFarm;
   // built farms + ghost: draw the whole joined field once per frame (fields are flat, so drawing it with its first farm is safe)
   try{drawBuilding=(function(prev){return function(c,e,now){if(e&&e.type==='farm'&&e.built&&on()){fmap();const g=GR.get(FM.get(key(e.tx,e.ty)));if(g){if(g.t!==now){g.t=now;const B=gbox(g);cliffCut(c,B[0],B[1],B[2],B[3],cc=>drawGroup(cc,g))}return}}return prev.apply(this,arguments)}})(drawBuilding)}catch(err){}
-  GFX.drawFarm=function(c,x0,y0,S,f){if(!on())return prevF.apply(this,arguments);fmap();
+  GFX.drawFarm=function(c,x0,y0,S,f){if(!on()||!G||!G.ents)return prevF.apply(this,arguments);/* r187: no game yet (start-up thumbnails) */fmap();
     const tx=Math.round(x0/TILE),ty=Math.round(y0/TILE),e=FM.get(key(tx,ty));
     if(e&&e.ghost){const g=GR.get(e);if(g&&g.m.length>1)return true;}   // joined ghost was drawn with its field
     // lone ghost / unbuilt farm: a single diamond
