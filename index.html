@@ -269,7 +269,7 @@ const DEF={
   pylon:{kind:'bld',name:'Pylon',hp:150,size:1,sight:3,cost:{w:40,s:40},time:10,age:6},
   tesla:{kind:'bld',name:'Tesla coil',hp:700,size:2,sight:8,cost:{s:250,g:300},time:45,age:6},
   shaft:{kind:'bld',name:'Mine shaft',hp:450,size:2,sight:5,techs:['pumps'],cost:{w:200,s:100},time:45,age:4},
-  station:{kind:'bld',name:'Railway station',trains:['truck'],hp:800,size:4,sight:6,cost:{w:250,s:200},time:50,age:5},
+  station:{kind:'bld',name:'Logistics hub',trains:['truck'],hp:800,size:4,sight:6,cost:{w:250,s:200},time:50,age:5},
   depot:{kind:'bld',name:'Rail stop',hp:350,size:2,sight:5,drop:1,cost:{w:150,s:60},time:30,age:5},
   factory:{kind:'bld',name:'Textile mill',hp:900,size:4,sight:5,techs:['steam','harvesters'],cost:{w:250,s:350},time:60,age:5},
   inn:{kind:'bld',name:'Roadside inn',hp:180,size:2,sight:6,cost:{w:120,g:60},time:30,age:3},
@@ -13197,13 +13197,13 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
       try{donkFree(u)}catch(e){}try{corralFree(u)}catch(e){}if(u.cartFor){u.cartFor=0}
       u.dead=true;g+=RETIRE_G[u.type];n++;try{G.sel=G.sel.filter(i=>i!==u.id)}catch(e){}}
     for(const b of G.ents){if(b.owner!==o||b.dead||!b.queue||!b.queue.length)continue;const keep=[];for(const q of b.queue){if(RETIRE_G[q]){try{refund(P,itemOf(q).cost)}catch(e){}}else keep.push(q)}if(keep.length!==b.queue.length){b.queue=keep;if(!keep.length)b.trainT=0}}
-    if(n){P.g+=g;if(o===0)toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the railway station do the hauling now');}}}
+    if(n){P.g+=g;if(o===0)toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the logistics hub do the hauling now');}}}
 }catch(err){}return r}})(railTick)}catch(err){}
 try{const ag=o=>{try{return G.players[o==null?0:o].age|0}catch(e){return 0}};
   Object.defineProperty(DEF.tradecart,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade truck':'Trade cart'},set(v){}});
   Object.defineProperty(DEF.tradecart,'plural',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade trucks':'Trade carts'},set(v){}});
   drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='tradecart'&&u.owner<2&&ag(u.owner)>=5&&typeof drawTruck==='function'){try{return drawTruck(c,u,x,y,now)}catch(err){}}return prev.apply(this,arguments)}})(drawUnit);
-  toast=(function(prev){return function(m){try{if(typeof m==='string'&&ag(0)>=5){m=m.replace(/Train one at the ranch|Train one at a ranch( first)?/g,'Build a truck at the railway station').replace(/a pack donkey/g,'a truck').replace(/A pack donkey/g,'A truck').replace(/pack donkeys/g,'trucks')}}catch(e){}return prev.apply(this,[m].concat([].slice.call(arguments,1)))}})(toast);
+  toast=(function(prev){return function(m){try{if(typeof m==='string'&&ag(0)>=5){m=m.replace(/Train one at the ranch|Train one at a ranch( first)?/g,'Build a truck at the logistics hub').replace(/a pack donkey/g,'a truck').replace(/A pack donkey/g,'A truck').replace(/pack donkeys/g,'trucks')}}catch(e){}return prev.apply(this,[m].concat([].slice.call(arguments,1)))}})(toast);
 }catch(err){}
 
 /* ===== r181 leather + bigger pens (Josh, Oct 24). Industrial Age: a dairy herd holds 12 cows (was 8) and a ranch 12 sheep (was 8;
@@ -13262,6 +13262,64 @@ try{const CF=new Set(['farm','wall','gate','pylon','outpost']);placeWhy=(functio
   try{if(CF.has(type)||!DEF[type]||DEF[type].kind!=='bld')return r;const s=DEF[type].size||1,g=s>=2?2:1,T=G.terrain;
     for(let y=ty-g;y<ty;y++)for(let x=tx-1;x<=tx+s;x++){if(!inB(x,y))continue;const i=ti(x,y);if(T[i]===3||(G.cblk&&G.cblk[i]))return 'Too close to the cliff: leave room above the building'}
     for(let y=ty;y<ty+s;y++)for(const x of [tx-1,tx+s]){if(!inB(x,y))continue;const i=ti(x,y);if(T[i]===3||(G.cblk&&G.cblk[i]))return 'Too close to the cliff: leave a gap beside the building'}/* r189: sides too (Josh: the side of a building overlapped the cliff) */}catch(err){}return r}})(placeWhy)}catch(err){}
+
+/* ===== r190 (Josh, Oct 24): one mine building, and the railway as automated logistics. The railway station is now the
+   Logistics hub: trucks are built there, and every train runs from it.
+   1. Mine -> Mine shaft: from the Renaissance every gold/stone mine is a mine shaft (same building, new name): villagers mine it
+      25% faster, and once it is nearly dug out it keeps yielding a slow trickle from deeper down, so it never dies. The separate
+      Mine shaft button and the Surveying research (hidden veins) are gone; old shafts keep working.
+   2. Rail stop beside a mine (6 tiles, track laid to a station): the stop mines it automatically, no miners (1.2 ore a second,
+      x1.5 with Steam power), and the train carries the ore to the station.
+   3. Rail stop beside a trading post: trucks bring crates (cakes, textiles, cheese, beer...) from your market and workshops to the
+      railway station, the train takes up to 24 a trip to the trading post and sells them there (same prices as carts,
+      trading posts still pay less when flooded). ===== */
+const RAILMINE={rate:1.2,r:6};
+function mineShaft(o){try{return G.players[o].age>=4}catch(e){return false}}
+try{const ag=()=>{try{return G.players[0].age|0}catch(e){return 0}};
+  for(const[k,n]of[['goldmine','Gold'],['stonemine','Stone']]){Object.defineProperty(DEF[k],'name',{configurable:true,enumerable:true,get(){return n+(ag()>=4?' mine shaft':' mine')},set(v){}});
+    if(RES[k])Object.defineProperty(RES[k],'name',{configurable:true,enumerable:true,get(){return n+(ag()>=4?' mine shaft':' mine')},set(v){}});}
+  if(DEF.mine)Object.defineProperty(DEF.mine,'name',{configurable:true,enumerable:true,get(){return ag()>=4?'Mine shaft':'Mine'},set(v){}});
+  for(const t of BTABS){const j=t[2].indexOf('shaft');if(j>=0)t[2].splice(j,1)}{const j=BUILDS.indexOf('shaft');if(j>=0)BUILDS.splice(j,1)}
+  {const j=DEF.university.techs.indexOf('surveying');if(j>=0)DEF.university.techs.splice(j,1)}TECH.surveying.age=99;
+}catch(err){}
+try{gatherRate=(function(prev){return function(u,t){let r=prev.apply(this,arguments);try{if(t&&(t.type==='goldmine'||t.type==='stonemine')&&mineShaft(u.owner))r*=1.25}catch(err){}return r}})(gatherRate)}catch(err){}
+function railStopOK(d){return d&&d.type==='depot'&&d.built&&!d.dead&&d.rail&&d.owner<2}
+function nearPost(d){let b=null,bd=8*TILE;for(const e of G.ents){if(e.type!=='tradepost'||e.dead)continue;const q=Math.hypot(e.x-d.x,e.y-d.y);if(q<bd){bd=q;b=e}}return b}
+function exportLine(o){return G.ents.some(d=>railStopOK(d)&&d.owner===o&&nearPost(d))}
+function crateSum(o){let n=0;for(const k in o||{})n+=o[k]||0;return n}
+try{railTick=(function(prev){return function(dt){
+  /* trains: an export stop loads crates at the station and sells them at its trading post */
+  const pre=new Map();try{for(const d of G.ents)if(railStopOK(d)&&d.tr)pre.set(d,[d.tr.pos,d.tr.dir])}catch(err){}
+  const r=prev.apply(this,arguments);
+  try{for(const[d,[p0,d0]]of pre){const tr=d.tr,st=G.byId.get(d.station),post=nearPost(d);if(!tr||!st||!post)continue;
+      if(d0>0&&tr.dir<0){const C=st.crates||{};tr.crates=tr.crates||{};let room=24-crateSum(tr.crates);for(const k in C){const a=Math.min(room,Math.floor(C[k]||0));if(a>0){C[k]-=a;tr.crates[k]=(tr.crates[k]||0)+a;room-=a}}}
+      if(d0<0&&tr.dir>0&&crateSum(tr.crates)>=1){const tc=G.ents.find(e=>e.owner===d.owner&&e.type==='towncenter'&&!e.dead)||st,d2=Math.hypot(tc.x-post.x,tc.y-post.y)/TILE,f=Math.min(2,.6+d2/60)*(1-(post.sat||0));
+        let gv=0,n=0;for(const k in tr.crates){gv+=tr.crates[k]*(GOODV[k]||WAREV[k]||8);n+=tr.crates[k]}gv=Math.round(gv*f*(G.players[d.owner].tech.banking?1.25:1));const P=G.players[d.owner];P.g+=gv*(d.owner===1?G.aiMult:1);inc(d.owner,'g',gv,'railway');
+        post.sat=Math.min(.5,(post.sat||0)+.015*n);tr.crates={};if(d.owner===0&&V0(post))G.fx.push({type:'float',x:post.x,y:post.y-30,t:1.8,text:'+'+gv+' gold by rail',col:'#ffe08a'})}}
+  }catch(err){}
+  try{G._rmT=(G._rmT||0)-dt;if(G._rmT<=0){const step=1;G._rmT=step;
+    for(const d of G.ents){if(!railStopOK(d))continue;const P=G.players[d.owner],rate=RAILMINE.rate*(P.tech.steam?1.5:1)*step;let src=null,bd=RAILMINE.r*TILE;
+      for(const e of G.ents){if(e.dead||!(e.type==='goldmine'||e.type==='stonemine'||e.type==='gold'||e.type==='stone')||!(e.amt>0))continue;if((e.type==='goldmine'||e.type==='stonemine')&&e.owner!==d.owner&&e.owner!=null&&e.owner>=0)continue;const q=Math.hypot(e.x-d.x,e.y-d.y);if(q<bd){bd=q;src=e}}
+      if(!src)continue;const rr=RES[src.type].r,a=Math.min(rate,src.amt);src.amt-=a;d.stock=d.stock||{};d.stock[rr]=(d.stock[rr]||0)+a;d.autoMine=src.id;
+      if(src.amt<=0&&src.kind==='res'&&src.type!=='goldmine'&&src.type!=='stonemine'){try{kill(src)}catch(e){}}}
+    /* mine shafts never run dry: a slow trickle from deeper down */
+    for(const m of G.ents){if(m.dead||!(m.type==='goldmine'||m.type==='stonemine')||m.owner==null||m.owner<0||m.owner>1||!mineShaft(m.owner))continue;if(m.amt<300)m.amt=Math.min(300,(m.amt||0)+.25*step)}
+    /* trucks bring crates to the station when there is an export line */
+    for(const o of[0,1]){if(!exportLine(o))continue;const st=G.ents.find(e=>e.type==='station'&&e.owner===o&&e.built&&!e.dead);if(!st)continue;
+      for(const b of G.ents){if(b.owner!==o||b.kind!=='bld'||!b.built||b.dead||b.type==='station')continue;let v=crateSum(b.ware)+(b.type==='market'?crateSum(b.goods):0);if(b.type==='pub')v+=Math.max(0,(b.beer||0)-15);if(v<4)continue;
+        if(G.ents.some(t=>t.type==='truck'&&!t.dead&&t.crB===b.id))continue;let c=null,cd=1e18;for(const t of G.ents){if(t.type!=='truck'||t.owner!==o||t.dead||!DKOK(t)||TRJOB(t)||t.crB||(t.order&&!t.order.auto))continue;const q=Math.hypot(t.x-b.x,t.y-b.y);if(q<cd){cd=q;c=t}}
+        if(c){c.crB=b.id;c.crS=st.id;c.crLeg='load';c.crC={};c.crNF=0;c.park=null;c.parked=false;c.order=null;c.path=null}}}
+  }}catch(err){}
+  return r}})(railTick)}catch(err){}
+function crClear(u){u.crB=0;u.crS=0;u.crLeg=0;u.crNF=0;if(u.crC&&crateSum(u.crC)){const st=G.ents.find(e=>e.type==='station'&&e.owner===u.owner&&!e.dead);if(st){st.crates=st.crates||{};for(const k in u.crC)st.crates[k]=(st.crates[k]||0)+u.crC[k]}}u.crC={}}
+function crStep(u,dt){const b=G.byId.get(u.crB),st=G.byId.get(u.crS);if(!st||st.dead){crClear(u);return false}
+  if(u.crLeg==='load'){if(!b||b.dead||b.owner!==u.owner){crClear(u);return false}const r=approach(u,b,TILE*1.4);if(r==='fail'){if(++u.crNF>=4){crClear(u);return false}u.path=null;return true}if(r!==true)return true;
+    let room=12;const W=b.ware||{};if(b.type==='pub'){const a=Math.min(room,Math.floor((b.beer||0)-15));if(a>0){b.beer-=a;u.crC.beer=(u.crC.beer||0)+a;room-=a}}
+    for(const W2 of [W,b.type==='market'?(b.goods||{}):{}])for(const k in W2){const a=Math.min(room,Math.floor(W2[k]||0));if(a>0){W2[k]-=a;u.crC[k]=(u.crC[k]||0)+a;room-=a}}if(!crateSum(u.crC)){crClear(u);return false}u.crLeg='go';u.crNF=0;u.path=null;return true}
+  const r=approach(u,st,TILE*1.6);if(r==='fail'){if(++u.crNF>=4){crClear(u);return false}u.path=null;return true}if(r!==true)return true;
+  const n=crateSum(u.crC);crClear(u);if(u.owner===0&&V0(st))G.fx.push({type:'float',x:st.x,y:st.y-30,t:1.6,text:'+'+n+' crates for the train',col:'#cfe8ff'});return true}
+try{const tj=TRJOB;TRJOB=function(u){return tj(u)||!!u.crB}}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.crB&&u.owner<2){if(u.order&&!u.order.auto){crClear(u)}else{try{if(crStep(u,dt))return}catch(err){crClear(u)}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
