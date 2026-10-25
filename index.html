@@ -1804,7 +1804,7 @@ function dairyTick(b,dt){const P=G.players[b.owner],herd=G.ents.filter(e=>e.type
   b.sickT=(b.sickT||0)+dt;if(b.sickT>=30){b.sickT=0;if(herd.length>=4&&!b.sickN&&sickOK(b.owner)&&Math.random()<.3*(.06+herd.length*.01)*(G.players[b.owner].tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;sc.sickB=b.id;G.players[b.owner].sickT=G.t;if((MPHU(b.owner))&&MPTW(b.owner)){sickAlarm();toast('A cow is sick! Tap it, then tap Give medicine (25 gold) within 2 minutes or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
   for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>SICK_SPREAD&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if((MPHU(b.owner))&&MPTW(b.owner)){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>SICK_DIE){for(const e of herd){e.diseased=1;kill(e);}if((MPHU(b.owner))&&MPTW(b.owner))toast('Disease wiped out your herd');break;}}
   const n=b.gar?b.gar.length:0,milked=Math.min(n*3,healthy.length);b.milked=milked;b.stall=n&&!healthy.length?'No healthy adult cows to milk':'';
-  const du=useOf(b);b.working=milked>0;if(b.useT>0){b.useT-=dt;return;}if(milked){const m=(P.tech.guilds?1.25:1)*(b.owner===1?G.aiMult:1);if(du==='cheese'){if(!expAt(b,'cheese',.1*milked*dt*m/8))addWare(b,'cheese',.1*milked*m/10,dt,10);}else if(du==='milk'){const bk=G.ents.find(e=>e.type==='bakery'&&(e.steam||P.tech.bakeworks)&&e.owner===b.owner&&e.built&&!e.dead&&(e.milk||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk){bk.milk=(bk.milk||0)+.03*milked*dt*m;b.toBakery=true;}else{b.toBakery=false;P.f+=.25*milked*dt*m;inc(b.owner,'f',.25*milked*dt*m,'milk');}}}}
+  const du=useOf(b);b.working=milked>0;if(b.useT>0){b.useT-=dt;return;}if(milked){const m=(P.tech.guilds?1.25:1)*(b.owner===1?G.aiMult:1);if(du==='cheese'){const RR=rOf(b);if(RR)rStore(RR,'cheeseB',.1*milked*dt*m/8);else if(!expAt(b,'cheese',.1*milked*dt*m/8))addWare(b,'cheese',.1*milked*m/10,dt,10);}else if(du==='milk'){const bk=G.ents.find(e=>e.type==='bakery'&&(e.steam||P.tech.bakeworks)&&e.owner===b.owner&&e.built&&!e.dead&&(e.milk||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk){bk.milk=(bk.milk||0)+.03*milked*dt*m;b.toBakery=true;}else{b.toBakery=false;P.f+=.25*milked*dt*m;inc(b.owner,'f',.25*milked*dt*m,'milk');}}}}
 /* ===== BUILDING ACTIVITY SIGNAL (read-only for art code) =====
  Every built building carries b.anim, updated once per game tick:
    active : true while the building is actually doing its job (producing, training, researching, brewing, grinding...)
@@ -13296,7 +13296,7 @@ try{const ag=o=>{try{return G.players[o==null?0:o].age|0}catch(e){return 0}};
    the dairy. A free truck carries the bales to the textile mill, where each bale counts as 2 wool (leather goods). ===== */
 function COWCAP(b){try{return G.players[b.owner].age>=5?12:8}catch(e){return 8}}
 function leatherCull(b,healthy){const ad=healthy.slice().sort((a,c)=>(a.born||0)-(c.born||0)||a.id-c.id);const cw=ad[0];if(!cw)return;
-  cw.dead=true;try{G.sel=G.sel.filter(i=>i!==cw.id)}catch(e){}b.leatherB=Math.min(12,(b.leatherB||0)+1);
+  cw.dead=true;try{G.sel=G.sel.filter(i=>i!==cw.id)}catch(e){}{const RR=rOf(b)||b;RR.leatherB=Math.min(12,(RR.leatherB||0)+1);}
   if(b.owner===0&&V0(b))G.fx.push({type:'float',x:cw.x,y:cw.y-20,t:1.6,text:'🟤 +1 leather',col:'#d9a066'});}
 try{sheepCap=(function(prev){return function(b){const n=prev.apply(this,arguments);try{if(G.players[b.owner].age>=5)return Math.round(n*1.5)}catch(e){}return n}})(sheepCap)}catch(err){}
 function lthDst(o){return G.ents.find(e=>e.type==='factory'&&e.owner===o&&e.built&&!e.dead)||null}
@@ -13309,7 +13309,7 @@ function lthStep(u,dt){const R=G.byId.get(u.lthR);if(!R||R.dead||R.owner!==u.own
 try{const tj=TRJOB;TRJOB=function(u){return tj(u)||!!u.lthR}}catch(err){}
 try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.lthR&&u.owner<2){if(u.order&&!u.order.auto){lthClear(u)}else{try{if(lthStep(u,dt))return}catch(err){lthClear(u)}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{G._lthS=(G._lthS||0)-dt;if(G._lthS<=0){G._lthS=2;
-  for(const R of G.ents){if(R.type!=='dairy'||R.dead||!R.built||R.owner>1||!(R.leatherB>=1))continue;const car=R.lcar&&G.byId.get(R.lcar);if(car&&!car.dead&&car.lthR===R.id)continue;R.lcar=0;
+  for(const R of G.ents){if((R.type!=='dairy'&&R.type!=='ranch')||R.dead||!R.built||R.owner>1||!(R.leatherB>=1))continue;const car=R.lcar&&G.byId.get(R.lcar);if(car&&!car.dead&&car.lthR===R.id)continue;R.lcar=0;
     if(!(R.leatherB>=3||G.t-(R.llT||0)>60))continue;if(!lthDst(R.owner))continue;
     let c=null,bd=1e18;for(const t of G.ents){if(t.type!=='truck'||t.owner!==R.owner||t.dead||!DKOK(t)||TRJOB(t)||(t.order&&!t.order.auto))continue;const q=Math.hypot(t.x-R.x,t.y-R.y);if(q<bd){bd=q;c=t}}
     if(c){c.lthR=R.id;c.lleg='load';c.lthC=0;c.lnf=0;c.park=null;c.parked=false;c.order=null;c.path=null;R.lcar=c.id;R.llT=G.t;}}}
@@ -13544,6 +13544,43 @@ function flcStep(u){const R=G.byId.get(u.flc);if(!R||R.dead){u.flc=0;u.cyc0=0;re
 try{updUnit=(function(prev){return function(u,dt){if(u&&u.flc&&!u.dead&&u.owner<2){if(u.order&&!u.order.auto){const R=G.byId.get(u.flc);if(R&&!R.dead)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);u.flc=0;u.cyc0=0}else{try{if(flcStep(u))return}catch(err){u.flc=0}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(GFX.FLEECE_ART)return r;c.save();for(const u of G.ents){if(!u.flc||u.dead||(u.owner!==0&&!V0(u)))continue;const a=u.face||0,hx=u.x+Math.cos(a)*5,hy=u.y-15+Math.sin(a)*2;
   for(const [dx,dy,rr] of [[-3.5,0,3.6],[0,-2,4],[3.5,0,3.6],[0,1.8,3.4]]){c.fillStyle='#f3ead6';c.beginPath();c.arc(hx+dx,hy+dy,rr,0,6.2832);c.fill()}c.strokeStyle='rgba(110,90,60,.7)';c.lineWidth=.7;c.beginPath();c.arc(hx,hy,6.4,0,6.2832);c.stroke()}c.restore()}catch(e){}return r}})(drawBirds)}catch(err){}
+
+/* ===== r196 (Josh, Oct 25): the ranch is the one pickup point. Cheese (from the ranch's cows or its dairy wing) is stored at the
+   ranch as crates (up to 30), and leather from the dairy wing is stored at the ranch too. A free pack donkey (truck from the Industrial Age;
+   a ranch hand if there is neither) carries up to 10 cheese crates to the market, where trade carts sell them at trading posts.
+   Leather is still picked up by trucks (now at the ranch) for the textile mill. A standalone dairy without a ranch works as before. ===== */
+const RCH={cap:30,trip:5,carry:10};
+function rOf(b){try{if(!b)return null;if(b.type==='ranch')return b;const R=b.ranch&&G.byId.get(b.ranch);return R&&!R.dead&&R.type==='ranch'?R:null}catch(e){return null}}
+function rStore(R,k,a){R[k]=Math.min(RCH.cap,(R[k]||0)+a);R._crate=(R._crate||0)+a;if(R._crate>=1){R._crate-=1;try{bEv(R,'crate')}catch(e){}}}
+function chzMkt(o){return G.ents.find(e=>e.type==='market'&&e.owner===o&&e.built&&!e.dead)||null}
+function chzClear(u){const R=G.byId.get(u.chzR);if(u.chzC&&R&&!R.dead)R.cheeseB=Math.min(RCH.cap,(R.cheeseB||0)+u.chzC);if(R&&R.ccar===u.id)R.ccar=0;u.chzR=0;u.chzC=0;u.cleg=0;u.cnf=0;u.cstk=0;u._cpx=null}
+function chzStep(u){const R=G.byId.get(u.chzR);if(!R||R.dead||R.owner!==u.owner){u.chzC=0;chzClear(u);return false}
+  /* unstick: no progress for 2 s = plan a new path (a few times, then give up and leave the crates at the ranch) */
+  if(u._cpx==null||Math.hypot(u.x-u._cpx,u.y-u._cpy)>3){u._cpx=u.x;u._cpy=u.y;u._cpt=G.t}else if(G.t-u._cpt>2){u._cpt=G.t;u.path=null;if(++u.cstk>6){u.cstk=0;u.chzNo=G.t+90;chzClear(u);return false}}
+  if(u.cleg==='load'){const r=approach(u,R,TILE*1.2);if(r==='fail'){if(++u.cnf>=4){chzClear(u);return false}u.path=null;return true}if(r!==true)return true;
+    const take=Math.min(RCH.carry,Math.floor(R.cheeseB||0));if(!take||!chzMkt(u.owner)){chzClear(u);return false}R.cheeseB-=take;u.chzC=take;u.cleg='go';u.cnf=0;u.path=null;return true}
+  const D=chzMkt(u.owner);if(!D){chzClear(u);return false}const r=approach(u,D,TILE*1.1);if(r==='fail'){if(++u.cnf>=4){chzClear(u);return false}u.path=null;return true}if(r!==true)return true;
+  if(exportTo(u.owner,'cheese',u.chzC)){if(u.owner===0&&V0(D))G.fx.push({type:'float',x:D.x,y:D.y-30,t:1.6,text:'+'+u.chzC+' 🧀 cheese',col:'#ffe08a'});u.chzC=0}
+  chzClear(u);return true}
+try{const tj=TRJOB;TRJOB=function(u){return tj(u)||!!u.chzR}}catch(err){}
+/* a donkey on a ranch run is busy: it must not wander off to graze (this also fixes wool donkeys drifting off) */
+try{const cb=corralBusy;corralBusy=function(u){return cb(u)||!!(u&&(u.chzR||u.woolR||u.lthR||u.crB))}}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.chzR&&u.owner<2){if(u.order&&!u.order.auto){chzClear(u)}else{try{if(chzStep(u))return}catch(err){chzClear(u)}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{G._chzS=(G._chzS||0)-dt;if(G._chzS<=0){G._chzS=1.5;
+  for(const W of G.ents){if(W.type==='dairy'&&!W.dead&&W.leatherB>=1){const RR=rOf(W);if(RR&&RR!==W){RR.leatherB=Math.min(12,(RR.leatherB||0)+W.leatherB);W.leatherB=0}}}
+  for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built||R.owner>1||!(R.cheeseB>=1))continue;const car=R.ccar&&G.byId.get(R.ccar);if(car&&!car.dead&&car.chzR===R.id)continue;R.ccar=0;
+    if(!(R.cheeseB>=RCH.trip||G.t-(R.clT||0)>90))continue;if(!chzMkt(R.owner))continue;
+    let c=null,bd=40*TILE;for(const d of G.ents){if(!DKOK(d)||d.owner!==R.owner||d.dead||(d.chzNo>G.t)||d.woolR||d.chzR||d.lthR||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(typeof TRJOB==='function'&&TRJOB(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
+    if(!c)c=rhList(R).find(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR&&!h.flc&&!h.chzR)||null;
+    if(c){c.chzR=R.id;c.cleg='load';c.chzC=0;c.cnf=0;c.park=null;c.parked=false;R.ccar=c.id;R.clT=G.t;if(c.order&&c.order.auto){c.order=null}c.path=null}}}
+}catch(err){}return r}})(railTick)}catch(err){}
+/* a cheese crate over carriers, and the stored crates in the ranch's Cows tab */
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{c.save();c.font='bold 11px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
+  for(const u of G.ents){if(!u.chzC||u.dead||(u.owner!==0&&!V0(u)))continue;const y=u.y-(u.type==='donkey'?30:u.type==='truck'?32:34);c.fillStyle='rgba(30,20,10,.7)';c.beginPath();c.arc(u.x,y,8,0,7);c.fill();c.fillText('🧀',u.x,y+1)}
+  c.restore()}catch(err){}return r}})(drawBirds)}catch(err){}
+try{cowChain=(function(prev){return function(b){const h=prev.apply(this,arguments);try{if(!h||!b||b.type!=='ranch')return h;const car=b.ccar&&G.byId.get(b.ccar),m=chzMkt(b.owner);
+  const t='🧀 '+Math.floor(b.cheeseB||0)+'/'+RCH.cap+' crates at the ranch'+((b.leatherB||0)>=1?' · 🟤 '+Math.floor(b.leatherB)+' leather':'')+' · '+(car&&!car.dead?(car.type==='donkey'?'🫏 donkey on the way':car.type==='truck'?'🚚 truck on the way':'hand carrying'):m?'waiting for a donkey':'🏪 needs a market (trade carts load there and sell at trading posts)');
+  return h+'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+t+'</div>'}catch(e){return h}}})(cowChain)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
@@ -13816,7 +13853,7 @@ function ranchCowTick(b,dt){const P=G.players[b.owner];if(!b.built||!ranchDairy(
   b.cSickT=(b.cSickT||0)+dt;if(b.cSickT>=30){b.cSickT=0;if(herd.length>=4&&!cs&&sickOK(b.owner)&&Math.random()<.3*(.06+herd.length*.01)*(P.tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;sc.sickB=b.id;P.sickT=G.t;if((MPHU(b.owner))&&MPTW(b.owner)){sickAlarm();toast('A cow is sick! Tap Cure on the red bar within 2 minutes or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
   for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>SICK_SPREAD&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if((MPHU(b.owner))&&MPTW(b.owner)){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>SICK_DIE){for(const e of herd){e.diseased=1;kill(e);}if((MPHU(b.owner))&&MPTW(b.owner))toast('Disease wiped out your herd');break;}}
   let hands=0;for(const u of G.ents)if(u.shep===b.id&&!u.dead)hands++;const milked=hands?Math.min(healthy.length,6*hands):0;b.milked=milked;
-  if(milked){const m=(P.tech.guilds?1.25:1)*(b.owner===1?G.aiMult:1);if(b.cuse==='cheese'){if(!expAt(b,'cheese',.1*milked*dt*m/8))addWare(b,'cheese',.1*milked*m/10,dt,10);}
+  if(milked){const m=(P.tech.guilds?1.25:1)*(b.owner===1?G.aiMult:1);if(b.cuse==='cheese'){rStore(b,'cheeseB',.1*milked*dt*m/8);}
     else{const bk=G.ents.find(e=>e.type==='bakery'&&(e.steam||P.tech.bakeworks)&&e.owner===b.owner&&e.built&&!e.dead&&(e.milk||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk){bk.milk=(bk.milk||0)+.03*milked*dt*m;b.toBakery=true;}else{b.toBakery=false;P.f+=.25*milked*dt*m;inc(b.owner,'f',.25*milked*dt*m,'milk');}}}}
 /* the building the next age-up still needs (walking back through what unlocks it): gets a glowing "Next" badge in the build list */
 const AGEK2=['bronze','iron','medieval','renaissance','industrial','modern'],NXPRE={bakery:'mill',mill:'farm',market:'bakery',station:'market',factory:'station',depot:'station',workshop:'forge',range:'barracks',stable:'barracks',forge:'barracks',castle:'tower',university:'market',power:'factory'};
