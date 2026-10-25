@@ -268,8 +268,8 @@ const DEF={
   pylon:{kind:'bld',name:'Pylon',hp:150,size:1,sight:3,cost:{w:40,s:40},time:10,age:6},
   tesla:{kind:'bld',name:'Tesla coil',hp:700,size:2,sight:8,cost:{s:250,g:300},time:45,age:6},
   shaft:{kind:'bld',name:'Mine shaft',hp:450,size:2,sight:5,techs:['pumps'],cost:{w:200,s:100},time:45,age:4},
-  station:{kind:'bld',name:'Railway station',hp:800,size:4,sight:6,cost:{w:250,s:200},time:50,age:5},
-  depot:{kind:'bld',name:'Rail depot',hp:350,size:2,sight:5,drop:1,trains:['truck'],cost:{w:150,s:60},time:30,age:5},
+  station:{kind:'bld',name:'Railway station',trains:['truck'],hp:800,size:4,sight:6,cost:{w:250,s:200},time:50,age:5},
+  depot:{kind:'bld',name:'Rail stop',hp:350,size:2,sight:5,drop:1,cost:{w:150,s:60},time:30,age:5},
   factory:{kind:'bld',name:'Textile mill',hp:900,size:4,sight:5,techs:['steam','harvesters'],cost:{w:250,s:350},time:60,age:5},
   inn:{kind:'bld',name:'Roadside inn',hp:180,size:2,sight:6,cost:{w:120,g:60},time:30,age:3},
   pub:{kind:'bld',name:'Pub',hp:300,size:3,sight:4,cost:{w:150,s:100},time:40,age:3},
@@ -2235,7 +2235,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(age>=4&&!has('market')&&ok('market'))T('market',0,5);
   else if(age>=4&&!has('university')&&ok('university')&&vills.length>24)T('university',0,6);
   else if(age>=5&&!has('station')&&ok('station'))T('station',0,5);
-  else if(age>=5&&!has('depot')&&ok('depot'))T('depot',0,4);   else if(age>=5&&!has('factory')&&ok('factory'))T('factory',0,6);
+  else if(age>=5&&!has('factory')&&ok('factory'))T('factory',0,6);
   else if(age>=6&&!has('power')&&ok('power'))T('power',0,7);
   else if(age>=6&&ok('tesla')&&G.ents.filter(e=>e.owner===o&&e.type==='tesla'&&!e.dead).length<2&&P.s>300&&P.g>350)T('tesla',0,4);
   else if(age>=2&&!has('corral')&&!has('ranch')&&ok('ranch')&&vills.length>=16)T('ranch',0,6);
@@ -2265,7 +2265,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   for(const f of G.ents)if(f.type==='farm'&&f.owner===o&&f.fallow&&!f.dead&&P.w>=60)replantFarm(f);
   {const bk=bld('bakery');if(bk){if(bk.queue.length===0&&age>=4&&!P.tech.grandbake&&P.g>300&&P.w>300)enqueue(bk,'grandbake');else if(age>=5&&!bk.steam&&!bk.steamOf&&bk.built&&P.g>400&&P.s>350&&canAfford(P,STEAM_COST)){pay(P,STEAM_COST);bk.steam=true;bk.sgrp={k:'steam',ids:[bk.id],anchor:bk.id,x0:bk.tx,y0:bk.ty,x1:bk.tx+bk.size,y1:bk.ty+bk.size};}if(bld('market'))bk.exp=50;}}
   {const cor=bld('ranch')||bld('corral');if(cor&&age>=2&&age<4&&cor.queue.length===0&&(bld('pen')||bld('dairy')||(bld('ranch')&&P.tech.dairyfarm))&&mine.filter(u=>u.type==='caravan').length<2&&P.f>200)enqueue(cor,'caravan');}
-  {const dp=bld('depot');if(age>=5&&dp&&dp.queue.length===0&&mine.filter(u=>u.type==='truck').length<4)enqueue(dp,'truck');}
+  {const dp=bld('station');if(age>=5&&dp&&dp.queue.length===0&&mine.filter(u=>u.type==='truck').length<4)enqueue(dp,'truck');}
   const mkt=bld('market');if(mkt&&mkt.queue.length<1&&mine.filter(u=>u.type==='tradecart').length<(PS.name==='Expander'||PS.name==='Boomer'?5:3))enqueue(mkt,'tradecart');
   const dk=bld('dock');if(dk&&dk.queue.length<1&&mine.filter(u=>u.type==='fishboat').length<3)enqueue(dk,'fishboat');
   for(const bt of mine)if(bt.type==='fishboat'&&!bt.order){const f=nearestRes('fish',bt.x,bt.y,40*TILE);if(f)orderGather(bt,f);}
@@ -13065,13 +13065,13 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
       try{donkFree(u)}catch(e){}try{corralFree(u)}catch(e){}if(u.cartFor){u.cartFor=0}
       u.dead=true;g+=RETIRE_G[u.type];n++;try{G.sel=G.sel.filter(i=>i!==u.id)}catch(e){}}
     for(const b of G.ents){if(b.owner!==o||b.dead||!b.queue||!b.queue.length)continue;const keep=[];for(const q of b.queue){if(RETIRE_G[q]){try{refund(P,itemOf(q).cost)}catch(e){}}else keep.push(q)}if(keep.length!==b.queue.length){b.queue=keep;if(!keep.length)b.trainT=0}}
-    if(n){P.g+=g;if(o===0)toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the rail depot do the hauling now');}}}
+    if(n){P.g+=g;if(o===0)toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the railway station do the hauling now');}}}
 }catch(err){}return r}})(railTick)}catch(err){}
 try{const ag=o=>{try{return G.players[o==null?0:o].age|0}catch(e){return 0}};
   Object.defineProperty(DEF.tradecart,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade truck':'Trade cart'},set(v){}});
   Object.defineProperty(DEF.tradecart,'plural',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade trucks':'Trade carts'},set(v){}});
   drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='tradecart'&&u.owner<2&&ag(u.owner)>=5&&typeof drawTruck==='function'){try{return drawTruck(c,u,x,y,now)}catch(err){}}return prev.apply(this,arguments)}})(drawUnit);
-  toast=(function(prev){return function(m){try{if(typeof m==='string'&&ag(0)>=5){m=m.replace(/Train one at the ranch|Train one at a ranch( first)?/g,'Build a truck at the rail depot').replace(/a pack donkey/g,'a truck').replace(/A pack donkey/g,'A truck').replace(/pack donkeys/g,'trucks')}}catch(e){}return prev.apply(this,[m].concat([].slice.call(arguments,1)))}})(toast);
+  toast=(function(prev){return function(m){try{if(typeof m==='string'&&ag(0)>=5){m=m.replace(/Train one at the ranch|Train one at a ranch( first)?/g,'Build a truck at the railway station').replace(/a pack donkey/g,'a truck').replace(/A pack donkey/g,'A truck').replace(/pack donkeys/g,'trucks')}}catch(e){}return prev.apply(this,[m].concat([].slice.call(arguments,1)))}})(toast);
 }catch(err){}
 
 /* ===== r181 leather + bigger pens (Josh, Oct 24). Industrial Age: a dairy herd holds 12 cows (was 8) and a ranch 12 sheep (was 8;
