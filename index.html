@@ -1859,7 +1859,7 @@ function updBld(b,dt){
   else if(WORK[b.type]){const W=WORK[b.type],P=G.players[b.owner],n=(b.gar?b.gar.length:0)+(b.type==='factory'?2:0);let ok=n>0;b.stall='';
     if(ok&&W.fuel){for(const k in W.fuel)if(P[k]<W.fuel[k]*n*dt){ok=false;b.stall=b.type==='factory'?'Needs wood and stone for the machines':'Needs wood for the ovens';}}
     if(ok&&b.type==='weaver'){const sh=G.ents.filter(e=>e.type==='sheep'&&e.owner===b.owner&&!e.dead&&!(e.born&&G.t-e.born<60)).length;if(sh<4){ok=false;b.stall='Needs 4 adult sheep for wool';}}
-    b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){/* r176 (Josh Oct 24): the mill turns wool into textiles, which are sold at the market by trade carts */if((b.wool||0)>=amt/4){if(expAt(b,'textile',amt/5)){b.wool-=amt/4;continue;}b.stall='Needs a market with room: textiles are sold there by trade carts';b.working=false;continue;}b.stall='Needs wool: ranch hands shear the sheep and a pack donkey brings the bales here';b.working=false;continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
+    b.working=ok;if(ok){const m=(P.tech.guilds?1.25:1)*(b.type==='factory'&&P.tech.steam?1.5:1)*(b.powered?1.5:1);if(W.fuel)for(const k in W.fuel)P[k]-=W.fuel[k]*n*dt;for(const k in W.rate){const amt=W.rate[k]*n*dt*m;if(b.type==='bakery'&&b.export&&expAt(b,'bread',amt/20))continue;if(b.type==='factory'){/* r176 (Josh Oct 24): the mill turns wool into textiles, which are sold at the market by trade carts */if((b.wool||0)>=amt/4){if(expAt(b,'textile',amt/5)){b.wool-=amt/4;continue;}b.stall='Needs a market with room: trade carts load the textiles there and sell them at trading posts';b.working=false;continue;}b.stall='Needs wool: ranch hands shear the sheep and a pack donkey brings the bales here';b.working=false;continue;}P[k]+=amt*(b.owner===1?G.aiMult:1);inc(b.owner,k,amt,b.type);}}}
   if(b.type==='coop'){if(!b.birds)b.birds=[-999];b.layT=(b.layT||0)+dt*(b.yard?YARD_K:1);if(b.birds.length<6&&b.layT>=45&&coopHens(b)){b.layT=0;b.birds.push(G.t);}
     let h=0,ch=0,eg=0;for(const t0 of b.birds){const a=G.t-t0;if(a>=60)h++;else if(a>=20)ch++;else eg++;}
     if(b.owner===0&&b.hens&&h>b.hens&&G.t-(G.lastHenMsg||-99)>25){G.lastHenMsg=G.t;toast('A chick grew into a laying hen');}
@@ -12547,7 +12547,7 @@ function bkEst(b){const fr=(b._fr||0)*60,ex=bkEx(b)/100,k=b._lk||'bread',pst=G.e
 function bkWidget(b){const hasM=G.ents.some(e=>e.type==='market'&&e.owner===0&&e.built&&!e.dead),ex=bkEx(b),carts=G.ents.filter(e=>e.type==='tradecart'&&e.owner===0&&!e.dead).length,E=bkEst(b);
   const lab={0:'🍞',25:'🍞🍞🍞🪙',50:'🍞🍞🪙🪙',75:'🍞🪙🪙🪙',100:'🪙'};let bt='';
   for(const v of[0,25,50,75,100]){const on=ex===v,dis=!hasM&&v>0;bt+='<button class="b" data-act="bexp:'+v+'"'+(dis?' disabled':'')+' style="min-width:0;padding:1px 5px;height:22px;font-size:'+(v%100?9:13)+'px;'+(on?'outline:2px solid var(--gold);outline-offset:-2px;background:#6b5230;':'')+'">'+lab[v]+'</button>';}
-  let foot=hasM?('<b style="color:#9fd86a">+'+E.food+'</b> 🍞/min · <b style="color:#efd28a">+'+E.gold+'</b> 🪙/min'):'<span style="color:var(--muted)">🪙 selling needs a 🏪 market</span>';
+  let foot=hasM?('<b style="color:#9fd86a">+'+E.food+'</b> 🍞/min · <b style="color:#efd28a">+'+E.gold+'</b> 🪙/min'):'<span style="color:var(--muted)">🪙 selling needs a 🏪 market (trade carts load there and sell at trading posts)</span>';
   if(hasM&&ex>0&&!carts)foot='<span style="color:#ff8a6a">⚠️ No trade cart: crates wait at the market</span>';
   return '<div style="display:flex;justify-content:space-between;gap:14px;font-size:10px;font-weight:700"><span>🍞 Food</span><span style="color:var(--muted);font-weight:500">where bread goes</span><span>Gold 🪙</span></div><div style="display:flex;gap:2px">'+bt+'</div><div style="font-size:10px">'+foot+'</div>'}
 const CH_DEF={
@@ -13142,11 +13142,11 @@ GFX.sheepShorn=u=>!!(u&&u.type==='sheep'&&typeof u.wool==='number'&&u.wool<.35);
 function woolClear(u){const R=G.byId.get(u.woolR||u.shearR);if(u.woolC&&R&&!R.dead)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+u.woolC);if(R&&R.wcar===u.id)R.wcar=0;u.woolR=0;u.woolC=0;u.wleg=0;u.wto=0;u.shearS=0;u.shearR=0;u.shT=0;u.working=false;}
 let WOOLT=0;
 try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(WOOL.off||!G||!G.ents)return r;
-  for(const e of G.ents)if(e.type==='sheep'&&!e.dead){if(typeof e.wool!=='number')e.wool=1;else if(e.wool<1)e.wool=Math.min(1,e.wool+dt/WOOL.grow);}
+  for(const e of G.ents)if(e.type==='sheep'&&!e.dead){if(typeof e.wool!=='number')e.wool=1;else if(e.wool<1)e.wool=Math.min(1,e.wool+dt/(e.wgr||WOOL.grow));}
   WOOLT-=dt;if(WOOLT>0)return r;WOOLT=1;
   for(const R of G.ents){if(!woolOn(R))continue;R.woolB=R.woolB||0;
     const busy=new Set(G.ents.filter(u=>u.shearS&&!u.dead).map(u=>u.shearS));
-    if(R.woolB<WOOL.cap){const free=rhList(R).filter(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR&&!(h.carry&&h.carry.amt>0));
+    if(R.woolB<WOOL.cap){const free=rhList(R).filter(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR&&!h.flc&&!(h.carry&&h.carry.amt>0)).slice(0,Math.max(0,1-rhList(R).filter(h=>!h.dead&&(h.shearS||h.flc)).length));
       if(free.length){const ws=woolSheep(R).filter(s=>s.wool>=1&&!busy.has(s.id));for(const h of free){if(!ws.length)break;ws.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));const s=ws.shift();h.shearS=s.id;h.shearR=R.id;h.shT=0;busy.add(s.id);}}}
     const car=R.wcar&&G.byId.get(R.wcar);if(car&&!car.dead&&car.woolR===R.id)continue;R.wcar=0;
     if(R.woolB<1||!(R.woolB>=WOOL.trip||G.t-(R.wlT||0)>90))continue;const D=woolDst(R);if(!D)continue;
@@ -13181,7 +13181,7 @@ function sheepChain(b){try{if(!b||b.type!=='ranch'||G.rtab!=='s'||!ranchSheep(b)
   const pill=(ic,txt,ok,cur)=>'<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:7px;font-size:10px;white-space:nowrap;border:1px solid '+(cur?'var(--gold)':ok?'rgba(143,191,84,.6)':'#d65a46')+';'+(cur?'background:rgba(227,171,63,.18);':'')+(ok?'':'color:#ffb4a4;')+'">'+ic+' '+txt+(ok?'':' ✗')+'</span>';
   if(!wool)return '<div style="font-size:9px;color:var(--muted)">Supply chain</div><div style="display:flex;align-items:center;gap:2px">'+pill('🐑',sh.length+' sheep',sh.length>0,false)+'<span style="color:var(--muted)">›</span>'+pill('🍖','Mutton',true,true)+'<span style="color:var(--muted)">›</span>'+pill('🍞','Food',true,false)+'</div>';
   const parts=[pill('🐑',sh.length+' sheep · '+wooly+' woolly',sh.length>0,false),pill('✂️',hands?hands+' hand'+(hands>1?'s':''):'no hands',hands>0,false),pill('🧶',Math.floor(b.woolB||0)+'/'+WOOL.cap+' bales',true,true),
-    pill('🫏',car&&!car.dead?(car.type==='donkey'?'donkey on the way':'hand carrying'):'carrier',true,false),pill(D?(D.type==='factory'?'🏭':'🏪'):'🏪',D?(D.type==='factory'?'Textile mill':'Market'):'needs a market',!!D,false),pill('🪙','Gold',!!D,false)];
+    pill('🫏',car&&!car.dead?(car.type==='donkey'?'donkey on the way':'hand carrying'):'carrier',true,false),pill(D?(D.type==='factory'?'🏭':'🏪'):'🏪',D?(D.type==='factory'?'Textile mill':'Market'):'needs a market (carts → trade post)',!!D,false),pill('🪙','Gold',!!D,false)];
   return '<div style="font-size:9px;color:var(--muted)">Wool supply chain</div><div style="display:flex;align-items:center;gap:2px">'+parts.join('<span style="color:var(--muted)">›</span>')+'</div>'}catch(err){return ''}}
 try{chHtml=(function(prev){return function(b){if(b&&b.type==='ranch'&&G.rtab==='s')return sheepChain(b);return prev.apply(this,arguments)}})(chHtml)}catch(err){}
 /* r177: Sheep tab Wool / Mutton buttons (same switch as the old Use menu: 20 s to change) */
@@ -13518,6 +13518,32 @@ try{updUnit=(function(prev){return function(u,dt){if(u&&u.type==='logtruck'&&!u.
 try{drawUnit=(function(prev){return function(c,u,x,y,now){if(!u||u.type!=='logtruck')return prev.apply(this,arguments);const v=Object.create(u);v.type='truck';v._v=undefined;const r=prev.call(this,c,v,x,y,now);
   try{const n=Math.min(4,Math.ceil((u.lgW||0)/15));if(n){const a=u.face||0,ca=Math.cos(a),sa=Math.sin(a)*.5,bx=x-ca*7,by=y-12-sa*7;c.save();for(let i=0;i<n;i++){const lx=bx+(i%2?3:-3)*sa*2,ly=by-(i>>1)*3.2+(i%2)*1.5;
     c.fillStyle='#6b4a2c';c.strokeStyle='#3a2615';c.lineWidth=.6;c.beginPath();c.ellipse(lx,ly,7,1.9,Math.atan2(sa,ca),0,6.2832);c.fill();c.stroke();c.fillStyle='#d9b77e';circ(c,lx+ca*6.5,ly+sa*6.5,1.6);c.fill()}c.restore()}}catch(e){}return r}})(drawUnit)}catch(err){}
+
+/* ===== r195 (Josh, Oct 25): the shearer carries each fleece to the ranch, and the wool regrowth is tied to the flock size.
+   1. After shearing, the hand carries the fleece (shown in his arms) to the ranch; it becomes a bale there, and the ranch is where the
+      donkey / truck picks the wool up. One shearer per ranch.
+   2. "At full capacity there should never be a sheep not ready to be sheared; until then regrowth is longer than the shearer's round":
+      shearing one sheep takes 8 s (was 3 s; same wool per minute as before), the game measures the shearer's round (walk to the sheep + shear + carry to the ranch, averaged) and sets
+      regrowth = full flock size x that round. With a full, healthy flock the shearer never waits; with fewer sheep he does. ===== */
+const WCYC={def:11,min:8.5,max:30};try{WOOL.shear=8}catch(e){}
+function woolGrowOf(R){const c=Math.max(WCYC.min,Math.min(WCYC.max,R.cycE||WCYC.def));return sheepCap(R)*c}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!G||!G.ents||(G._wgT=(G._wgT||0)-dt)>0)return r;G._wgT=1;
+  for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built||R.owner>1)continue;let g;try{g=woolGrowOf(R)}catch(e){continue}R.wgrow=g;try{for(const sh of woolSheep(R))sh.wgr=g}catch(e){}}
+  }catch(err){}return r}})(railTick)}catch(err){}
+try{const ws1=woolStep;woolStep=function(u,dt){const sh=u.shearS,Rid=u.shearR,R=Rid&&G.byId.get(Rid),b0=R?(R.woolB||0):0;if(sh&&!u.cyc0)u.cyc0=G.t;
+  const r=ws1.apply(this,arguments);
+  try{if(sh&&!u.shearS&&R&&(R.woolB||0)>b0){R.woolB-=1;u.flc=R.id;u.flnf=0;u.path=null;u.working=false}}catch(e){}return r}}catch(err){}
+function flcStep(u){const R=G.byId.get(u.flc);if(!R||R.dead){u.flc=0;u.cyc0=0;return false}
+  const r=approach(u,R,TILE*1.1);if(r==='fail'){if(++u.flnf>=4){R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);u.flc=0;u.cyc0=0;return false}u.path=null;return true}if(r!==true)return true;
+  R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);if(u.cyc0){const c=G.t-u.cyc0;if(c>0&&c<60)R.cycE=R.cycE?R.cycE*.7+c*.3:c}u.cyc0=0;u.flc=0;
+  if(R.owner===0&&V0(R))G.fx.push({type:'float',x:R.x,y:R.y-30,t:1.3,text:'+1 🧶 bale',col:'#f4ecd8'});
+  /* straight on to the next woolly sheep (no walk back to his ranch spot first) */
+  try{if(woolOn(R)&&(R.woolB||0)<WOOL.cap){const busy=new Set(G.ents.filter(v=>v.shearS&&!v.dead).map(v=>v.shearS));let best=null,bd=1e18;for(const sh of woolSheep(R)){if(!(sh.wool>=1)||busy.has(sh.id))continue;const q=Math.hypot(sh.x-u.x,sh.y-u.y);if(q<bd){bd=q;best=sh}}
+    if(best){u.order=null;u.path=null;u.shearS=best.id;u.shearR=R.id;u.shT=0;u.shW=0;u.cyc0=G.t;return true}}}catch(e){}
+  return false}
+try{updUnit=(function(prev){return function(u,dt){if(u&&u.flc&&!u.dead&&u.owner<2){if(u.order&&!u.order.auto){const R=G.byId.get(u.flc);if(R&&!R.dead)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);u.flc=0;u.cyc0=0}else{try{if(flcStep(u))return}catch(err){u.flc=0}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(GFX.FLEECE_ART)return r;c.save();for(const u of G.ents){if(!u.flc||u.dead||(u.owner!==0&&!V0(u)))continue;const a=u.face||0,hx=u.x+Math.cos(a)*5,hy=u.y-15+Math.sin(a)*2;
+  for(const [dx,dy,rr] of [[-3.5,0,3.6],[0,-2,4],[3.5,0,3.6],[0,1.8,3.4]]){c.fillStyle='#f3ead6';c.beginPath();c.arc(hx+dx,hy+dy,rr,0,6.2832);c.fill()}c.strokeStyle='rgba(110,90,60,.7)';c.lineWidth=.7;c.beginPath();c.arc(hx,hy,6.4,0,6.2832);c.stroke()}c.restore()}catch(e){}return r}})(drawBirds)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
