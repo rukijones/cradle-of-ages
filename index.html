@@ -13184,14 +13184,14 @@ try{const ag=()=>{try{return G.players[0].age|0}catch(e){return 0}};Object.defin
 try{TECH.guns={name:'Arquebuses',desc:'Crossbowmen become arquebusiers',cost:{f:250,g:200},time:45,age:4};}catch(err){}
 
 /* ===== r185 (Josh, Oct 24) cliff tops block the ground they cover, and ranch-wing dairy workers count as ranch hands. ===== */
-var CLIFF_PAD=16;function cliffMask(){try{if(!G||!G.terrain)return;if(G.cblk instanceof Uint8Array&&G.cblk.length===MW*MH)return;
+var CLIFF_PAD=16;function cliffMask(){try{if(!G||!G.terrain)return;if(G.cblk instanceof Uint8Array&&G.cblk.length===MW*MH&&G.cblkV===2)return;
   const SS=GFX.S2;if(GFX.mode!=='V23D'||!SS||!SS.v3)return;const sl=SS.V3&&SS.V3.slabs;if(!sl||!sl.length)return;
   const M=new Uint8Array(MW*MH),T=G.terrain,LV=GFX.CLIFF&&GFX.CLIFF.LV,HT=(GFX.CLIFF&&GFX.CLIFF.HT)||[20,48,92];let n=0;if(!LV)return;
   /* the cliff top is drawn raised by its height (HT px), so it covers the ground tiles just north of the cliff */
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=ti(x,y);if(T[i]!==0)continue;
-    for(let k=1;k<=3&&y+k<MH;k++){const j=ti(x,y+k);if(T[j]!==3)continue;const h=HT[Math.max(1,Math.min(3,LV[j]||3))-1]||0;if(k*TILE<=h-CLIFF_PAD){M[i]=1;n++}break}}
-  G.cblk=M;G.cblkN=n;}catch(err){}}
-try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!(G.cblk instanceof Uint8Array))cliffMask();
+    for(let k=1;k<=3&&y+k<MH;k++){const j=ti(x,y+k);if(T[j]!==3)continue;const h=HT[Math.max(1,Math.min(3,LV[j]||3))-1]||0;if(h-(k-1)*TILE>=TILE/2){M[i]=1;n++}break}}/* r189: a row counts when at least half of it is under the raised top */
+  G.cblk=M;G.cblkN=n;G.cblkV=2;}catch(err){}}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!(G.cblk instanceof Uint8Array)||G.cblkV!==2)cliffMask();
   G._rhfix=(G._rhfix||0)-dt;if(G._rhfix<=0){G._rhfix=3;
     for(const W of G.ents){if(W.type!=='dairy'||W.dead||!W.ranch||!W.gar||!W.gar.length)continue;const R=G.byId.get(W.ranch);if(!R||R.dead)continue;
       for(const h of W.gar.slice()){if(!h||h.type!=='villager'||h.shep===R.id)continue;const have=G.ents.filter(e=>!e.dead&&e.shep===R.id).length;
@@ -13203,7 +13203,8 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
    between their top edge and a cliff (1 row for small 1x1 pieces); flat things (farms, walls, gates, pylons, outposts) are exempt. ===== */
 try{const CF=new Set(['farm','wall','gate','pylon','outpost']);placeWhy=(function(prev){return function(type,tx,ty,o,needExp,m){const r=prev.apply(this,arguments);if(r)return r;
   try{if(CF.has(type)||!DEF[type]||DEF[type].kind!=='bld')return r;const s=DEF[type].size||1,g=s>=2?2:1,T=G.terrain;
-    for(let y=ty-g;y<ty;y++)for(let x=tx-1;x<=tx+s;x++){if(!inB(x,y))continue;const i=ti(x,y);if(T[i]===3||(G.cblk&&G.cblk[i]))return 'Too close to the cliff: leave room above the building'}}catch(err){}return r}})(placeWhy)}catch(err){}
+    for(let y=ty-g;y<ty;y++)for(let x=tx-1;x<=tx+s;x++){if(!inB(x,y))continue;const i=ti(x,y);if(T[i]===3||(G.cblk&&G.cblk[i]))return 'Too close to the cliff: leave room above the building'}
+    for(let y=ty;y<ty+s;y++)for(const x of [tx-1,tx+s]){if(!inB(x,y))continue;const i=ti(x,y);if(T[i]===3||(G.cblk&&G.cblk[i]))return 'Too close to the cliff: leave a gap beside the building'}/* r189: sides too (Josh: the side of a building overlapped the cliff) */}catch(err){}return r}})(placeWhy)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
