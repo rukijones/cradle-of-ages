@@ -14283,7 +14283,8 @@ oceanPaint=function(){if(!S.on)return _op.apply(this,arguments);const m=need();i
     for(const[ax,ay]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=xx+ax,ny=y+ay;if(nx>=0&&ny>=0&&nx<MW&&ny<MH&&G.terrain[ti(nx,ny)]!==1){dx+=ax;dy+=ay;nL++;if(G.terrain[ti(nx,ny)]===3)nC++}}
     if(G.mapType==='corners'&&nC*2>=nL){continue}/* cliff coast (r126): no wet sand under the rock walls; the cliff painter adds the foam */
     const dl=Math.hypot(dx,dy)||1;dx/=dl;dy/=dl;
-    for(let n=0;n<4;n++){const f=(R()-.5)*.9,px=(xx+.5+dx*.5-dy*f)*k,py=(y+.5+dy*.5+dx*f)*k,rr=k*(.12+R()*.16);g.fillStyle='rgba(176,164,118,'+(.45+R()*.3).toFixed(2)+')';g.beginPath();g.ellipse(px,py,rr*1.5,rr,Math.atan2(dx,-dy),0,7);g.fill()}
+    if(S.FOAM!==false){const px=(xx+.5+dx*.42)*k,py=(y+.5+dy*.42)*k,rr=k*.62,gr=g.createRadialGradient(px,py,0,px,py,rr);gr.addColorStop(0,'rgba(184,168,122,.78)');gr.addColorStop(.55,'rgba(176,164,122,.5)');gr.addColorStop(1,'rgba(160,170,140,0)');g.fillStyle=gr;g.fillRect(px-rr,py-rr,2*rr,2*rr)}
+    else for(let n=0;n<4;n++){const f=(R()-.5)*.9,px=(xx+.5+dx*.5-dy*f)*k,py=(y+.5+dy*.5+dx*f)*k,rr=k*(.12+R()*.16);g.fillStyle='rgba(176,164,118,'+(.45+R()*.3).toFixed(2)+')';g.beginPath();g.ellipse(px,py,rr*1.5,rr,Math.atan2(dx,-dy),0,7);g.fill()}
     g.fillStyle='rgba(150,226,214,.3)';g.beginPath();g.ellipse((xx+.5+dx*.15)*k,(y+.5+dy*.15)*k,k*.5,k*.28,Math.atan2(dx,-dy),0,7);g.fill()}
   if(!ok('sw'))IM.sw.onload=()=>{if(G)G.oceanPic=null};
   if(ok('sw')){g.save();g.globalCompositeOperation='overlay';g.globalAlpha=.45;g.fillStyle=pat(g,IM.sw,1.6);g.fillRect(0,0,c.width,c.height);g.restore()}
@@ -14330,7 +14331,9 @@ function paintChunks(){const m=need();if(!m||!G.ground||!G.ground.chunks)return;
       const cx=(x+.5)*TILE,cy=(y+.5)*TILE;if(LK[i]){/* lake: a few small damp patches hugging the water, grass shows between */let wx=0,wy=0;for(const[ax,ay]of[[1,0],[-1,0],[0,1],[0,-1]])if(G.terrain[ti(Math.max(0,Math.min(MW-1,x+ax)),Math.max(0,Math.min(MH-1,y+ay)))]===1){wx+=ax;wy+=ay}
         if(HR(x,y,11)<(S.LAKESAND||.55))blob(cx+wx*TILE*.32+(HR(x,y,12)-.5)*10,cy+wy*TILE*.32+(HR(x,y,13)-.5)*10,TILE*(.32+HR(x,y,14)*.2),TILE*(.24+HR(x,y,15)*.14),.85);continue}
       if(d===1){t.fillStyle='#fff';t.fillRect(x*TILE,y*TILE,TILE,TILE);blob(cx+(HR(x,y,1)-.5)*10,cy+(HR(x,y,2)-.5)*10,TILE*1.05,TILE*.95,1)}
-      else blob(cx+(HR(x,y,3)-.5)*14,cy+(HR(x,y,4)-.5)*14,TILE*(.55+HR(x,y,5)*.4),TILE*(.45+HR(x,y,6)*.3),1)}
+      else if(S.BAND===false)blob(cx+(HR(x,y,3)-.5)*14,cy+(HR(x,y,4)-.5)*14,TILE*(.55+HR(x,y,5)*.4),TILE*(.45+HR(x,y,6)*.3),1);
+      else{/* beach edge v2: an even band; only its outer rim wavers */let wx=0,wy=0;for(const[ax,ay]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const a=x+ax,b2=y+ay;if(a>=0&&b2>=0&&a<MW&&b2<MH&&m.dL[ti(a,b2)]===1){wx+=ax;wy+=ay}}const wl=Math.hypot(wx,wy)||1;
+        blob(cx+wx/wl*TILE*.28+(HR(x,y,3)-.5)*5,cy+wy/wl*TILE*.28+(HR(x,y,4)-.5)*5,TILE*(.78+HR(x,y,5)*.12),TILE*(.72+HR(x,y,6)*.1),1)}}
     const g=ch.c.getContext('2d');g.save();g.setTransform(1,0,0,1,-ch.x,-ch.y);
     {const k=4/TILE,a=m.ws.getContext('2d'),b=m.wt.getContext('2d');a.drawImage(tmp,ch.x*k,ch.y*k,W0*k,H0*k);b.save();b.globalCompositeOperation='destination-out';b.drawImage(tmp,ch.x*k,ch.y*k,W0*k,H0*k);b.restore()}
     if(ok('sand')){t.globalCompositeOperation='source-in';t.fillStyle=pat(t,IM.sand,.25);t.fillRect(ch.x,ch.y,W0,H0);t.globalCompositeOperation='source-over';
@@ -14388,16 +14391,21 @@ function lakePic(m){if(m.lkp!==undefined)return m.lkp;const s=waterSmall(m);if(!
     if(lk)any=true;p[i*4+3]=lk?255:0}x.putImageData(d,0,0);return m.lkp=any?c:null}
 GFX.lakePic=()=>M&&lakePic(M);
 function surf(c,now,inView){const m=M;if(!m||window.FXOFF&&FXOFF.surf)return;const t=now/1000,P=seaCP(m),L=TILE*.3;/* speed (gameplay chat 1, Oct 17): batched into a few paths */
-  const NB=5,F=[],S=[];
-  for(let i=0;i<P.length;i+=6){const x=P[i],y=P[i+1];if(!inView(x,y,40))continue;const nx=P[i+2],ny=P[i+3],h=P[i+4],ph=P[i+5],tx=-ny,ty=nx;
+  const NB=5,F=[],S=[];let H2=null;const SH=S.FOAM===false?0:(S.FSH==null?TILE*.55:S.FSH);
+  for(let i=0;i<P.length;i+=6){const x=P[i],y=P[i+1];if(!inView(x,y,40))continue;const nx=P[i+2],ny=P[i+3],h=P[i+4],ph=P[i+5],tx=-ny,ty=nx;let sh=SH;if(sh){for(const q of[.6,1.4]){const bx=Math.floor((x-nx*TILE*q)/TILE),by=Math.floor((y-ny*TILE*q)/TILE);if(bx<0||by<0||bx>=MW||by>=MH||G.terrain[ti(bx,by)]===3){sh=0;break}}}
     const a0=.16+.1*Math.sin(t*1.1+h*19),fb=Math.max(0,Math.min(NB-1,Math.floor((a0-.06)/.2*NB)));const ex=x+nx*(2+h*2),ey=y+ny*(2+h*2),rx=L*1.25,ry=2.2+h*2.2,rot=Math.atan2(ty,tx);
-    const f=F[fb]||(F[fb]=new Path2D());f.moveTo(ex+Math.cos(rot)*rx,ey+Math.sin(rot)*rx);f.ellipse(ex,ey,rx,ry,rot,0,6.2832);
+    if(S.FOAM===false){const f=F[fb]||(F[fb]=new Path2D());f.moveTo(ex+Math.cos(rot)*rx,ey+Math.sin(rot)*rx);f.ellipse(ex,ey,rx,ry,rot,0,6.2832)}
+    else{/* beach edge v2 (Josh Oct 25): one lacy white foam line hugging the waterline, breathing in and out with the waves */const u=(x*.9+y*.7)/TILE,o=-sh+2.2*(.5+.5*Math.sin(t*1.25-u*.9)),fl=TILE*.42,fx=x+nx*o,fy=y+ny*o,bw=Math.sin(u*2.3+h*5)*1.4;
+      const fa=.55+.3*Math.sin(t*.9+u*1.7+h*4),fk=Math.max(0,Math.min(NB-1,Math.floor((fa-.25)/.6*NB)));const f=F[fk]||(F[fk]=new Path2D());f.moveTo(fx-tx*fl,fy-ty*fl);f.quadraticCurveTo(fx+nx*bw,fy+ny*bw,fx+tx*fl,fy+ty*fl);
+      if(h>.55){const s2=(H2||(H2=new Path2D())),dx=fx+nx*(4+h*3)+tx*(h-.75)*TILE*.6,dy=fy+ny*(4+h*3)+ty*(h-.75)*TILE*.6;s2.moveTo(dx-tx*5,dy-ty*5);s2.lineTo(dx+tx*5,dy+ty*5)}}
     const w=(t*.3-ph+10)%1,off=2+16*(1-w),a=Math.sin(Math.min(1,w*1.12)*Math.PI)*(.38+.25*h);if(a<.03)continue;
-    const px=x+nx*off,py=y+ny*off,l=L*(.8+.6*w)*(.7+h*.6),ab=Math.max(0,Math.min(NB-1,Math.floor(a/.63*NB))),wb=w<.33?0:w<.66?1:2,k=ab*3+wb;
+    const px=x+nx*(off-sh),py=y+ny*(off-sh),l=L*(.8+.6*w)*(.7+h*.6),ab=Math.max(0,Math.min(NB-1,Math.floor(a/.63*NB))),wb=w<.33?0:w<.66?1:2,k=ab*3+wb;
     const q=S[k]||(S[k]=new Path2D());q.moveTo(px-tx*l+nx*2,py-ty*l+ny*2);q.quadraticCurveTo(px-nx*2,py-ny*2,px+tx*l+nx*2,py+ty*l+ny*2)}
   c.save();c.lineCap='round';
-  for(let b=0;b<NB;b++)if(F[b]){c.fillStyle='rgba(255,255,255,'+(.06+(b+.5)*.2/NB).toFixed(3)+')';c.fill(F[b])}
-  for(let k=0;k<S.length;k++)if(S[k]){const ab=(k/3)|0,wb=k%3;c.strokeStyle='rgba(240,250,250,'+((ab+.5)*.63/NB).toFixed(3)+')';c.lineWidth=1+(wb+.5)/3*1.2;c.stroke(S[k])}
+  if(S.FOAM===false){for(let b=0;b<NB;b++)if(F[b]){c.fillStyle='rgba(255,255,255,'+(.06+(b+.5)*.2/NB).toFixed(3)+')';c.fill(F[b])}}
+  else{const z=Math.max(.6,Math.min(2.2,cam.z));for(let b=0;b<NB;b++)if(F[b]){const a=.25+(b+.5)*.6/NB;c.strokeStyle='rgba(225,248,245,'+(a*.35).toFixed(3)+')';c.lineWidth=6.5/Math.sqrt(z);c.stroke(F[b]);c.strokeStyle='rgba(255,255,255,'+a.toFixed(3)+')';c.lineWidth=2.4/Math.sqrt(z)+.6;c.stroke(F[b])}
+    if(H2){c.strokeStyle='rgba(255,255,255,.4)';c.lineWidth=1.3;c.stroke(H2)}}
+  for(let k=0;k<S.length;k++)if(S[k]){const ab=(k/3)|0,wb=k%3;c.strokeStyle='rgba(240,250,250,'+((ab+.5)*(S.FOAM===false?.63:.8)/NB).toFixed(3)+')';c.lineWidth=1+(wb+.5)/3*(S.FOAM===false?1.2:1.6);c.stroke(S[k])}
   c.restore()}
 const _dw=drawWater;
 drawWater=function(c,now,inView){if(!S.on||!G||!G.landBox)return _dw.apply(this,arguments);const m=need();if(!m)return _dw.apply(this,arguments);
