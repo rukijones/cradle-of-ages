@@ -2266,7 +2266,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   for(const f of G.ents)if(f.type==='farm'&&f.owner===o&&f.fallow&&!f.dead&&P.w>=60)replantFarm(f);
   {const bk=bld('bakery');if(bk){if(bk.queue.length===0&&age>=4&&!P.tech.grandbake&&P.g>300&&P.w>300)enqueue(bk,'grandbake');else if(age>=5&&!bk.steam&&!bk.steamOf&&bk.built&&P.g>400&&P.s>350&&canAfford(P,STEAM_COST)){pay(P,STEAM_COST);bk.steam=true;bk.sgrp={k:'steam',ids:[bk.id],anchor:bk.id,x0:bk.tx,y0:bk.ty,x1:bk.tx+bk.size,y1:bk.ty+bk.size};}if(bld('market'))bk.exp=50;}}
   {const cor=bld('ranch')||bld('corral');if(cor&&age>=2&&age<4&&cor.queue.length===0&&(bld('pen')||bld('dairy')||(bld('ranch')&&P.tech.dairyfarm))&&mine.filter(u=>u.type==='caravan').length<2&&P.f>200)enqueue(cor,'caravan');}
-  {const dp=bld('station');if(age>=5&&dp&&dp.queue.length===0&&mine.filter(u=>u.type==='truck').length<4)enqueue(dp,'truck');}
+  {const dp=bld('station');if(age>=5&&dp&&dp.queue.length===0&&mine.filter(u=>u.type==='truck').length<4)enqueue(dp,'truck');else if(age>=5&&dp&&dp.queue.length===0&&P.w<600&&mine.filter(u=>u.type==='logtruck').length<2)enqueue(dp,'logtruck');}
   const mkt=bld('market');if(mkt&&mkt.queue.length<1&&mine.filter(u=>u.type==='tradecart').length<(PS.name==='Expander'||PS.name==='Boomer'?5:3))enqueue(mkt,'tradecart');
   const dk=bld('dock');if(dk&&dk.queue.length<1&&mine.filter(u=>u.type==='fishboat').length<3)enqueue(dk,'fishboat');
   for(const bt of mine)if(bt.type==='fishboat'&&!bt.order){const f=nearestRes('fish',bt.x,bt.y,40*TILE);if(f)orderGather(bt,f);}
@@ -13488,6 +13488,37 @@ try{(function(){
   window.__oxfix=OXFIX;
 })()}catch(err){}
 /* ===== END ox field fix ===== */
+/* ===== r194 (Josh, Oct 25): Logging truck (Industrial Age), built at the logistics hub. It runs on its own: drives to the nearest
+   tree, saws it down (5x a villager's pace) and hauls 60 wood a load to your nearest wood drop-off. No villager needed.
+   Give it a move order and it obeys; when it arrives it goes back to logging. It skips trees in a forester's grove. ===== */
+const LOGT={rate:3,load:60,reach:28};
+try{DEF.logtruck={kind:'unit',name:'Logging truck',plural:'Logging trucks',hp:160,atk:0,range:0,cd:2,speed:100,sight:6,r:11,cost:{w:150,g:80},time:25,age:5};
+  if(DEF.station.trains&&!DEF.station.trains.includes('logtruck'))DEF.station.trains.push('logtruck');
+  NONMIL.add('logtruck');VEHICLES.add('logtruck');
+  setTimeout(()=>{try{if(!PFULL.logtruck)PFULL.logtruck=PFULL.truck||THUMB.truck}catch(e){}},0);
+}catch(err){console.error('r194',err)}
+function lgTreeOK(t,o){return t&&!t.dead&&t.type==='tree'&&!t.stump&&!t.sapling&&!t.grove&&t.amt>0&&(o!==0||!G.exp||G.exp[0][ti(t.tx,t.ty)])&&!(typeof coppiceOwner==='function'&&coppiceOwner(t)>=0)}
+function lgFell(t,u){try{fellTree(t,u)}catch(e){}t.stump=true;t.deadStump=true;t.amt=0;t.growT=0;for(let yy=t.ty;yy<t.ty+(t.size||1);yy++)for(let xx=t.tx;xx<t.tx+(t.size||1);xx++)if(G.occ[ti(xx,yy)]===t.id)G.occ[ti(xx,yy)]=0}
+function lgDrop(u){const sv=u.carry;u.carry={r:'w',amt:u.lgW||1};let b=null;try{b=nearestDrop(u)}catch(e){}u.carry=sv;return b}
+function lgStep(u,dt){u.lgSkip=u.lgSkip||{};
+  if((u.lgW||0)>=LOGT.load||(u.lgW>0&&u.lgLeg==='home')){u.lgLeg='home';const b=lgDrop(u);if(!b){u.working=false;return}
+    const r=approach(u,b,TILE*1.2);if(r==='fail'){u.path=null;return}if(r!==true)return;
+    const P=G.players[u.owner],a=u.lgW;P.w+=a*(u.owner===1?G.aiMult:1);inc(u.owner,'w',a,'logging');if(u.owner===0&&V0(b))G.fx.push({type:'float',x:b.x,y:b.y-30,t:1.4,text:'+'+Math.round(a)+' wood',col:'#e8c88a'});
+    u.lgW=0;u.lgLeg='cut';u.lgT=0;u.path=null;return}
+  let t=G.byId.get(u.lgT);if(!lgTreeOK(t,u.owner)){t=null;u.lgT=0;
+    const home=lgDrop(u)||u;let bd=1e18;for(const e of G.ents){if(e.type!=='tree'||!lgTreeOK(e,u.owner)||(u.lgSkip[e.id]||0)>G.t)continue;if(Math.hypot(e.x-home.x,e.y-home.y)>LOGT.reach*TILE)continue;
+      if(G.ents.some(v=>v!==u&&v.type==='logtruck'&&!v.dead&&v.lgT===e.id))continue;const q=Math.hypot(e.x-u.x,e.y-u.y);if(q<bd){bd=q;t=e}}
+    if(!t){u.working=false;if(u.lgW>0)u.lgLeg='home';if(u.owner===0&&!u.lgWarn&&G.t-(G.lgMsg||-99)>30){G.lgMsg=G.t;toast('A logging truck has no trees left near your drop-offs')}u.lgWarn=1;return}
+    u.lgT=t.id;u.lgNF=0;u.lgWarn=0;u.path=null}
+  u.lgLeg='cut';const r=approach(u,t,TILE*.75);if(r==='fail'){u.path=null;if(++u.lgNF>=4){u.lgSkip[t.id]=G.t+60;u.lgT=0}return}if(r!==true){u.working=false;return}
+  u.face=Math.atan2(t.y-u.y,t.x-u.x);u.working=true;const a=Math.min(t.amt,LOGT.rate*dt,LOGT.load-(u.lgW||0));t.amt-=a;u.lgW=(u.lgW||0)+a;
+  if(Math.random()<dt*3)emit('dust',t.x,t.y-4,1);if(Math.random()<dt*1.5)emit('chip',t.x,t.y-6,2,'#c9a26a');
+  if(t.amt<=.01){lgFell(t,u);u.lgT=0}}
+try{updUnit=(function(prev){return function(u,dt){if(u&&u.type==='logtruck'&&!u.dead&&u.owner<2&&!(u.order&&!u.order.auto)){if(u.order)u.order=null;try{lgStep(u,dt)}catch(err){}return}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+try{drawUnit=(function(prev){return function(c,u,x,y,now){if(!u||u.type!=='logtruck')return prev.apply(this,arguments);const v=Object.create(u);v.type='truck';v._v=undefined;const r=prev.call(this,c,v,x,y,now);
+  try{const n=Math.min(4,Math.ceil((u.lgW||0)/15));if(n){const a=u.face||0,ca=Math.cos(a),sa=Math.sin(a)*.5,bx=x-ca*7,by=y-12-sa*7;c.save();for(let i=0;i<n;i++){const lx=bx+(i%2?3:-3)*sa*2,ly=by-(i>>1)*3.2+(i%2)*1.5;
+    c.fillStyle='#6b4a2c';c.strokeStyle='#3a2615';c.lineWidth=.6;c.beginPath();c.ellipse(lx,ly,7,1.9,Math.atan2(sa,ca),0,6.2832);c.fill();c.stroke();c.fillStyle='#d9b77e';circ(c,lx+ca*6.5,ly+sa*6.5,1.6);c.fill()}c.restore()}}catch(e){}return r}})(drawUnit)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
