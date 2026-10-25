@@ -5430,6 +5430,8 @@ try{(function(){
    up; then it winches back down over the reload. It hurls a big flaming stone on a high arc that bursts in fire, sparks and dust. ===== */
 try{(function(){
   const BM={"file":"bomb3d","fw":300,"fh":285,"upx":209.56,"foot":180.3,"seg":{"walk":[0,12],"attack":[12,8],"idle":[20,1]},"rows5":1,"nc":21,"v":3,"mz":[[145.0,126.5],[209.7,113.5],[239.5,78.1],[216.8,41.0],[155.0,23.9]],"pack":{"walk":{"f":"bomb3d","x":0,"n":12},"attack":{"f":"bomb3d","x":12,"n":8},"idle":{"f":"bomb3d","x":20,"n":1}},"size":56},CT={"file":"cart3d","fw":210,"fh":210,"upx":166.67,"foot":143.2,"seg":{"walk":[0,8],"idle":[8,1]},"rows5":1,"nc":9,"v":2,"pack":{"walk":{"f":"cart3d","x":0,"n":8},"idle":{"f":"cart3d","x":8,"n":1}},"size":40};
+  /* file budget (Oct 25): cart3d's picture moved into pk/r4u.js (art/c/cart3d.webp removed) */
+  Object.defineProperty(CT,'r4u',{value:{walk:['cart3d',0,8],idle:['cart3d',8,1]},enumerable:false,configurable:true,writable:true});
   const V=GFX.VIL3D&&GFX.VIL3D.mm3d;
   if(V&&GFX.IRON3D&&GFX.IRONMAP){const m=Object.assign({},V);m.file='ex3d';const sg=V.seg;
     m.pack={walk:{f:'ex3d_p1',x:0,n:12},idle:{f:'ex3d_p1',x:12,n:8},die:{f:'ex3d_p1',x:20,n:6}};
@@ -5971,6 +5973,35 @@ try{(function(){const SH={"cog3d":{"file":"cog3d","fw":500,"fh":500,"upx":320.51
   setTimeout(()=>{try{GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){const pr=u&&Object.getPrototypeOf(u),px=!!(u&&u.type==='fishboat'&&pr&&pr.type==='transport');
     if(!u||!(u.type==='transport'||px)||GFX.SHIPS===false||GFX.mode!=='V23D'||u.owner>1)return prev(c,u,x,y,now);const S=pick(u);if(!S)return prev(c,u,x,y,now);
     try{return draw(c,u,x,y,now,px,S)||prev(c,u,x,y,now)}catch(err){return prev(c,u,x,y,now)}}})(GFX.drawUnitSpr)}catch(err){}},0);
+})()}catch(err){}
+/* ----- art chat 2: new Renaissance unit lines (Oct 25 2026, Josh's picks C / B / C): Landsknecht (upgrade of the Long swordsman: zweihander
+   carried on the shoulder, two-handed cleave), Pike square (upgrade of the Halberdier: one Swiss pikeman, very long pike with a magenta tassel)
+   and Lancer (upgrade of the Knight: plate rider on a lighter-armoured horse, striped lance upright, couched for the charge; horse falls on its side).
+   Tripo models (rigs + horse walk preset); sheets in the usual layout (5 directions mirrored, team-colour mask rows, impact at a.phase .5).
+   Keys lk3d / pq3d in GFX.IRON3D + GFX.IRONMAP and ln3d in GFX.MOUNT3D + GFX.MOUNTMAP, under the proposed unit types landsknecht / pikesquare /
+   lancer (keyed on u._v || u.type like the other soldiers). Gameplay: rename the map keys if the types are called differently.
+   File budget: all 8 pictures (plus the trade cart's, moved out of art/c/cart3d.webp) live as data URIs in ONE file pk/r4u.js (10 MB), loaded the first time one of these units is drawn. ----- */
+try{(function(){
+  const R={"lk3d":{"fw":194,"fh":256,"foot":229.8,"bodyH":104.0,"dirs":5,"rows5":1,"seg":{"walk":[0,12],"ready":[12,8],"attack":[20,12],"die":[32,6],"idle":[38,8],"run":[46,12]},"nc":58,"v":2,"baked":1,"file":"lk3d"},"pq3d":{"fw":194,"fh":320,"foot":290.9,"bodyH":104.0,"dirs":5,"rows5":1,"seg":{"walk":[0,12],"ready":[12,8],"attack":[20,12],"die":[32,6],"idle":[38,8],"run":[46,12]},"nc":58,"v":2,"baked":1,"file":"pq3d"},"ln3d":{"fw":267,"fh":256,"foot":191.8,"bodyH":106.1,"dirs":5,"rows5":1,"seg":{"walk":[0,12],"ready":[12,8],"attack":[20,12],"die":[32,6],"idle":[38,8],"run":[46,12]},"nc":58,"v":2,"baked":1,"file":"ln3d"}},PK={"lk3d":{"walk":["lk3d_a",0,12],"run":["lk3d_a",12,12],"idle":["lk3d_a",24,8],"ready":["lk3d_b",0,8],"attack":["lk3d_b",8,12],"die":["lk3d_b",20,6]},"pq3d":{"walk":["pq3d_a",0,12],"run":["pq3d_a",12,12],"ready":["pq3d_b",0,8],"attack":["pq3d_b",8,12],"die":["pq3d_b",20,6],"idle":["pq3d_c",0,8]},"ln3d":{"walk":["ln3d_a",0,12],"idle":["ln3d_a",12,8],"run":["ln3d_b",0,12],"die":["ln3d_b",12,6],"ready":["ln3d_c",0,8],"attack":["ln3d_c",8,12]}};
+  let st=0;const wait=[];
+  function need(cb){if(window.__PK2&&window.__PK2.lk3d_a){cb();return}wait.push(cb);if(st)return;st=1;
+    const sc=document.createElement('script');sc.src='pk/r4u.js?v='+GFX.ARTV;sc.onload=()=>{const w=wait.splice(0);for(const f of w)try{f()}catch(e){}};
+    sc.onerror=()=>{st=0;const w=wait.splice(0);for(const f of w)try{f(1)}catch(e){}};document.head.appendChild(sc)}
+  const IM={};
+  function img(n,cb){let p=IM[n];if(p&&p.im){cb(p.im);return}if(!p){p=IM[n]={cbs:[]};need(err=>{const u=!err&&window.__PK2&&window.__PK2[n];if(!u){const c=p.cbs;delete IM[n];for(const f of c)f(null);return}
+      const im=new Image();im.onload=()=>{p.im=im;const c=p.cbs;p.cbs=[];for(const f of c)f(im);setTimeout(()=>{if(IM[n]===p)delete IM[n]},20000)};im.onerror=()=>{const c=p.cbs;delete IM[n];for(const f of c)f(null)};im.src=u})}
+    p.cbs.push(cb)}
+  GFX.seg3=(function(prev){return function(D,seg){const P=D&&D.r4u&&D.r4u[seg];if(!P)return prev(D,seg);
+    const K=D.file,E=GFX.S3[K]||(GFX.S3[K]={});let q=E[seg];const t=performance.now();
+    if(q){q.used=t;if(q.err&&t-(q.et||0)>5000)delete E[seg];else return q.ok?q:null}
+    q=E[seg]={ok:false,used:t,T:[],cv:[],D};
+    img(P[0],im=>{if(!im){q.err=1;q.et=performance.now();return}
+      try{const w=P[2]*D.fw,cv=document.createElement('canvas');cv.width=w;cv.height=im.height;cv.getContext('2d').drawImage(im,P[1]*D.fw,0,w,im.height,0,0,w,im.height);GFX.seg3fin(D,q,cv)}catch(e){q.err=1;q.et=performance.now()}});
+    return null}})(GFX.seg3);
+  for(const k in R){Object.defineProperty(R[k],'r4u',{value:PK[k],enumerable:false,configurable:true,writable:true})}
+  if(GFX.IRON3D&&GFX.IRONMAP){GFX.IRON3D.lk3d=R.lk3d;GFX.IRON3D.pq3d=R.pq3d;GFX.IRONMAP.landsknecht='lk3d';GFX.IRONMAP.pikesquare='pq3d'}
+  if(GFX.MOUNT3D&&GFX.MOUNTMAP){R.ln3d.stride=64;R.ln3d.rstride=80;GFX.MOUNT3D.ln3d=R.ln3d;GFX.MOUNTMAP.lancer='ln3d'}
+  GFX.R4U=R;
 })()}catch(err){}
 /* ===== END art chat 2: renunits ===== */
 /* ===== V23D fires and chimneys (art chat 1, Oct 14 2026). Josh: "make any fire animated and make sure all chimneys are working".
