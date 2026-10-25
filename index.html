@@ -5539,7 +5539,7 @@ try{(function(){
           BURST.push({x:p.x,y:p.y,t0:now,ch});if(SCORCH.length>12)SCORCH.shift();SCORCH.push({x:p.x,y:p.y,t0:now,rb});
           try{emit('dust',p.x,p.y,18);emit('spark',p.x,p.y,18,'#ffb040');emit('chip',p.x,p.y,14,'#6e6a62');emit('chip',p.x,p.y,10,'#7a5230')}catch(e){}TB.splice(i,1);continue}
         if(V&&!V[ti(tl(p.x),tl(p.y))])continue;
-        const f=Math.min(1,p.trav/p.d0),lift=Math.sin(f*Math.PI)*Math.min(52,p.d0*.32)+10*(1-f),bx=p.x,by=p.y-lift,R=6.2;
+        const f=Math.min(1,p.trav/p.d0),lift=Math.sin(f*Math.PI)*Math.min(52,p.d0*.32)+(GFX.TB_REL||10)*(1-f),bx=p.x,by=p.y-lift,R=6.2;
         c.fillStyle='rgba(0,0,0,.3)';ell(c,p.x,p.y+4,5.5,2.2);c.fill();
         const sy=Math.cos(f*Math.PI)*1.6;
         for(let k=9;k>=4;k--){const tx=bx-p.vx*k*4.2,ty=by-p.vy*k*4.2+k*sy*1.6+k*.6,a=(1-k/10);c.fillStyle='rgba(95,88,80,'+(a*.5).toFixed(2)+')';circ(c,tx,ty,R*(.5+k*.13));c.fill()}
@@ -13458,10 +13458,12 @@ try{
   INFANTRY.add('landsknecht');INFANTRY.add('pikesquare');MOUNTED.add('lancer');
 }catch(err){console.error('r192',err)}
 
-/* ===== r193 (Josh, Oct 25): the trebuchet's stone leaves from the top of the arm's swing, not from the base. ===== */
-try{for(const nm of['shoot','shootAt']){const prev=nm==='shoot'?shoot:shootAt;const f=function(src){const n=G.projs.length;const r=prev.apply(this,arguments);
-  try{if(src&&src.type==='trebuchet'){const dir=Math.cos(src.face||0)<-.1?-1:1;for(let i=n;i<G.projs.length;i++){const p=G.projs[i];if(p.src!==src.id)continue;p.x=src.x+dir*5;p.y=src.y-40;}}}catch(e){}return r};
-  if(nm==='shoot')shoot=f;else shootAt=f}}catch(err){}
+/* ===== r193 (Josh, Oct 25: "the ball doesn't match firing when the arm moves"). The arm used to be shown cocked during the 0.45 s
+   wind-up and already thrown the instant the stone left, so the throw was never seen. Now the 3D arm swings during the wind-up and the
+   stone leaves the sling at the top of the swing (it starts its flight up at the sling, not at the wheels). ===== */
+try{GFX.TB_REL=58;setTimeout(function(){try{const prev=GFX.drawUnitSpr;GFX.drawUnitSpr=function(c,u,x,y,now){
+  if(u&&u.type==='trebuchet'&&u.windT>0&&u.working){try{const D=(DEF.trebuchet&&DEF.trebuchet.cd)||7,W=windOf(u),k=Math.max(0,Math.min(1,1-u.windT/W));const v=Object.create(u);v.cd=D-.45*k;if(v.cd>=D)v.cd=D-.001;return prev.call(this,c,v,x,y,now)}catch(e){}}
+  return prev.apply(this,arguments)}}catch(err){}},60)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
