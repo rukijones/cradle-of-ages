@@ -7010,6 +7010,63 @@ try{(function(){if(typeof GFX==='undefined')return;GFX.HEAVYGUN=true;GFX.GUNCREW
     if(Math.random()<.12)try{emit('dust',x0+Math.random()*S,y0+S*(.5+Math.random()*.5),1)}catch(err){}}
   GFX.scafDraw=scaf;
 }catch(err){console.warn(err)}})();
+
+/* ===== art chat 3: Industrial new units (Josh Oct 24, picks A/A/A/A; Tripo 3D models + rigs, baked like the bazooka man).
+   Grenadier (bearskin, throws a lit black-powder grenade), Machine gunner (Maxim gun on the shoulder, hip-fires it), Sapper (apron, satchel,
+   throws a dynamite bundle), Mortar crew (tube on his back; sets the mortar beside him and drops bombs in).
+   Unit type keys (any of these): grenadier | mgunner, machinegunner | sapper | mortar, mortarcrew  (or proxies with u._v = the key).
+   Sheets: art/c/u7a.webp (grenadier row 0, machine gunner row 1), art/c/u7b.webp (sapper row 0, mortar row 1), drawn at 0.75 of the
+   standard 194x192 frame (cv._k). Segments walk 12, idle 6, ready 6, attack 8 (frame 0 = release / shot), die 6; run uses walk.
+   Shots: grenade / dynamite fly in an arc and burst; mortar bombs lob high with a tube puff; MG muzzle flash flickers while firing.
+   GFX.U7=false = off. ===== */
+try{(function(){
+  if(!GFX.IRON3D||!GFX.IRONMAP)return;const V=GFX.VIL3D&&GFX.VIL3D.mm3d;const K=.75;
+  const SEG={walk:[0,12],idle:[12,6],ready:[18,6],attack:[24,8],die:[32,6]};
+  const U={u7gr:['u7a',0],u7mg:['u7a',1],u7sp:['u7b',0],u7mo:['u7b',1]};
+  const TYPES={grenadier:'u7gr',mgunner:'u7mg',machinegunner:'u7mg',sapper:'u7sp',mortar:'u7mo',mortarcrew:'u7mo'};
+  GFX.U7=true;GFX.U7MAP=TYPES;
+  for(const k in U){const m={fw:194,fh:192,dirs:5,rows5:1,seg:SEG,foot:V?V.foot:174.5,nc:38,v:2,bodyH:V?V.bodyH:137,baked:1,file:k,alias:{run:'walk'}};
+    Object.defineProperty(m,'u7',{value:{f:U[k][0],row:U[k][1]},enumerable:false});GFX.IRON3D[k]=m}
+  for(const t in TYPES)GFX.IRONMAP[t]=TYPES[t];
+  const IMG={};function img(f,cb){let p=IMG[f];if(!p){p=IMG[f]={cbs:[],im:null};const im=new Image();im.onload=()=>{p.im=im;const c=p.cbs;p.cbs=[];for(const fn of c)fn(im);setTimeout(()=>{if(IMG[f]===p)delete IMG[f]},20000)};
+      im.onerror=()=>{const c=p.cbs;p.cbs=[];for(const fn of c)fn(null);delete IMG[f]};im.src=GFX.ART+f+'.webp?v='+GFX.ARTV}if(p.im)cb(p.im);else p.cbs.push(cb)}
+  GFX.seg3=(function(prev){return function(D,seg){if(!D||!D.u7||GFX.U7===false)return prev(D,seg);if(seg==='run')seg='walk';if(!SEG[seg])return null;
+    const E=GFX.S3[D.file]||(GFX.S3[D.file]={});let q=E[seg];const t=performance.now();if(q){q.used=t;if(q.err&&t-(q.et||0)>5000)delete E[seg];else return q.ok?q:null}
+    q=E[seg]={ok:false,used:t,T:[],cv:[],D};const S=SEG[seg];
+    img(D.u7.f,im=>{if(!im){q.err=1;q.et=performance.now();return}try{const x0=S[0]*D.fw*K,w=Math.round(S[1]*D.fw*K),h=Math.round(10*D.fh*K),cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(im,x0,D.u7.row*h,w,h,0,0,w,h);GFX.seg3fin(D,q,cv);const T0=q.T,T={};for(const o of [0,1])Object.defineProperty(T,o,{get(){const c=T0[o];if(c&&!c._u7){c._k=(c._k||1)*K;c._u7=1}return c}});q.T=T}catch(e){q.err=1;q.et=performance.now()}});return null}})(GFX.seg3);
+  const B='bowman',key=u=>u&&TYPES[u._v||u.type];
+  if(GFX.SOLD&&GFX.poseAs&&GFX.rigFor){for(const t in TYPES){GFX.SOLD.add(t);if(!GFX.poseAs[t])GFX.poseAs[t]=B}
+    GFX.rigFor=(function(prev){return function(u){const r=prev(u);if(r||!key(u)||GFX.mode!=='V23D'||u.owner>1||GFX.U7===false)return r;if(!GFX.rigs||!GFX.rigs[B])return r;const k=u._v||u.type;
+      if(!GFX.rps[k])GFX.rps[k]=GFX.rps[B];try{if(!GFX_RIGS[k])GFX_RIGS[k]=GFX_RIGS[B]}catch(e){}for(const M of [GFX.bodyH,GFX.rigH,GFX.legIn])if(M&&M[k]==null&&M[B]!=null)M[k]=M[B];return k}})(GFX.rigFor)}
+  if(GFX.drawUnitSpr)GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){const k=u&&!u._v&&TYPES[u.type];if(k&&GFX.U7!==false){const E=GFX.S3[k];if(E&&Object.values(E).some(q=>q&&q.ok))return false;try{GFX.seg3(GFX.IRON3D[k],'walk');GFX.seg3(GFX.IRON3D[k],'ready')}catch(e){}}
+    return prev.apply(this,arguments)}})(GFX.drawUnitSpr);
+  /* machine-gun flash + mortar tube puff */
+  try{drawUnit=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);try{const k=key(u);if(k&&GFX.U7!==false&&GFX.mode==='V23D'&&!u.dead&&u._u7s!=null){const t=G.t-u._u7s,a=u.face||0,ca=Math.cos(a),sa=Math.sin(a)*.55;
+      if(k==='u7mg'&&t<.45&&((now/40|0)%2===0)){const hx=x+ca*13,hy=y-10+sa*13;c.save();c.globalCompositeOperation='lighter';c.fillStyle='rgba(255,215,110,.95)';circ(c,hx,hy,2.6+Math.random()*1.4);c.fill();
+        c.fillStyle='rgba(255,160,50,.7)';c.beginPath();c.moveTo(hx-sa*2,hy+ca*1);c.lineTo(hx+ca*(7+Math.random()*3),hy+sa*(7+Math.random()*3));c.lineTo(hx+sa*2,hy-ca*1);c.closePath();c.fill();c.restore()}
+      if(k==='u7mo'&&t<.9){const px=x-ca*0+(-sa)*7,py=y-9,kk=t/.9;c.save();for(let i=0;i<3;i++){c.globalAlpha=.5*(1-kk);c.fillStyle=i%2?'#cfc9bd':'#e8e3d8';circ(c,px+(i-1)*kk*4,py-kk*(10+i*4),2+kk*(4+i));c.fill()}
+        if(t<.08){c.globalAlpha=1;c.globalCompositeOperation='lighter';c.fillStyle='rgba(255,200,90,.9)';circ(c,px,py,3.5);c.fill()}c.restore()}}}catch(e){}return r}})(drawUnit)}catch(e){}
+  const tag=(src,n)=>{const k=key(src);if(!k||GFX.U7===false)return;src._u7s=G.t;for(let i=n;i<G.projs.length;i++){const p=G.projs[i];if(p.src===src.id)p.u7=k}};
+  try{const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);tag(src,n);return r}}catch(e){}
+  try{const _sa=shootAt;shootAt=function(src){const n=G.projs.length;const r=_sa.apply(this,arguments);tag(src,n);return r}}catch(e){}
+  GFX._u7fx=GFX._u7fx||[];
+  try{const _dp=drawParts;drawParts=function(c){try{if(GFX.mode==='V23D'&&GFX.U7!==false){const Vv=G.vis&&G.vis[0];
+      for(const p of G.projs){if(!p.u7||p.u7==='u7mg')continue;const f=Math.min(1,p.trav/Math.max(1,p.d0)),H=p.u7==='u7mo'?Math.max(40,p.d0*.45):Math.max(14,p.d0*.22),bx=p.x,by=p.y-6-Math.sin(f*Math.PI)*H;
+        p._u7l=[p.x,p.y,p.u7];if(Vv&&!Vv[ti(tl(p.x),tl(p.y))])continue;
+        c.fillStyle='rgba(0,0,0,.25)';ell(c,p.x,p.y+2,3,1.2);c.fill();
+        if(p.u7==='u7gr'){c.fillStyle='#232327';circ(c,bx,by,2.6);c.fill();c.fillStyle='rgba(255,210,90,.95)';circ(c,bx+1.5,by-2.4,1+Math.random());c.fill()}
+        else if(p.u7==='u7sp'){c.save();c.translate(bx,by);c.rotate(f*12);c.fillStyle='#c0302a';c.fillRect(-3.5,-1.6,7,3.2);c.fillStyle='#d8c9a0';c.fillRect(-.6,-1.6,1.2,3.2);c.restore();c.fillStyle='rgba(255,210,90,.95)';circ(c,bx+3,by-2,1+Math.random());c.fill()}
+        else{c.save();c.translate(bx,by);c.rotate(Math.atan2(Math.cos(f*Math.PI)*-1,p.vx>0?1:-1)*.8);c.fillStyle='#3d4430';c.beginPath();c.ellipse(0,0,1.8,3.2,0,0,7);c.fill();c.restore()}}
+      /* burst where a thrown/lobbed charge landed */
+      for(const p of G.projs)p._u7seen=1;
+      const L=GFX._u7last||[];for(const q of L){if(!G.projs.includes(q.p))GFX._u7fx.push({x:q.x,y:q.y,t:G.t,big:q.k==='u7mo'||q.k==='u7sp'})}
+      GFX._u7last=G.projs.filter(p=>p.u7&&p.u7!=='u7mg'&&p._u7l).map(p=>({p,x:p._u7l[0],y:p._u7l[1],k:p.u7}));
+      GFX._u7fx=GFX._u7fx.filter(e=>G.t-e.t<1);for(const e of GFX._u7fx){if(Vv&&!Vv[ti(tl(e.x),tl(e.y))])continue;const k=(G.t-e.t)/1,R=e.big?22:15;c.save();
+        if(k<.25){c.globalCompositeOperation='lighter';const g=c.createRadialGradient(e.x,e.y-4,0,e.x,e.y-4,R*(.5+k*2));g.addColorStop(0,'rgba(255,245,200,.95)');g.addColorStop(.5,'rgba(255,150,40,.7)');g.addColorStop(1,'rgba(255,90,20,0)');c.fillStyle=g;circ(c,e.x,e.y-4,R*(.5+k*2));c.fill();c.globalCompositeOperation='source-over'}
+        for(let i=0;i<6;i++){const a=i*1.05+e.x,d=R*(.3+k*.9);c.globalAlpha=.6*(1-k);c.fillStyle=i%2?'#8a7a62':'#b9b0a0';circ(c,e.x+Math.cos(a)*d,e.y-4+Math.sin(a)*d*.5-k*10,3+k*R*.4);c.fill()}
+        c.globalAlpha=.8*(1-k);c.fillStyle='#5a4630';for(let i=0;i<5;i++){const a=i*1.3+e.y;circ(c,e.x+Math.cos(a)*R*k*1.2,e.y-4-Math.sin(k*Math.PI)*12+Math.sin(a)*4,1.4);c.fill()}c.restore()}}}catch(e){}return _dp.apply(this,arguments)}}catch(e){}
+})()}catch(err){}
 /* ===== END art chat 3: late ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
