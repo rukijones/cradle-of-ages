@@ -13198,6 +13198,13 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
         if(have<RHAND_MAX){h.shep=R.id}else{const i=W.gar.indexOf(h);if(i>=0){W.gar.splice(i,1);h.prevOrder=null;release(W,h);h.order=null;h.garIn=0}}}}}
 }catch(err){}return r}})(railTick)}catch(err){}
 
+/* ===== r188 (Josh, Oct 24: "Buildings next to the south facing cliff, the art overlaps onto the cliff"): a building's picture is
+   taller than its footprint, so one placed right below a cliff wall is drawn over the rock. Buildings now need 2 clear rows
+   between their top edge and a cliff (1 row for small 1x1 pieces); flat things (farms, walls, gates, pylons, outposts) are exempt. ===== */
+try{const CF=new Set(['farm','wall','gate','pylon','outpost']);placeWhy=(function(prev){return function(type,tx,ty,o,needExp,m){const r=prev.apply(this,arguments);if(r)return r;
+  try{if(CF.has(type)||!DEF[type]||DEF[type].kind!=='bld')return r;const s=DEF[type].size||1,g=s>=2?2:1,T=G.terrain;
+    for(let y=ty-g;y<ty;y++)for(let x=tx-1;x<=tx+s;x++){if(!inB(x,y))continue;const i=ti(x,y);if(T[i]===3||(G.cblk&&G.cblk[i]))return 'Too close to the cliff: leave room above the building'}}catch(err){}return r}})(placeWhy)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
