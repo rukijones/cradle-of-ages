@@ -2277,7 +2277,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
     if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['sentry','bronzearmor','weapons']:['weapons','bronzearmor','sentry']))if(enqueue(fg,k))break;}
     if(bar&&bar.queue.length===0&&P.f>300){for(const k of['axemen','legion','pikes'])if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0&&P.f>200)enqueue(rng,'bows');
     if(age>=2&&P.f>350){if(rng&&rng.queue.length===0)enqueue(rng,'composite');if(stb&&stb.queue.length===0)enqueue(stb,'cavtech');if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['guardtower','chainmail','ironweap']:['ironweap','chainmail','guardtower']))if(enqueue(fg,k))break;}if(sp&&sp.queue.length===0)enqueue(sp,'wheel');}
-    if(age>=3&&P.f>450){if(bar&&bar.queue.length===0){for(const k of['longswords','halberds'])if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0)enqueue(rng,age>=4?'guns':'crossbows');if(stb&&stb.queue.length===0)enqueue(stb,'chivalry');if(age>=5){const rg5=bld('range'),st5=bld('stable'),ws5=bld('workshop'),fc5=bld('factory');if(rg5&&rg5.queue.length===0)enqueue(rg5,'rifles');if(st5&&st5.queue.length===0)enqueue(st5,'cuirass');if(ws5&&ws5.queue.length===0){for(const k of['shells','sappers','mortars'])if(!P.tech[k]&&enqueue(ws5,k))break;}{const bk5=bld('barracks');if(bk5&&bk5.queue.length===0)for(const k of['grenades','mguns'])if(!P.tech[k]&&P.g>300&&enqueue(bk5,k))break;}if(fc5&&fc5.queue.length===0){if(!P.tech.steam)enqueue(fc5,'steam');else enqueue(fc5,'harvesters');}}
+    if(age>=3&&P.f>450){if(bar&&bar.queue.length===0){for(const k of(age>=4?['longswords','halberds','landsknechts','pikesquares']:['longswords','halberds']))if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0)enqueue(rng,age>=4?'guns':'crossbows');if(stb&&stb.queue.length===0)enqueue(stb,age>=4&&P.tech.chivalry?'lances':'chivalry');if(age>=5){const rg5=bld('range'),st5=bld('stable'),ws5=bld('workshop'),fc5=bld('factory');if(rg5&&rg5.queue.length===0)enqueue(rg5,'rifles');if(st5&&st5.queue.length===0)enqueue(st5,'cuirass');if(ws5&&ws5.queue.length===0){for(const k of['shells','sappers','mortars'])if(!P.tech[k]&&enqueue(ws5,k))break;}{const bk5=bld('barracks');if(bk5&&bk5.queue.length===0)for(const k of['grenades','mguns'])if(!P.tech[k]&&P.g>300&&enqueue(bk5,k))break;}if(fc5&&fc5.queue.length===0){if(!P.tech.steam)enqueue(fc5,'steam');else enqueue(fc5,'harvesters');}}
   {const un=bld('university');if(un&&un.queue.length===0)for(const k of['printing','medicine','chemistry','cartography'])if(!P.tech[k]&&P.g>350&&enqueue(un,k))break;}
   if(age>=4){if(fg&&fg.queue.length===0)enqueue(fg,'ballistics');if(mkt&&mkt.queue.length===0)enqueue(mkt,'banking');}if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['keeps','plate','steel']:['steel','plate','keeps']))if(enqueue(fg,k))break;}}}
   for(const b of blds)if(!b.built&&!vills.some(v=>v.order&&v.order.type==='build'&&v.order.id===b.id)){
@@ -13384,6 +13384,33 @@ try{
 }catch(err){console.error('r191',err)}
 try{shoot=(function(prev){return function(src,t,dmg,kind){const ty=src&&src.type;if(ty==='grenadier'||ty==='sapper'||ty==='mortar')kind='boulder';else if(ty==='mgunner')kind='bullet';return prev.call(this,src,t,dmg,kind)}})(shoot)}catch(err){}
 try{hitAmt=(function(prev){return function(u,t){let a=prev.apply(this,arguments);if(u&&u.type==='sapper'&&t&&t.kind==='bld')a*=3;return a}})(hitAmt)}catch(err){}
+
+/* ===== r192 (Josh, Oct 25): three new Renaissance units, using art chat 2's pictures. Each is a research that upgrades a Medieval line,
+   and the Industrial upgrades now follow on from them:
+   Long swordsman -> Landsknecht (Landsknechts, barracks) -> Grenadier.  Two-handed swords: strong against pikes and foot soldiers.
+   Halberdier -> Pike square (Pike squares, barracks) -> Machine gunner.  Long pikes: the wall that stops cavalry.
+   Knight -> Lancer (Lances, stable) -> Cuirassier.  Lance charge: strong against archers, gunners and siege. ===== */
+try{
+  const U4={landsknecht:{kind:'unit',needTech:'bronzework',name:'Landsknecht',plural:'Landsknechts',hp:110,atk:15,arm:3,range:0,cd:1.4,speed:76,sight:5,r:9,cost:{f:60,g:45},time:22,age:4},
+    pikesquare:{kind:'unit',name:'Pike square',plural:'Pike squares',hp:85,atk:8,arm:2,range:0,cd:1.3,speed:70,sight:5,r:9,cost:{f:40,w:35,g:10},time:18,age:4},
+    lancer:{kind:'unit',name:'Lancer',plural:'Lancers',hp:165,atk:14,arm:3,range:0,cd:1.35,speed:112,sight:7,r:11,cost:{f:75,g:80},time:28,age:4}};
+  for(const k in U4)DEF[k]=U4[k];
+  const ins=(arr,after,k)=>{if(arr.includes(k))return;const i=arr.indexOf(after);arr.splice(i>=0?i+1:arr.length,0,k)};
+  ins(DEF.barracks.trains,'longsword','landsknecht');ins(DEF.barracks.trains,'halberdier','pikesquare');ins(DEF.stable.trains,'knight','lancer');
+  ins(DEF.barracks.techs,'longswords','landsknechts');ins(DEF.barracks.techs,'halberds','pikesquares');ins(DEF.stable.techs,'chivalry','lances');
+  TECH.landsknechts={name:'Landsknechts',desc:'Long swordsmen become landsknechts: two-handed swords that cut through pikes',cost:{f:280,g:200},time:45,age:4};
+  TECH.pikesquares={name:'Pike squares',desc:'Halberdiers become pike squares: the wall that stops cavalry',cost:{f:240,w:180},time:40,age:4};
+  TECH.lances={name:'Lances',desc:'Knights become lancers: a charge that breaks archers, gunners and siege',cost:{f:300,g:250},time:50,age:4};
+  CONV.landsknechts=['longsword','landsknecht'];CONV.pikesquares=['halberdier','pikesquare'];CONV.lances=['knight','lancer'];
+  CONV.grenades=['landsknecht','grenadier'];CONV.mguns=['pikesquare','mgunner'];CONV.cuirass=['lancer','cuirassier'];
+  TECH.grenades.desc='Landsknechts become grenadiers: thrown bombs that burst on groups';TECH.mguns.desc='Pike squares become machine gunners: rapid fire, strong against cavalry';TECH.cuirass.desc='Lancers become cuirassiers';
+  for(const k in BONUS){const v=BONUS[k].vs;if(v.includes('knight')&&!v.includes('lancer'))v.push('lancer');if(v.includes('longsword')&&!v.includes('landsknecht'))v.push('landsknecht');if(v.includes('halberdier')&&!v.includes('pikesquare'))v.push('pikesquare')}
+  BONUS.landsknecht={vs:['spearman','pikeman','halberdier','pikesquare','longsword','legionary','swordsman','axeman','clubman'],amt:7,label:'Pikes, foot soldiers'};
+  BONUS.pikesquare={vs:['rider','cavalry','knight','lancer','cuirassier','scout'],amt:22,label:'All cavalry'};
+  BONUS.lancer={vs:['bowman','compbow','crossbow','arquebus','slinger','catapult','trebuchet','bombard'],amt:8,label:'Archers, gunners, siege'};
+  Object.assign(WEAK,{landsknecht:'Arquebusiers, lancers',pikesquare:'Landsknechts, arquebusiers',lancer:'Pike squares'});
+  INFANTRY.add('landsknecht');INFANTRY.add('pikesquare');MOUNTED.add('lancer');
+}catch(err){console.error('r192',err)}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
