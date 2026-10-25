@@ -5560,7 +5560,10 @@ try{(function(){
     /* Trebuchet sharper (Oct 17 2026, art chat 1's note, Josh: go): every sheet re-rendered from the Tripo model at 1.45x the pixels
        (204x290 cells, was 141x200; same framing, so the size in the game is unchanged), arm split from the frame and swung in 3D,
        stone + trigger rope hidden once it has fired. Same files (tb3d_attack/_idle/_walk, tb3e_walk), +0 files; ARTV bumped so phones refetch. */
-    try{Object.assign(GFX_TB3D,{fw:204,fh:290,upx:200.1725,foot:239.83});GFX.ARTV=String(Math.max(+GFX.ARTV||0,30))}catch(err){}
+    /* Oct 25 (Josh: "The trebuchet is still low definition"): re-rendered again at 2.4x the original pixels (338x480 cells, about 4.4 source px per
+       game px; 2.4x is the most that keeps the 10-frame attack sheet under the phone picture limit), lightly sharpened. Same framing, same in-game size,
+       same files (tb3d_attack/_idle, tb3e_walk). SWING frames unchanged (gameplay r193 proxy cd still lines up). */
+    try{Object.assign(GFX_TB3D,{fw:338,fh:480,upx:331.32,foot:396.96});GFX.ARTV=String(Math.max(+GFX.ARTV||0,33))}catch(err){}
     const SWING=.45,TQ={},TW=Object.assign({},GFX_TB3D,{file:'tb3e',seg:{walk:[0,8]},nc:8});
     GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){if(u.type!=='trebuchet'||GFX.mode!=='V23D'||typeof GFX_TB3D==='undefined')return prev(c,u,x,y,now);
       const S=GFX_TB3D,sg=S.seg,D=(DEF.trebuchet&&DEF.trebuchet.cd)||7,t=u.working&&u.cd>0?D-u.cd:-1;
