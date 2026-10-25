@@ -13265,7 +13265,7 @@ try{const ag=()=>{try{return G.players[0].age|0}catch(e){return 0}};
   Object.defineProperty(DEF.workshop,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Arsenal':'Siege workshop'},set(v){}});
 }catch(err){}
 setTimeout(()=>{try{const prev=bldSpr0;bldSpr0=function(e){if(e&&e.type==='barracks'&&GFX.armySpr){try{if(G.players[e.owner].age>=5){const sp=GFX.armySpr(Object.assign({},e,{type:'armybase',size:3}));if(sp)return sp}}catch(err){}}return prev.apply(this,arguments)}}catch(err){}},0);
-try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{const P=G.players[0];if(P&&!P.slRange&&G.ents.some(e=>e.owner===0&&e.type==='range'&&e.built&&!e.dead)){P.slRange=1;if(G.t>5)toast('Slingers now train at the Archery range');}}catch(err){}return r}})(railTick)}catch(err){}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{const P=G.players[0];if((P&&!P.slRange&&G.ents.some(e=>MPHU(e.owner)&&e.type==='range'&&e.built&&!e.dead))&&MPTW(e.owner)){P.slRange=1;if(G.t>5)toast('Slingers now train at the Archery range');}}catch(err){}return r}})(railTick)}catch(err){}
 
 /* ===== r180 Industrial logistics (Josh, Oct 24): no pack animals in the Industrial Age.
    On reaching the Industrial Age every donkey, caravan and ox is sold (15 / 30 / 20 gold) and the ranch stops training them.
@@ -13282,7 +13282,7 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
       try{donkFree(u)}catch(e){}try{corralFree(u)}catch(e){}if(u.cartFor){u.cartFor=0}
       u.dead=true;g+=RETIRE_G[u.type];n++;try{G.sel=G.sel.filter(i=>i!==u.id)}catch(e){}}
     for(const b of G.ents){if(b.owner!==o||b.dead||!b.queue||!b.queue.length)continue;const keep=[];for(const q of b.queue){if(RETIRE_G[q]){try{refund(P,itemOf(q).cost)}catch(e){}}else keep.push(q)}if(keep.length!==b.queue.length){b.queue=keep;if(!keep.length)b.trainT=0}}
-    if(n){P.g+=g;if(o===0)toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the logistics hub do the hauling now');}}}
+    if(n){P.g+=g;if((MPHU(o))&&MPTW(o))toast('🚚 Industrial Age: '+n+' pack animal'+(n>1?'s':'')+' sold for '+g+' gold. Trucks from the logistics hub do the hauling now');}}}
 }catch(err){}return r}})(railTick)}catch(err){}
 try{const ag=o=>{try{return G.players[o==null?0:o].age|0}catch(e){return 0}};
   Object.defineProperty(DEF.tradecart,'name',{configurable:true,enumerable:true,get(){return ag()>=5?'Trade truck':'Trade cart'},set(v){}});
@@ -13468,6 +13468,26 @@ try{GFX.TB_REL=58;setTimeout(function(){try{const prev=GFX.drawUnitSpr;GFX.drawU
   if(u&&u.type==='trebuchet'&&u.windT>0&&u.working){try{const D=(DEF.trebuchet&&DEF.trebuchet.cd)||7,W=windOf(u),k=Math.max(0,Math.min(1,1-u.windT/W));const v=Object.create(u);v.cd=D-.45*k;if(v.cd>=D)v.cd=D-.001;return prev.call(this,c,v,x,y,now)}catch(e){}}
   return prev.apply(this,arguments)}}catch(err){}},60)}catch(err){}
 
+/* ===== Ox fields: farmers no longer turned away from fields nobody is working, gameplay chat 2 (Josh, Oct 25 2026: "an ongoing issue where
+   farmers won't work fields when I assign them and there is an ox on the field") =====
+   Cause: a windmill's ox fields share one farmer per row (he guides the oxen on up to 3 fields in a line: autoFarmTick, max 2 extra, one
+   direction). But the "is this field already worked?" check (mfTaken / oxRowTaken) refused a farmer if ANY neighbouring ox field in EITHER
+   direction had a farmer, even when that farmer wasn't (and couldn't be) guiding this field. Test: a 2x3 block of ox farms at a windmill,
+   one farmer sent to each: 5 of 6 were turned away idle and the block went nearly unworked.
+   Now: a farmer the player sends to an ox field always works it (if another farmer was guiding that field's oxen, he just stops guiding
+   that one). Still only 1 farmer per field. One farmer still covers up to 3 ox fields in a line if you don't send more. The computer
+   only skips a field that is really being guided right now by another working farmer (f.tendBy, set each tick by autoFarmTick).
+   Replaces gameplay chat 1's mfTaken / oxRowTaken (same names and arguments). OXFIX.off=true = old rule. */
+const OXFIX={off:false};
+try{(function(){
+  const oldT=mfTaken,oldR=oxRowTaken;
+  const guidedBy=(f,u)=>{const t=f.tendBy&&G.byId.get(f.tendBy);return !!(t&&t!==u&&!t.dead&&t.owner===f.owner&&t.order&&t.order.type==='gather'&&t.working);};
+  const ai=u=>!!(u&&G.ais&&G.ais[u.owner]);   // the computer keeps the 1-farmer-per-3-ox-fields economy; a player's farmer always works where he is sent
+  mfTaken=function(f,u){if(OXFIX.off)return oldT.apply(this,arguments);const h=mfHolder(f);if(h)return h!==u;if(oxAlive(f)&&ai(u))return guidedBy(f,u);return false;};
+  oxRowTaken=function(f,u){if(OXFIX.off)return oldR.apply(this,arguments);if(!oxAlive(f)||mfHolder(f)||!ai(u))return false;return guidedBy(f,u);};
+  window.__oxfix=OXFIX;
+})()}catch(err){}
+/* ===== END ox field fix ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
