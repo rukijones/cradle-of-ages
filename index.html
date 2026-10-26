@@ -13136,7 +13136,7 @@ try{(function(){
    Art: s.wool<.35 = shorn sheep (art chat 1 may draw it from GFX.sheepShorn(u)); carriers have u.woolC>0. ===== */
 const WOOL={off:false,grow:90,shear:3,cap:30,trip:6,carry:10,millK:1};
 function woolDst(R){const o=R.owner;let best=null,bd=1e18;for(const e of G.ents){if(e.owner!==o||e.dead||!e.built||(e.type!=='factory'&&e.type!=='market'))continue;const d=Math.hypot(e.x-R.x,e.y-R.y)+(e.type==='market'?1e9:0);if(d<bd){bd=d;best=e}}return best}
-function woolSheep(R){return G.ents.filter(e=>e.type==='sheep'&&e.owner===R.owner&&!e.dead&&!e.sick&&!(e.born&&G.t-e.born<60)&&inPenArea(R,e,.8,'s'))}
+function woolSheep(R){return G.ents.filter(e=>e.type==='sheep'&&e.owner===R.owner&&!e.dead&&!e.sick&&!(e.born&&G.t-e.born<60)&&(inPenArea(R,e,.8,'s')||rhNearFold(R,e)))}
 function woolOn(R){return !WOOL.off&&R&&R.type==='ranch'&&!R.dead&&R.built&&R.owner<2&&ranchSheep(R)&&useOf(R)==='wool'&&!(R.useT>0)}
 GFX.sheepShorn=u=>!!(u&&u.type==='sheep'&&typeof u.wool==='number'&&u.wool<.35);
 function woolClear(u){const R=G.byId.get(u.woolR||u.shearR);if(u.woolC&&R&&!R.dead)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+u.woolC);if(R&&R.wcar===u.id)R.wcar=0;u.woolR=0;u.woolC=0;u.wleg=0;u.wto=0;u.shearS=0;u.shearR=0;u.shT=0;u.working=false;}
@@ -13198,7 +13198,7 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
     const i=W.gar.findIndex(h=>h&&h.shep===R.id);if(i<0)continue;const h=W.gar.splice(i,1)[0];h.prevOrder=null;release(W,h);h.order=null;h.garIn=0;}
   }catch(err){}return r}})(railTick)}catch(err){}
 try{const ws0=woolStep;woolStep=function(u,dt){try{if(u.shearS){const S=G.byId.get(u.shearS);if(S&&!S.dead){u.shW=(u.shW||0)+dt;const d=Math.hypot(S.x-u.x,S.y-u.y);
-    if(d<=TILE*1.4&&d>TILE*.9){u.shW=0;u.path=null;u.moving=false;u.working=true;u.face=Math.atan2(S.y-u.y,S.x-u.x);S.order=null;S.path=null;S.moving=false;S.wt=Math.max(S.wt||0,2);u.shT=(u.shT||0)+dt;
+    if(d<=TILE*1.4&&d>TILE*.9&&(u.shX||(u.shW||0)>4)){u.shX=1;u.shW=0;u.path=null;u.moving=false;u.working=true;u.face=Math.atan2(S.y-u.y,S.x-u.x);S.order=null;S.path=null;S.moving=false;S.wt=Math.max(S.wt||0,2);u.shT=(u.shT||0)+dt;
       if(u.shT>=WOOL.shear){const R=G.byId.get(u.shearR);S.wool=0;if(R)R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);if(R&&R.owner===0&&V0(S))G.fx.push({type:'float',x:S.x,y:S.y-20,t:1.4,text:'✂️ +1 🧶',col:'#f4ecd8'});u.shW=0;woolClear(u)}return true}
     if(d<=TILE*.9)u.shW=0;else if(u.shW>15){S.noShear=G.t+60;u.shW=0;woolClear(u);return false}}}}catch(err){}return ws0.apply(this,arguments)}}catch(err){}
 try{const wsh=woolSheep;woolSheep=function(R){return wsh(R).filter(s=>!(s.noShear>G.t))}}catch(err){}
@@ -13641,6 +13641,16 @@ try{ranchActs=(function(prev){return function(one,P){const h=prev.apply(this,arg
 try{$('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act]');if(!b||!G)return;const a=b.dataset.act||'';if(a.indexOf('rrole:')!==0)return;e.stopPropagation();e.preventDefault();
   if(b.classList.contains('dis'))return;const one=(G.sel||[]).map(id=>G.byId.get(id)).find(Boolean);const R=rhOfSel(one);if(!R)return;
   const add=a[6]==='+',k=a.slice(7);rhSetRole(R,k,add);panelKeyLast=''},true)}catch(err){}
+
+/* ===== r198 (Josh, Oct 26: "The sheep shearers are just walking into the sheep and not shearing them"). Three fixes:
+   1. The shearer walks right up to the sheep's side before shearing (he used to start from 1.4 tiles away, which looked like he was
+      standing in the flock doing nothing); the over-the-fence reach is only used when he is stuck for 4 s.
+   2. The sheep he is going for stands still from the moment he sets off (it used to keep wandering, so he chased it).
+   3. Sheep that wander just outside the fold (within 2 tiles) still count for shearing. ===== */
+function rhNearFold(R,e){try{const W=swingOf(R);if(!W||!W.built)return false;const h=(W.size||3)*TILE/2+2*TILE;return Math.abs(e.x-W.x)<h&&Math.abs(e.y-W.y)<h}catch(err){return false}}
+try{const ws2=woolStep;woolStep=function(u,dt){try{if(u.shearS){const S=G.byId.get(u.shearS);if(S&&!S.dead){S.order=null;S.path=null;S.moving=false;S.wt=Math.max(S.wt||0,1.5);
+    const d=Math.hypot(S.x-u.x,S.y-u.y);if(d<=TILE*.9){u.face=Math.atan2(S.y-u.y,S.x-u.x)}}}}catch(e){}
+  const r=ws2.apply(this,arguments);if(!u.shearS)u.shX=0;return r}}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
