@@ -13653,6 +13653,19 @@ try{const ws2=woolStep;woolStep=function(u,dt){try{if(u.shearS){const S=G.byId.g
     const d=Math.hypot(S.x-u.x,S.y-u.y);if(d<=TILE*.9){u.face=Math.atan2(S.y-u.y,S.x-u.x)}}}}catch(e){}
   const r=ws2.apply(this,arguments);if(!u.shearS)u.shX=0;return r}}catch(err){}
 
+/* ===== r199 (Josh, Oct 26: "shearers still aren't shearing"). Looked at Josh's saved game: the ranch had 30 of 30 wool bales and no market,
+   so there was nowhere to take the wool and shearing had stopped (by design, but nothing told him). Also one Sheep hand still held food
+   from his old farm job, and a hand carrying something is never given a sheep.
+   1. A ranch hand who is still carrying food / wood from an old job drops it into your stockpile when he starts at the ranch.
+   2. A clear message when the ranch's wool (or cheese) store is full and there is no market (or textile mill) to take it to. ===== */
+try{updUnit=(function(prev){return function(u,dt){try{if(u&&!u.dead&&u.type==='villager'&&u.shep&&u.rhRole&&u.carry&&u.carry.amt>0&&!(u.order&&!u.order.rh)){const P=G.players[u.owner],r=u.carry.r;
+  if(r&&P&&typeof P[r]==='number'){P[r]+=u.carry.amt*(u.owner===1?G.aiMult:1);inc(u.owner,r,u.carry.amt,'ranch')}u.carry.amt=0;u.carry.r=null}}catch(err){}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if((G._rfT=(G._rfT||0)-dt)>0)return r;G._rfT=5;
+  for(const R of G.ents){if(R.type!=='ranch'||R.owner!==0||R.dead||!R.built)continue;
+    if((R.woolB||0)>=WOOL.cap&&!woolDst(R)&&G.t-(R._wfMsg||-999)>90){R._wfMsg=G.t;toast('🧶 Your ranch is full of wool ('+WOOL.cap+' bales) and shearing has stopped. Build a market: donkeys take the wool there and trade carts sell it at trading posts');G.ping={x:R.x,y:R.y,t:4}}
+    if((R.cheeseB||0)>=RCH.cap&&!chzMkt(R.owner)&&G.t-(R._cfMsg||-999)>90){R._cfMsg=G.t;toast('🧀 Your ranch is full of cheese ('+RCH.cap+' crates). Build a market so donkeys can take it to be sold')}}
+  }catch(err){}return r}})(railTick)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
