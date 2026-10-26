@@ -9283,7 +9283,7 @@ try{rZone=(function(prev){return function(b,k){const Z=prev(b,k);if(!b||b.type!=
    milking shed and wool bales; idle animals walk to a free spot and stand there. Ranch hands are added / removed with buttons. ===== */
 const RSP_A=[[1.3,3.7],[2.0,3.25],[2.1,4.2],[2.9,3.6],[2.9,4.6],[3.65,4.2],[3.55,3.3]],
   RSP_C=[[1.25,2.6],[1.6,2.95],[2.2,3.3],[2.3,2.65],[2.85,3.15]],
-  RSP_S=[[.45,1.6],[1.0,1.55],[1.6,1.75],[2.15,1.8],[.7,2.05],[1.3,2.15],[1.85,2.25],[1.5,2.55]],RHAND_MAX=3;
+  RSP_S=[[.45,1.6],[1.0,1.55],[1.6,1.75],[2.15,1.8],[.7,2.05],[1.3,2.15],[1.85,2.25],[1.5,2.55]],RHAND_MAX=9;
 function rSpots(R,k){if(!R||R.type!=='ranch')return null;
   if(k==='a'){const f=(R.size||6)/6;return RSP_A.map(p=>[R.tx+p[0]*f,R.ty+p[1]*f]);}
   if(k==='c'){const W=R.wing&&G.byId.get(R.wing);if(!W||W.dead||!W.built)return null;const left=W.tx<R.tx,f=(W.size||4)/4;return RSP_C.map(p=>[W.tx+(left?W.size-p[0]*f:p[0]*f),W.ty+p[1]*f]);}
@@ -12992,7 +12992,7 @@ const RHPOST=[[3.05,4.75],[2.1,4.55],[3.2,3.8]];
 function rhMilk(R){try{const W=R&&R.wing&&G.byId.get(R.wing);if(!W||W.dead)return 0;let n=(W.gar||[]).filter(h=>h.shep===R.id).length;for(const e of G.ents)if(!e.dead&&e.shep===R.id&&e.garIn===W.id)n++;return n}catch(err){return 0}}
 function rhList(R){return G.ents.filter(u=>!u.dead&&u.type==='villager'&&u.shep===R.id).sort((a,b)=>a.id-b.id)}
 function rhPost(R,i){const f=(R.size||6)/6,p=RHPOST[i%RHPOST.length];return[(R.tx+p[0]*f)*TILE,(R.ty+p[1]*f)*TILE]}
-try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u&&!u.dead&&u.type==='villager'&&u.shep&&!u.order&&!(u.carry&&u.carry.amt>0)){const R=G.byId.get(u.shep);
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(u&&!u.dead&&u.type==='villager'&&u.shep&&!u.rhRole&&!u.order&&!(u.carry&&u.carry.amt>0)){const R=G.byId.get(u.shep);
   if(R&&R.type==='ranch'&&R.built&&!R.dead){const L=rhList(R),i=L.indexOf(u);
     /* Josh Oct 22: with a dairy wing, the first 2 hands are the milkers in the dairy (the ones you see milking), the others work in the ranch */
     const Wd=R.wing&&G.byId.get(R.wing);if(Wd&&!Wd.dead&&Wd.built&&Wd.type==='dairy'){const busy=(Wd.gar?Wd.gar.length:0)+G.ents.filter(e=>e!==u&&!e.dead&&e.order&&e.order.type==='work'&&e.order.id===Wd.id).length;
@@ -13146,8 +13146,8 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
   WOOLT-=dt;if(WOOLT>0)return r;WOOLT=1;
   for(const R of G.ents){if(!woolOn(R))continue;R.woolB=R.woolB||0;
     const busy=new Set(G.ents.filter(u=>u.shearS&&!u.dead).map(u=>u.shearS));
-    if(R.woolB<WOOL.cap){const free=rhList(R).filter(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR&&!h.flc&&!(h.carry&&h.carry.amt>0)).slice(0,Math.max(0,1-rhList(R).filter(h=>!h.dead&&(h.shearS||h.flc)).length));
-      if(free.length){const ws=woolSheep(R).filter(s=>s.wool>=1&&!busy.has(s.id));for(const h of free){if(!ws.length)break;ws.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));const s=ws.shift();h.shearS=s.id;h.shearR=R.id;h.shT=0;busy.add(s.id);}}}
+    if(R.woolB<WOOL.cap){const free=rhList(R).filter(h=>!h.dead&&h.rhRole==='sheep'&&!(h.order&&!h.order.rh)&&!h.shearS&&!h.woolR&&!h.flc&&!h.chzR&&!(h.carry&&h.carry.amt>0));
+      if(free.length){const ws=woolSheep(R).filter(s=>s.wool>=1&&!busy.has(s.id));for(const h of free){if(!ws.length)break;ws.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));const s=ws.shift();h.order=null;h.path=null;h.shearS=s.id;h.shearR=R.id;h.shT=0;busy.add(s.id);}}}
     const car=R.wcar&&G.byId.get(R.wcar);if(car&&!car.dead&&car.woolR===R.id)continue;R.wcar=0;
     if(R.woolB<1||!(R.woolB>=WOOL.trip||G.t-(R.wlT||0)>90))continue;const D=woolDst(R);if(!D)continue;
     let c=null,bd=40*TILE;for(const d of G.ents){if(!DKOK(d)||d.owner!==R.owner||d.dead||d.woolR||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
@@ -13526,7 +13526,7 @@ try{drawUnit=(function(prev){return function(c,u,x,y,now){if(!u||u.type!=='logtr
       shearing one sheep takes 8 s (was 3 s; same wool per minute as before), the game measures the shearer's round (walk to the sheep + shear + carry to the ranch, averaged) and sets
       regrowth = full flock size x that round. With a full, healthy flock the shearer never waits; with fewer sheep he does. ===== */
 const WCYC={def:11,min:8.5,max:30};try{WOOL.shear=8}catch(e){}
-function woolGrowOf(R){const c=Math.max(WCYC.min,Math.min(WCYC.max,R.cycE||WCYC.def));return sheepCap(R)*c}
+function woolGrowOf(R){const c=Math.max(WCYC.min,Math.min(WCYC.max,R.cycE||WCYC.def));return sheepCap(R)*c/Math.max(1,rhAll(R).filter(h=>h.rhRole==='sheep').length)}
 try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!G||!G.ents||(G._wgT=(G._wgT||0)-dt)>0)return r;G._wgT=1;
   for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built||R.owner>1)continue;let g;try{g=woolGrowOf(R)}catch(e){continue}R.wgrow=g;try{for(const sh of woolSheep(R))sh.wgr=g}catch(e){}}
   }catch(err){}return r}})(railTick)}catch(err){}
@@ -13581,6 +13581,66 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
 try{cowChain=(function(prev){return function(b){const h=prev.apply(this,arguments);try{if(!h||!b||b.type!=='ranch')return h;const car=b.ccar&&G.byId.get(b.ccar),m=chzMkt(b.owner);
   const t='🧀 '+Math.floor(b.cheeseB||0)+'/'+RCH.cap+' crates at the ranch'+((b.leatherB||0)>=1?' · 🟤 '+Math.floor(b.leatherB)+' leather':'')+' · '+(car&&!car.dead?(car.type==='donkey'?'🫏 donkey on the way':car.type==='truck'?'🚚 truck on the way':'hand carrying'):m?'waiting for a donkey':'🏪 needs a market (trade carts load there and sell at trading posts)');
   return h+'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+t+'</div>'}catch(e){return h}}})(cowChain)}catch(err){}
+
+/* ===== r197 (Josh, Oct 25: "There needs to be a way to assign x people to cows, x people to ranch, x people to sheep. And they should
+   start working once assigned, even when the 3 buildings are connected."). Every ranch hand now has a job: 🐄 Cows, 🐑 Sheep or 🏠 Ranch,
+   up to 3 each, set with + / − buttons at the top of the ranch panel (+ takes the nearest idle villager, − sends one back to normal work).
+   🐄 Cows: milk in the dairy wing (2 places); the rest milk the ranch's own cows, standing at a cow. 🐑 Sheep: shear the sheep and carry the
+   fleece to the ranch; between sheep they wait in the sheep fold. More shearers = wool grows back faster, so a full flock keeps all of them busy.
+   🏠 Ranch: work at the ranch (raising young animals) and carry cheese / wool when no donkey is free.
+   Hands from older games get a job automatically. ===== */
+const RROLE={max:3,list:[['cow','🐄','Cows'],['sheep','🐑','Sheep'],['ranch','🏠','Ranch']]};
+function rhWing(R){const W=R&&R.wing&&G.byId.get(R.wing);return W&&!W.dead&&W.built&&W.type==='dairy'?W:null}
+function rhAll(R){const L=rhList(R);const W=rhWing(R);if(W&&W.gar)for(const h of W.gar)if(h&&h.shep===R.id&&!L.includes(h))L.push(h);return L}
+function rhRoleN(R,k){return rhAll(R).filter(h=>h.rhRole===k).length}
+function rhCows(R){return G.ents.filter(e=>e.type==='cow'&&e.owner===R.owner&&!e.dead&&!e.sick&&(e.dairyId===R.id||inPenArea(R,e,.8,'c')))}
+function rhUngar(W,h){const i=W.gar.indexOf(h);if(i>=0){W.gar.splice(i,1);h.prevOrder=null;release(W,h);h.order=null;h.garIn=0}}
+function rhDefault(R,h,inW){if(inW)return 'cow';const sh=ranchSheep(R),cw=!!rhWing(R)||rhCows(R).length>0;
+  if(sh&&rhRoleN(R,'sheep')<1)return 'sheep';if(cw&&rhRoleN(R,'cow')<(rhWing(R)?2:1))return 'cow';if(sh&&rhRoleN(R,'sheep')<RROLE.max)return 'sheep';if(cw&&rhRoleN(R,'cow')<RROLE.max)return 'cow';return 'ranch'}
+try{rhMilkCap=function(R){try{return Math.min(2,rhRoleN(R,'cow'))}catch(e){return 2}}}catch(err){}
+/* every 2 s: give jobs to hands that have none, keep the dairy wing for the Cows hands */
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if((G._rrT=(G._rrT||0)-dt)>0)return r;G._rrT=2;
+  for(const R of G.ents){if(R.type!=='ranch'||R.dead||!R.built||R.owner>1)continue;const W=rhWing(R);
+    for(const h of rhAll(R)){if(!h.rhRole){h.rhRole=rhDefault(R,h,!!(W&&W.gar&&W.gar.includes(h)))}
+      if(W&&W.gar&&W.gar.includes(h)&&h.rhRole!=='cow')rhUngar(W,h)}
+    /* stray cows by the dairy wing belong to it (they were not counted once they wandered off the yard spots) */
+    if(W)for(const c of G.ents)if(c.type==='cow'&&c.owner===R.owner&&!c.dead&&!c.dairyId&&Math.hypot(c.x-W.x,c.y-W.y)<6*TILE)c.dairyId=R.id}
+  }catch(err){}return r}})(railTick)}catch(err){}
+/* idle hands go to their job */
+try{updUnit=(function(prev){return function(u,dt){const r=prev.apply(this,arguments);try{if(!u||u.dead||u.type!=='villager'||!u.shep||!u.rhRole||u.order||(u.carry&&u.carry.amt>0)||u.shearS||u.flc||u.woolR||u.chzR)return r;
+  const R=G.byId.get(u.shep);if(!R||R.type!=='ranch'||!R.built||R.dead)return r;const k=u.rhRole,mates=rhAll(R).filter(h=>h.rhRole===k).sort((a,b)=>a.id-b.id),i=Math.max(0,mates.indexOf(u));
+  let px,py,fx=R.x,fy=R.y;
+  if(k==='cow'){const W=rhWing(R);if(W&&(W.gar?W.gar.length:0)<WORK.dairy.max){u.order={type:'work',id:W.id,rhand:1};u.path=null;return r}
+    const cs=rhCows(R);if(!cs.length){[px,py]=rhPost(R,i)}else{if(!u._cow||!G.byId.get(u._cow)||G.byId.get(u._cow).dead||G.t>(u._cowT||0)){const c=cs[i%cs.length];u._cow=c.id;u._cowT=G.t+12}
+      const c=G.byId.get(u._cow);const a=(u.id%2?1:-1);px=c.x+a*TILE*.55;py=c.y+TILE*.15;fx=c.x;fy=c.y}}
+  else if(k==='sheep'){const sp=rSpots(R,'s');if(sp&&sp.length){const p=sp[(i*3+1)%sp.length];px=(p[0]+.5)*TILE;py=(p[1]+.5)*TILE;const W2=swingOf(R);if(W2){fx=W2.x;fy=W2.y}}else{[px,py]=rhPost(R,i)}}
+  else{[px,py]=rhPost(R,i)}
+  const dx=px-u.x,dy=py-u.y,d=Math.hypot(dx,dy);
+  if(d>1.2*TILE){u.order={type:'move',x:tl(px),y:tl(py),rh:1};u.path=null}
+  else if(d>2){const st=Math.min(d,speedOf(u)*dt);u.x+=dx/d*st;u.y+=dy/d*st;u.face=Math.atan2(dy,dx);u.moving=true;u.walk=(u.walk||0)+dt}
+  else{u.moving=false;u.working=k!=='sheep'||!!0;u.face=Math.atan2(fy-u.y,fx-u.x)}
+  }catch(err){}return r}})(updUnit)}catch(err){}
+function rhSetRole(R,k,add){const W=rhWing(R);
+  if(add){if(rhRoleN(R,k)>=RROLE.max){toast('Up to '+RROLE.max+' hands on '+RROLE.list.find(x=>x[0]===k)[2].toLowerCase());return}
+    let best=null,bd=1e18;for(const u of idleVills()){const d=Math.hypot(u.x-R.x,u.y-R.y);if(d<bd){bd=d;best=u}}
+    if(best){best.order=null;best.path=null;best.shep=R.id;best.rhRole=k;toast('A villager is on the way to work on the '+RROLE.list.find(x=>x[0]===k)[2].toLowerCase());return}
+    const spare=rhAll(R).find(h=>h.rhRole==='ranch'&&k!=='ranch');if(spare){spare.rhRole=k;spare.order=null;spare.path=null;toast('A hand moved from the ranch to the '+RROLE.list.find(x=>x[0]===k)[2].toLowerCase());return}
+    toast('No idle villager. Select a villager and tap the ranch, or free one up');return}
+  const hs=rhAll(R).filter(h=>h.rhRole===k);if(!hs.length)return;const h=hs.sort((a,b)=>(W&&W.gar&&W.gar.includes(a)?1:0)-(W&&W.gar&&W.gar.includes(b)?1:0))[0];
+  if(W&&W.gar&&W.gar.includes(h))rhUngar(W,h);try{if(h.shearS||h.woolR)woolClear(h);if(h.chzR)chzClear(h);if(h.flc){R.woolB=Math.min(WOOL.cap,(R.woolB||0)+1);h.flc=0}}catch(e){}
+  h.shep=0;h.rhRole=null;h.order=null;h.path=null;toast('Hand sent back to normal work')}
+function rhRoleRow(R){let h='<div class="hint" style="font-size:10px;margin-bottom:2px"><b>Ranch hands</b> · tap + / − to set who works where</div>';const iv=idleVills().length;
+  for(const [k,ic,nm] of RROLE.list){if(k==='sheep'&&!ranchSheep(R))continue;if(k==='cow'&&!rhWing(R)&&!rhCows(R).length&&!rhRoleN(R,'cow'))continue;const n=rhRoleN(R,k);
+    h+=btn('rrole:-'+k,ic+' '+nm+' −','<span class="cost">'+n+' of '+RROLE.max+'</span>','',!n,n||'',null);
+    h+=btn('rrole:+'+k,ic+' '+nm+' +','<span class="cost">'+(iv?iv+' idle':'none idle')+'</span>','',n>=RROLE.max,0,null)}
+  try{const st=[];if(ranchSheep(R)&&rhRoleN(R,'sheep')){if(useOf(R)!=='wool')st.push('🐑 Sheep are on Mutton: tap Wool in the Sheep tab to shear');else if(R.useT>0)st.push('🐑 Switching to wool...');else if((R.woolB||0)>=WOOL.cap)st.push('🐑 Shearing stopped: '+WOOL.cap+' bales are waiting at the ranch. Needs a market (or textile mill) and a donkey to collect them');else if(!woolSheep(R).some(s=>s.wool>=1))st.push('🐑 Waiting for wool to grow back');}
+    if(rhRoleN(R,'cow')&&!rhCows(R).length&&!(rhWing(R)&&rhWing(R).milked))st.push('🐄 No healthy cows to milk');if(st.length)h+='<div class="hint" style="font-size:10px;color:#ffcf8a">'+st.join('<br>')+'</div>'}catch(e){}
+  return h}
+function rhOfSel(one){try{if(!one)return null;if(one.type==='ranch')return one;const id=one.sranch||one.ranch;const R=id&&G.byId.get(id);return R&&R.type==='ranch'&&!R.dead?R:null}catch(e){return null}}
+try{ranchActs=(function(prev){return function(one,P){const h=prev.apply(this,arguments);try{const R=rhOfSel(one);if(R&&R.owner===0&&R.built)return rhRoleRow(R)+h}catch(err){}return h}})(ranchActs)}catch(err){}
+try{$('panel').addEventListener('click',e=>{const b=e.target.closest('button[data-act]');if(!b||!G)return;const a=b.dataset.act||'';if(a.indexOf('rrole:')!==0)return;e.stopPropagation();e.preventDefault();
+  if(b.classList.contains('dis'))return;const one=(G.sel||[]).map(id=>G.byId.get(id)).find(Boolean);const R=rhOfSel(one);if(!R)return;
+  const add=a[6]==='+',k=a.slice(7);rhSetRole(R,k,add);panelKeyLast=''},true)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
@@ -13852,7 +13912,7 @@ function ranchCowTick(b,dt){const P=G.players[b.owner];if(!b.built||!ranchDairy(
   if(b.cBreedT>=60){b.cBreedT=0;if(healthy.length>=2&&herd.length<COW_CAP){const z=penSpot(b,'c'),cf=mkUnit('cow',b.owner,(z[0]+.5)*TILE,(z[1]+.5)*TILE);cf.born=G.t;cf.dairyId=b.id;if(b.owner===0&&G.t-(G.lastCalfMsg||-99)>30){G.lastCalfMsg=G.t;toast('A calf was born at your ranch');}}}
   b.cSickT=(b.cSickT||0)+dt;if(b.cSickT>=30){b.cSickT=0;if(herd.length>=4&&!cs&&sickOK(b.owner)&&Math.random()<.3*(.06+herd.length*.01)*(P.tech.medicine?.5:1)){const sc=herd[(Math.random()*herd.length)|0];sc.sick=G.t;sc.sickB=b.id;P.sickT=G.t;if((MPHU(b.owner))&&MPTW(b.owner)){sickAlarm();toast('A cow is sick! Tap Cure on the red bar within 2 minutes or the herd dies');G.ping={x:b.x,y:b.y,t:5};}}}
   for(const sc of herd)if(sc.sick){const a=G.t-sc.sick;if(a>SICK_SPREAD&&!sc.spread){sc.spread=1;const h=herd.find(e=>!e.sick);if(h){h.sick=G.t;h.sickB=b.id;}if((MPHU(b.owner))&&MPTW(b.owner)){toast('The sickness is spreading through your herd!');G.ping={x:b.x,y:b.y,t:5};}}if(a>SICK_DIE){for(const e of herd){e.diseased=1;kill(e);}if((MPHU(b.owner))&&MPTW(b.owner))toast('Disease wiped out your herd');break;}}
-  let hands=0;for(const u of G.ents)if(u.shep===b.id&&!u.dead)hands++;const milked=hands?Math.min(healthy.length,6*hands):0;b.milked=milked;
+  let hands=0;for(const u of G.ents)if(u.shep===b.id&&!u.dead&&u.rhRole==='cow')hands++;{const Wg=b.wing&&G.byId.get(b.wing);if(Wg&&!Wg.dead&&Wg.gar)for(const u of Wg.gar)if(u&&u.shep===b.id)hands++;}const milked=hands?Math.min(healthy.length,6*hands):0;b.milked=milked;
   if(milked){const m=(P.tech.guilds?1.25:1)*(b.owner===1?G.aiMult:1);if(b.cuse==='cheese'){rStore(b,'cheeseB',.1*milked*dt*m/8);}
     else{const bk=G.ents.find(e=>e.type==='bakery'&&(e.steam||P.tech.bakeworks)&&e.owner===b.owner&&e.built&&!e.dead&&(e.milk||0)<40&&Math.hypot(e.x-b.x,e.y-b.y)<15*TILE);if(bk){bk.milk=(bk.milk||0)+.03*milked*dt*m;b.toBakery=true;}else{b.toBakery=false;P.f+=.25*milked*dt*m;inc(b.owner,'f',.25*milked*dt*m,'milk');}}}}
 /* the building the next age-up still needs (walking back through what unlocks it): gets a glowing "Next" badge in the build list */
