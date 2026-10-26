@@ -13796,6 +13796,9 @@ try{(function(){
     }catch(err){}}
   const iv=setInterval(()=>{refresh();if(++tries>40)clearInterval(iv);},3000);
   setInterval(()=>{try{const a=G&&G.players&&G.players[0]?G.players[0].age|0:-1;if(a!==lastAge){lastAge=a;refresh();try{panelKeyLast='';}catch(e){}}}catch(e){}},2000);
+  // Josh, Oct 26 2026: "The pub image icon also needs to be 3D": the painted pub (art chat's GFX.piSpr, drawn in game through bldSpr0) never
+  // reached sprFor, which the build buttons use, so the button showed the old 2D pub. Now the button uses the painted pub too.
+  try{const _sf=sprFor;sprFor=function(type,o){if(!UICON.off&&type==='pub'&&GFX.mode==='V23D'&&GFX.piSpr){try{const s=GFX.piSpr({type:'pub',owner:o>1?0:o,size:(DEF.pub&&DEF.pub.size)||4,tx:0,ty:0});if(s&&s.width)return s}catch(e){}}return _sf.apply(this,arguments)};}catch(e){}
   // Josh, Oct 26 2026: "Change "pop" to the emoji of a person in the top" (top bar label only; the numbers are unchanged)
   try{const r=document.getElementById('rp'),l=r&&r.parentNode.querySelector('.lab');if(l){l.textContent='🧑';l.title='Population';}}catch(e){}
   window.__uicon=UICON;window.__uiconRefresh=refresh;
@@ -13854,6 +13857,26 @@ try{rhRoleRow=function(R){const tab=G.rtab||'a',k=tab==='c'?'cow':tab==='s'?'she
   return h}}catch(err){}
 try{ranchActs=(function(prev){return function(one,P){const h=prev.apply(this,arguments);try{if(one&&one.owner===0)return h.replace(/<button[^>]*data-act="(rhadd|rhrem)"[\s\S]*?<\/button>/g,'')}catch(err){}return h}})(ranchActs)}catch(err){}
 
+/* ===== Trees kept back from cliff edges, gameplay chat 2 (Josh, Oct 26 2026: "Trees on the cliffs cannot be too close to the edge,
+   otherwise the roots look like they are both on the cliff and on the ground level") =====
+   Forest Corners map only (there, terrain 3 = cliff; on the River & Lake map terrain 3 is the deep-forest border and trees belong next to it).
+   A tree may not stand right next to a cliff tile (any of the 8 tiles around it), so its roots are always on one level. Done in two ways, without touching the map generator:
+   - once per new map (and on loading a saved game), any tree that close to a cliff is removed;
+   - new trees (forester's saplings, regrowth) are not planted that close.
+   CLIFFTREE.off=true = old behaviour. */
+const CLIFFTREE={off:false,up:1,down:1,side:1};
+try{(function(){
+  const bad=(x,y)=>{if(!G||G.mapType!=='corners'||!G.terrain)return false;
+    for(let dy=-CLIFFTREE.up;dy<=CLIFFTREE.down;dy++)for(let dx=-CLIFFTREE.side;dx<=CLIFFTREE.side;dx++){const nx=x+dx,ny=y+dy;if(inB(nx,ny)&&G.terrain[ti(nx,ny)]===3)return true;}
+    return false;};
+  function sweep(){let n=0;for(const e of G.ents){if(e.type!=='tree'||e.dead||!bad(e.tx,e.ty))continue;e.dead=true;const i=ti(e.tx,e.ty);if(G.occ[i]===e.id)G.occ[i]=0;try{G.byId.delete(e.id)}catch(err){}n++;}
+    if(n)G.ents=G.ents.filter(e=>!e.dead);return n;}
+  const _mk=mkRes;mkRes=function(type,tx,ty){if(!CLIFFTREE.off&&type==='tree'&&bad(tx,ty))return null;return _mk.apply(this,arguments);};
+  const done=new WeakSet();
+  setInterval(()=>{try{if(CLIFFTREE.off||!G||!G.terrain||!G.ents||done.has(G.terrain))return;if(G.mapType&&G.ents.length){done.add(G.terrain);sweep();}}catch(err){}},500);
+  window.__clifftree=CLIFFTREE;window.__cliffSweep=sweep;
+})()}catch(err){}
+/* ===== END cliff trees ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
