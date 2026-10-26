@@ -1545,7 +1545,7 @@ function updUnit(u,dt){
             gv=Math.round(gv*f);const P=G.players[u.owner];P.g+=gv*(u.owner===1?G.aiMult:1);inc(u.owner,'g',gv,'caravan');tg.sat=Math.min(.5,(tg.sat||0)+.015*n);
             if(u.owner===0&&V0(u))G.fx.push({type:'float',x:u.x,y:u.y-26,t:1.8,text:'+'+gv+' gold',col:'#ffe08a'});u.load={};u.cv=null;u.path=null;}}
         return;}
-      const SK=TCv?'wscan':'scan';u[SK]=(u[SK]||0)-dt;if(u[SK]<=0){u[SK]=3;let best=null,bv=TCv?4:2;
+      const SK=TCv?'wscan':'scan';u[SK]=(u[SK]||0)-dt;if(u[SK]<=0&&u.owner===1){u[SK]=3;let best=null,bv=TCv?4:2;
       for(const e of G.ents){if(e.owner!==u.owner||e.kind!=='bld'||!e.built||e.dead)continue;let v=e.ware?Object.values(e.ware).reduce((a,x)=>a+x,0):0;if(e.type==='pub')v+=Math.max(0,(e.beer||0)-15);
         if(v>bv&&!G.ents.some(c=>c!==u&&(c.type==='caravan'||c.type==='tradecart')&&c.cv&&c.cv.id===e.id)){bv=v;best=e;}}
       if(best){u.cv={leg:'load',id:best.id};u.path=null;return;}}if(!TCv)return;}}
@@ -2233,7 +2233,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   else if(age>=3&&!has('bakery')&&ok('bakery')){const ml=blds.find(b=>b.type==='mill'&&!b.dead);T('bakery',ml||0,ml?2:3);}
   else if(age>=3&&!has('pub')&&ok('pub')&&vills.length>18)T('pub',0,6);
   else if(age>=3&&ok('inn')&&!G.ents.some(e=>e.type==='inn'&&e.owner===o&&!e.dead)&&G.t-(ai.innT||0)>240&&P.g>200){ai.innT=G.t;const etc=G.ents.find(e=>e.owner===en&&e.type==='towncenter'&&!e.dead);if(etc&&tc){const fx=tc.x+(etc.x-tc.x)*.55,fy=tc.y+(etc.y-tc.y)*.55;aiBuild('inn',{x:fx,y:fy},vills.filter(v=>!v.order||v.order.type==='gather').slice(0,1),2,o);}}
-  else if(age>=4&&!has('market')&&ok('market'))T('market',0,5);
+  else if(age>=3&&!has('market')&&ok('market'))T('market',0,5);
   else if(age>=4&&!has('university')&&ok('university')&&vills.length>24)T('university',0,6);
   else if(age>=5&&!has('station')&&ok('station'))T('station',0,5);
   else if(age>=5&&!has('factory')&&ok('factory'))T('factory',0,6);
@@ -13159,7 +13159,7 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
       if(free.length){const ws=woolSheep(R).filter(s=>s.wool>=1&&!busy.has(s.id));for(const h of free){if(!ws.length)break;ws.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));const s=ws.shift();h.order=null;h.path=null;h.shearS=s.id;h.shearR=R.id;h.shT=0;busy.add(s.id);}}}
     const car=R.wcar&&G.byId.get(R.wcar);if(car&&!car.dead&&car.woolR===R.id)continue;R.wcar=0;
     if(R.woolB<1||!(R.woolB>=WOOL.trip||G.t-(R.wlT||0)>90))continue;const D=woolDst(R);if(!D)continue;
-    let c=null,bd=40*TILE;for(const d of G.ents){if(!DKOK(d)||d.owner!==R.owner||d.dead||d.woolR||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
+    let c=null,bd=40*TILE;for(const d of G.ents){if(!DKOK(d)||d.owner!==R.owner||d.dead||d.woolR||d.pkB||d.breadB||d.flourC||(typeof cartFree==='function'&&!cartFree(d))||(d.order&&!d.order.auto))continue;const q=Math.hypot(d.x-R.x,d.y-R.y);if(q<bd){bd=q;c=d}}
     if(!c)c=rhList(R).find(h=>!h.dead&&!h.order&&!h.shearS&&!h.woolR)||null;
     if(c){c.woolR=R.id;c.wleg='load';c.woolC=0;c.wnf=0;R.wcar=c.id;R.wlT=G.t;if(c.order&&c.order.auto){c.order=null;c.path=null}}}
   }catch(err){}return r}})(railTick)}catch(err){}
@@ -13400,7 +13400,7 @@ try{railTick=(function(prev){return function(dt){
     for(const m of G.ents){if(m.dead||!(m.type==='goldmine'||m.type==='stonemine')||m.owner==null||m.owner<0||m.owner>1||!mineShaft(m.owner))continue;if(m.amt<300)m.amt=Math.min(300,(m.amt||0)+.25*step)}
     /* trucks bring crates to the station when there is an export line */
     for(const o of[0,1]){if(!exportLine(o))continue;const st=G.ents.find(e=>e.type==='station'&&e.owner===o&&e.built&&!e.dead);if(!st)continue;
-      for(const b of G.ents){if(b.owner!==o||b.kind!=='bld'||!b.built||b.dead||b.type==='station')continue;let v=crateSum(b.ware)+(b.type==='market'?crateSum(b.goods):0);if(b.type==='pub')v+=Math.max(0,(b.beer||0)-15);if(v<4)continue;
+      for(const b of G.ents){if(b.owner!==o||b.kind!=='bld'||!b.built||b.dead||b.type==='station'||(o===0&&b.type!=='market'))continue;let v=crateSum(b.ware)+(b.type==='market'?crateSum(b.goods):0);if(b.type==='pub')v+=Math.max(0,(b.beer||0)-15);if(v<4)continue;
         if(G.ents.some(t=>t.type==='truck'&&!t.dead&&t.crB===b.id))continue;let c=null,cd=1e18;for(const t of G.ents){if(t.type!=='truck'||t.owner!==o||t.dead||!DKOK(t)||TRJOB(t)||t.crB||(t.order&&!t.order.auto))continue;const q=Math.hypot(t.x-b.x,t.y-b.y);if(q<cd){cd=q;c=t}}
         if(c){c.crB=b.id;c.crS=st.id;c.crLeg='load';c.crC={};c.crNF=0;c.park=null;c.parked=false;c.order=null;c.path=null}}}
   }}catch(err){}
@@ -13673,6 +13673,49 @@ try{railTick=(function(prev){return function(dt){const r=prev.apply(this,argumen
     if((R.woolB||0)>=WOOL.cap&&!woolDst(R)&&G.t-(R._wfMsg||-999)>90){R._wfMsg=G.t;toast('🧶 Your ranch is full of wool ('+WOOL.cap+' bales) and shearing has stopped. Build a market: donkeys take the wool there and trade carts sell it at trading posts');G.ping={x:R.x,y:R.y,t:4}}
     if((R.cheeseB||0)>=RCH.cap&&!chzMkt(R.owner)&&G.t-(R._cfMsg||-999)>90){R._cfMsg=G.t;toast('🧀 Your ranch is full of cheese ('+RCH.cap+' crates). Build a market so donkeys can take it to be sold')}}
   }catch(err){}return r}})(railTick)}catch(err){}
+
+/* ===== r200 (Josh, Oct 26): every product goes through the market, and is only sold at trading posts.
+   Producers (bakery, pub, dairy, weaver, textile mill, ranch) keep their crates at the building (up to 30 of each). A pack donkey
+   (a caravan, or a truck from the Industrial Age) carries them to the market, where they are stored (up to 200). Trade carts take them
+   from the market to a trading post, the only place goods are sold. No market = goods wait at the building (no more half-price instant gold).
+   The market and trade carts come in the Medieval Age (were Renaissance), when the first goods appear. Computer player unchanged. ===== */
+const PACK={min:3,donkey:10,truck:20,caravan:10,cap:30};
+try{DEF.market.age=3;DEF.tradecart.age=3}catch(err){}
+function mktOf(o){return G.ents.find(e=>e.type==='market'&&e.owner===o&&e.built&&!e.dead)||null}
+function wareSum(b){let n=0;for(const k in b.ware||{})n+=b.ware[k]||0;return n}
+try{const ex0=expAt;expAt=function(b,k,amt){if(!b||b.owner!==0)return ex0.apply(this,arguments);b.ware=b.ware||{};if((b.ware[k]||0)+amt>PACK.cap)return false;b.ware[k]=(b.ware[k]||0)+amt;
+  b._crate=(b._crate||0)+amt;if(b._crate>=1){b._crate-=1;try{bEv(b,'crate')}catch(e){}}return true}}catch(err){}
+try{const aw0=addWare;addWare=function(b,k,ups,dt,geq){if(!b||b.owner!==0)return aw0.apply(this,arguments);b.ware=b.ware||{};b.ware[k]=Math.min(PACK.cap,(b.ware[k]||0)+ups*dt)}}catch(err){}
+function pkSrcAmt(b){let v=wareSum(b);if(b.type==='pub')v+=Math.max(0,(b.beer||0)-15);return v}
+function pkCap(u){return u.type==='truck'?PACK.truck:u.type==='caravan'?PACK.caravan:PACK.donkey}
+function pkFree(d){if(!d||d.dead||d.owner!==0||d.raise||d.pkB||(d.order&&!d.order.auto))return false;
+  if(d.type==='caravan')return !d.cv;if(d.type==='donkey')return typeof cartFree==='function'&&cartFree(d)&&!d.buddy&&!d.asgV&&!d.woolR&&!d.chzR&&!d.lthR;
+  if(d.type==='truck')return DKOK(d)&&!TRJOB(d)&&!d.lthR;return false}
+function pkClear(u){const B=G.byId.get(u.pkB);if(u.pkC&&B&&!B.dead){B.ware=B.ware||{};for(const k in u.pkC){if(k==='beer'&&B.type==='pub')B.beer=(B.beer||0)+u.pkC[k];else B.ware[k]=(B.ware[k]||0)+u.pkC[k]}}if(B&&B.pkU===u.id)B.pkU=0;u.pkB=0;u.pkC=null;u.pkLeg=0;u.pkNF=0;u._ppx=null}
+function pkStep(u){const B=G.byId.get(u.pkB);if(u.pkLeg==='load'){if(!B||B.dead){pkClear(u);return false}
+    const r=approach(u,B,TILE*1.2);if(r==='fail'){if(++u.pkNF>=4){pkClear(u);return false}u.path=null;return true}if(r!==true)return true;
+    let room=pkCap(u);const C={};if(B.type==='pub'){const a=Math.min(room,Math.floor((B.beer||0)-15));if(a>0){B.beer-=a;C.beer=a;room-=a}}
+    for(const k in B.ware||{}){const a=Math.min(room,Math.floor(B.ware[k]||0));if(a>0){B.ware[k]-=a;C[k]=(C[k]||0)+a;room-=a}}
+    if(!Object.keys(C).length){pkClear(u);return false}u.pkC=C;u.pkLeg='go';u.pkNF=0;u.path=null;return true}
+  const M=mktOf(u.owner);if(!M){pkClear(u);return false}
+  if(u._ppx==null||Math.hypot(u.x-u._ppx,u.y-u._ppy)>3){u._ppx=u.x;u._ppy=u.y;u._ppt=G.t}else if(G.t-u._ppt>2.5){u._ppt=G.t;u.path=null;if(++u.pkNF>8){pkClear(u);return false}}
+  const r=approach(u,M,TILE*1.2);if(r==='fail'){if(++u.pkNF>=6){pkClear(u);return false}u.path=null;return true}if(r!==true)return true;
+  let n=0;for(const k in u.pkC){if(exportTo(u.owner,k,u.pkC[k])){n+=u.pkC[k];delete u.pkC[k]}}
+  if(n&&u.owner===0&&V0(M))G.fx.push({type:'float',x:M.x,y:M.y-30,t:1.5,text:'+'+n+' 📦 to the market',col:'#e8d6a8'});
+  if(Object.keys(u.pkC).length){u.pkWait=(u.pkWait||0)+1;if(u.pkWait<20)return true}u.pkWait=0;u.pkC=null;const Bb=G.byId.get(u.pkB);if(Bb&&Bb.pkU===u.id)Bb.pkU=0;u.pkB=0;u.pkLeg=0;return false}
+try{const tj=TRJOB;TRJOB=function(u){return tj(u)||!!u.pkB}}catch(err){}
+try{const cb=corralBusy;corralBusy=function(u){return cb(u)||!!(u&&u.pkB)}}catch(err){}
+try{updUnit=(function(prev){return function(u,dt){if(u&&!u.dead&&u.pkB&&u.owner===0){if(u.order&&!u.order.auto){pkClear(u)}else{try{if(pkStep(u))return}catch(err){pkClear(u)}}}return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if((G._pkT=(G._pkT||0)-dt)>0)return r;G._pkT=1.5;const M=mktOf(0);
+  if(!M){if(G.t-(G._pkMsg||-999)>120){const full=G.ents.find(b=>b.owner===0&&b.kind==='bld'&&b.built&&!b.dead&&pkSrcAmt(b)>=25);if(full&&G.players[0].age>=3){G._pkMsg=G.t;toast('📦 Goods are piling up at your '+(DEF[full.type].name||full.type).toLowerCase()+'. Build a market: pack donkeys take goods there, and trade carts sell them at trading posts')}}return r}
+  for(const B of G.ents){if(B.owner!==0||B.kind!=='bld'||!B.built||B.dead||B.type==='market'||B.type==='station')continue;if(pkSrcAmt(B)<PACK.min)continue;
+    const cur=B.pkU&&G.byId.get(B.pkU);if(cur&&!cur.dead&&cur.pkB===B.id)continue;B.pkU=0;
+    let c=null,bd=40*TILE;for(const d of G.ents){if((d.type!=='donkey'&&d.type!=='truck'&&d.type!=='caravan')||!pkFree(d))continue;const q=Math.hypot(d.x-B.x,d.y-B.y);if(q<bd){bd=q;c=d}}
+    if(c){c.pkB=B.id;c.pkLeg='load';c.pkC=null;c.pkNF=0;c.park=null;c.parked=false;if(c.order&&c.order.auto)c.order=null;c.path=null;B.pkU=c.id}}
+  }catch(err){}return r}})(railTick)}catch(err){}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{c.save();c.font='bold 11px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
+  for(const u of G.ents){if(!u.pkC||u.dead||u.owner!==0||!V0(u))continue;const y=u.y-(u.type==='truck'?32:30);c.fillStyle='rgba(30,20,10,.7)';c.beginPath();c.arc(u.x,y,8,0,7);c.fill();c.fillText('📦',u.x,y+1)}
+  c.restore()}catch(err){}return r}})(drawBirds)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
