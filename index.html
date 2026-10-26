@@ -13814,6 +13814,20 @@ try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);
     tw.dead=true;for(let yy=tw.ty;yy<tw.ty+(tw.size||1);yy++)for(let xx=tw.tx;xx<tw.tx+(tw.size||1);xx++)if(G.occ[ti(xx,yy)]===tw.id)G.occ[ti(xx,yy)]=0;G.ents=G.ents.filter(e=>e!==tw);G.byId.delete(tw.id);
     const mt=MPTW;try{MPTW=()=>false}catch(e){}try{islTaken(s,o)}catch(e){}try{MPTW=mt}catch(e){}}}}catch(err){}return r}})(tick)}catch(err){}
 
+/* ===== r202 (Josh, Oct 26).
+   1. "The farms have an ox ... when I assign a worker, no one will go work there": tapping the field with a villager selected usually landed
+      on the ox walking on it, which counted as tapping the ox (an order to slaughter it, which was then refused), so the villager did nothing.
+      With villagers selected, tapping an ox that works a field now means tapping that field.
+   2. "Trees should not grow on sand": no new trees on beach sand (land within 2 tiles of the sea or a lake) - foresters skip it, and trees
+      standing on sand are cleared once (island trees are kept). ===== */
+try{onTap=(function(prev){return function(wx,wy){let on=false;try{on=selEnts().some(u=>u.type==='villager'&&u.owner===0&&!u.dead)}catch(e){}G._tapVil=on;try{return prev.apply(this,arguments)}finally{G._tapVil=false}}})(onTap)}catch(err){}
+try{pick=(function(prev){return function(wx,wy){const h=prev.apply(this,arguments);try{if(G&&G._tapVil&&h&&h.type==='ox'&&h.owner===0&&h.farm){const f=G.byId.get(h.farm);if(f&&!f.dead&&f.type==='farm')return f}}catch(e){}return h}})(pick)}catch(err){}
+function onSand(tx,ty){try{if(!inB(tx,ty)||G.terrain[ti(tx,ty)]!==0)return false;if(typeof islAt==='function'&&islAt(tx,ty))return false;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=tx+dx,y=ty+dy;if(inB(x,y)&&G.terrain[ti(x,y)]===1)return true}}catch(e){}return false}
+try{const mr0=mkRes;mkRes=function(type,tx,ty){if(type==='tree'&&G&&G._sandOK&&onSand(tx,ty))return null;return mr0.apply(this,arguments)}}catch(err){}
+try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(G&&!G._sandOK&&G.t>.5){G._sandOK=1;
+  for(const e of G.ents){if(e.kind!=='res'||e.type!=='tree'||e.dead||e.grove)continue;if(!onSand(e.tx,e.ty))continue;e.dead=true;if(G.occ[ti(e.tx,e.ty)]===e.id)G.occ[ti(e.tx,e.ty)]=0}
+  G.ents=G.ents.filter(e=>!(e.kind==='res'&&e.type==='tree'&&e.dead))}}catch(err){}return r}})(tick)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
