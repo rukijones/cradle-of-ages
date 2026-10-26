@@ -15643,6 +15643,19 @@ GFX.seg3fin=(function(prev){return function(D,q,im){const r=prev.apply(this,argu
   try{if(GFX.HDSOLD&&q&&q.k===.5&&!q.c0&&!q.c1&&D&&GFX.HDSOLD_RE.test(D.file||'')&&GFX.texUsed<GFX.TEXB*.6)q.k=.75}catch(e){}return r}})(GFX.seg3fin);
 GFX.ARTV=String(Math.max(+GFX.ARTV||0,36))}catch(err){}
 /* ===== END art chat 1: HD soldiers ===== */
+/* ===== Art chat 1: trade truck (Oct 26): from the Industrial Age the trade cart is drawn with the 3D truck (proxy type 'truck')
+   (covered army truck, team stripe on the tarp); GFX.TRADECART3D=true so its button icon is rendered from the 3D art. ===== */
+try{(function(){
+  GFX.TRADETRUCK3D=true;
+  const ag=o=>{try{return G.players[o].age|0}catch(e){return 0}};
+  drawUnit=(function(prev){return function(c,u,x,y,now){
+    if(!u||u.type!=='tradecart'||!GFX.TRADETRUCK3D||GFX.mode!=='V23D'||u.owner==null||u.owner>1||u.dead||ag(u.owner)<5)return prev.apply(this,arguments);
+    const v=Object.create(u);v.type='truck';v._v=undefined;v.load={};let r;
+    try{r=prev.call(this,c,v,x,y,now)}catch(e){return prev.apply(this,arguments)}
+    return r}})(drawUnit);
+  GFX.TRADECART3D=true;
+})()}catch(err){}
+/* ===== END art chat 1: trade truck ===== */
 window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
