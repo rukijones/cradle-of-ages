@@ -15705,6 +15705,39 @@ try{(function(){
   GFX.TRADECART3D=true;
 })()}catch(err){}
 /* ===== END art chat 1: trade truck ===== */
+/* ===== Art chat 1: fishing boat animation (Oct 26): net cast / float / haul while fishing, oar splashes while rowing. GFX.FISHNET=false = off ===== */
+try{(function(){
+  GFX.FISHNET=true;const CY=2800;
+  function sideOf(u){const o=u.order,f=o&&o.id!=null&&G.byId?G.byId.get(o.id):null,a=u.face||0,fx=Math.cos(a),fy=Math.sin(a);let px=-fy,py=fx;
+    if(f){const vx=f.x-u.x,vy=f.y-u.y;if(vx*px+vy*py<0){px=-px;py=-py}}return [fx,fy,px,py]}
+  function net(c,u,x,y,now){const [fx,fy,px,py]=sideOf(u),ph=((now+(u.id||0)*977)%CY)/CY,K=1;
+    const bx=x+px*7,by=y+1+py*3,nx=x+px*27,ny=y+4+py*11;let cx,cy,r,al=1;
+    c.save();c.lineCap='round';
+    if(ph<.16){const t=ph/.16;cx=bx+(nx-bx)*t;cy=by+(ny-by)*t-Math.sin(t*Math.PI)*12;r=2+9*t;
+      c.strokeStyle='rgba(120,90,55,.9)';c.lineWidth=.7;c.beginPath();c.moveTo(bx,by-4);c.lineTo(cx,cy);c.stroke();
+      c.globalAlpha=.85;c.strokeStyle='#d8c39a';c.lineWidth=.6;c.beginPath();c.ellipse(cx,cy,r,r*.55,0,0,6.283);c.stroke();
+      for(let i=-1;i<=1;i++){c.beginPath();c.moveTo(cx-r,cy+i*r*.3);c.lineTo(cx+r,cy+i*r*.3);c.stroke()}c.restore();return}
+    if(ph<.66){const t=(ph-.16)/.5;cx=nx;cy=ny;r=11}
+    else{const t=(ph-.66)/.3;const e=Math.min(1,t);cx=nx+(bx-nx)*e;cy=ny+(by-ny)*e;r=11*(1-e*.7);al=1-Math.max(0,(t-.85)/.15)}
+    if(ph<1){/* ripples */const rt=((now/900)+(u.id||0))%1;c.globalAlpha=.5*(1-rt)*al;c.strokeStyle='rgba(235,248,255,1)';c.lineWidth=.7;c.beginPath();c.ellipse(cx,cy,r+3+rt*7,(r+3+rt*7)*.42,0,0,6.283);c.stroke();
+      if(ph<.24){const t=(ph-.16)/.08;c.globalAlpha=.8*(1-t);c.beginPath();c.ellipse(cx,cy,r*(1+t),r*.45*(1+t),0,0,6.283);c.stroke()}}
+    /* the net: mesh ellipse */c.globalAlpha=.75*al;c.fillStyle='rgba(40,70,80,.18)';c.beginPath();c.ellipse(cx,cy,r,r*.42,0,0,6.283);c.fill();
+    c.save();c.beginPath();c.ellipse(cx,cy,r,r*.42,0,0,6.283);c.clip();c.strokeStyle='rgba(225,205,160,.85)';c.lineWidth=.45;
+    for(let i=-6;i<=6;i++){c.beginPath();c.moveTo(cx+i*2.2-7,cy-7);c.lineTo(cx+i*2.2+7,cy+7);c.stroke();c.beginPath();c.moveTo(cx+i*2.2+7,cy-7);c.lineTo(cx+i*2.2-7,cy+7);c.stroke()}c.restore();
+    c.strokeStyle='rgba(225,205,160,.95)';c.lineWidth=.7;c.beginPath();c.ellipse(cx,cy,r,r*.42,0,0,6.283);c.stroke();
+    /* rope to the boat */c.strokeStyle='rgba(120,90,55,.85)';c.lineWidth=.6;c.beginPath();c.moveTo(bx,by-4);c.quadraticCurveTo((bx+cx)/2,(by+cy)/2+2,cx-px*r*.8,cy-py*r*.35);c.stroke();
+    /* cork floats */for(let i=0;i<6;i++){const a=i/6*6.283+.4,b=Math.sin(now/260+i*1.7)*.5;c.fillStyle=i%2?'#e9d08a':'#c9563c';c.beginPath();c.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.42+b,.95,0,6.283);c.fill()}
+    /* fish flipping while hauling */if(ph>.68&&ph<.95){for(let i=0;i<2;i++){const tt=((ph-.68)/.27*2+i*.5)%1,fxp=cx+(i?3:-3),fyp=cy-2-Math.sin(tt*Math.PI)*7;
+      c.save();c.translate(fxp,fyp);c.rotate(tt*6+i);c.fillStyle='#cfe3ee';c.beginPath();c.ellipse(0,0,2.3,.9,0,0,6.283);c.fill();c.fillStyle='#7fa9c0';c.beginPath();c.moveTo(-2.2,0);c.lineTo(-3.4,-.9);c.lineTo(-3.4,.9);c.closePath();c.fill();c.restore()}}
+    if(ph>.9){const t=(ph-.9)/.1;c.fillStyle='rgba(235,248,255,.9)';for(let i=0;i<6;i++){const a=-.3-i*.5;c.globalAlpha=1-t;c.beginPath();c.arc(bx+Math.cos(a)*(2+6*t),by-2-Math.sin(i)*4*t+6*t*t,.7,0,6.283);c.fill()}}
+    c.restore()}
+  function oars(c,u,x,y,now){const a=u.face||0,fx=Math.cos(a),fy=Math.sin(a),px=-fy,py=fx,t=((now+(u.id||0)*311)/820)%1;c.save();c.fillStyle='rgba(240,250,255,.85)';c.strokeStyle='rgba(240,250,255,.7)';c.lineWidth=.6;
+    for(const s of[-1,1]){const k=(t+(s>0?.5:0))%1;if(k>.45)continue;const e=k/.45,ox=x+px*s*15-fx*2,oy=y+4+py*s*6-fy*1;c.globalAlpha=1-e;
+      c.beginPath();c.ellipse(ox,oy,2.5+7*e,1.2+2.8*e,0,0,6.283);c.stroke();for(let i=0;i<3;i++){c.beginPath();c.arc(ox+(i-1)*1.6,oy-2-Math.sin(e*Math.PI)*4.5-(i%2),.75,0,6.283);c.fill()}}c.restore()}
+  GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){const r=prev.apply(this,arguments);
+    try{if(r&&GFX.FISHNET&&u&&u.type==='fishboat'&&!u.dead&&GFX.mode==='V23D'&&u.owner!=null&&u.owner<2){if(u.working&&!u.moving)net(c,u,x,y,now);else if(u.moving)oars(c,u,x,y,now)}}catch(e){}return r}})(GFX.drawUnitSpr);
+})()}catch(err){}
+/* ===== END art chat 1: fishing boat animation ===== */
 window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
