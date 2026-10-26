@@ -6005,6 +6005,16 @@ try{(function(){
   if(GFX.IRON3D&&GFX.IRONMAP){GFX.IRON3D.lk3d=R.lk3d;GFX.IRON3D.pq3d=R.pq3d;GFX.IRONMAP.landsknecht='lk3d';GFX.IRONMAP.pikesquare='pq3d'}
   if(GFX.MOUNT3D&&GFX.MOUNTMAP){R.ln3d.stride=64;R.ln3d.rstride=80;GFX.MOUNT3D.ln3d=R.ln3d;GFX.MOUNTMAP.lancer='ln3d'}
   GFX.R4U=R;
+  /* Oct 26 fix: landsknecht / pikesquare are real unit types (not _v variants), and new foot types only reach the 3D path when GFX.rigFor
+     returns a rig name. Same hook as the arquebus and art chat 3's Industrial soldiers: register them as soldiers posed like their base unit
+     (rig data borrowed only until the 3D sheet loads), and skip the painted-sprite step once a sheet is in. */
+  const NB4={landsknecht:'swordsman',pikesquare:'spearman'};
+  if(GFX.SOLD&&GFX.poseAs&&GFX.rigFor){for(const t in NB4){GFX.SOLD.add(t);if(!GFX.poseAs[t])GFX.poseAs[t]=NB4[t]}
+    GFX.rigFor=(function(prev){return function(u){const r=prev(u);const k=u&&(u._v||u.type),b=k&&NB4[k];if(r||!b||GFX.mode!=='V23D'||u.owner>1)return r;if(!GFX.rigs||!GFX.rigs[b])return r;
+      if(!GFX.rps[k])GFX.rps[k]=GFX.rps[b];try{if(!GFX_RIGS[k])GFX_RIGS[k]=GFX_RIGS[b]}catch(e){}for(const M of [GFX.bodyH,GFX.rigH,GFX.legIn])if(M&&M[k]==null&&M[b]!=null)M[k]=M[b];return k}})(GFX.rigFor)}
+  if(GFX.drawUnitSpr)GFX.drawUnitSpr=(function(prev){return function(c,u,x,y,now){const k=u&&!u._v&&NB4[u.type]&&GFX.IRONMAP[u.type];
+    if(k){const E=GFX.S3[k];if(E&&Object.values(E).some(q=>q&&q.ok))return false;try{GFX.seg3(GFX.IRON3D[k],'walk');GFX.seg3(GFX.IRON3D[k],'idle')}catch(e){}}
+    return prev.apply(this,arguments)}})(GFX.drawUnitSpr);
   /* Oct 26 (Josh picked "1.5x" from an in-game zoomed A/B): Medieval + Renaissance characters drawn sharper. Since gameplay's Oct 17 speed fix
      (GFX.texHalf) every character sheet is tinted at half size; these keys are kept at 0.75 instead (the same sharpness as art chat 1's 1.5x
      villager re-bake, from the pictures already downloaded: no new files, no bigger downloads, ~2.25x the sheet memory of half size).
