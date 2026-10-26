@@ -15525,6 +15525,13 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
 
 })()}catch(err){}
 /* ===== END art chat 1: shear ===== */
+/* ===== Art chat 1: HD soldiers (Oct 26, Josh's pick B): Stone-Iron soldier sheets (all weapon/armour tiers, mounted, pub patrons) are kept at 3/4 size
+   instead of half (gameplay's Oct 17 speed fix), unless the sheet budget is already tight. Art files re-saved sharpened. ===== */
+try{GFX.HDSOLD=true;GFX.HDSOLD_RE=/^(cl3d|ax3d|sp3d|sd3d|sl3d|bo3d|slv\d|cb3d|lg3d|pk3d|rd3d|cv3d|sdr_)/;
+GFX.seg3fin=(function(prev){return function(D,q,im){const r=prev.apply(this,arguments);
+  try{if(GFX.HDSOLD&&q&&q.k===.5&&!q.c0&&!q.c1&&D&&GFX.HDSOLD_RE.test(D.file||'')&&GFX.texUsed<GFX.TEXB*.6)q.k=.75}catch(e){}return r}})(GFX.seg3fin);
+GFX.ARTV=String(Math.max(+GFX.ARTV||0,35))}catch(err){}
+/* ===== END art chat 1: HD soldiers ===== */
 window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
