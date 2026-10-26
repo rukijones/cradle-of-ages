@@ -13848,6 +13848,7 @@ try{tick=(function(prev){return function(dt){const r=prev.apply(this,arguments);
    The old "Add hand / Remove hand" buttons and the all-jobs row are gone. The ranch no longer trains donkey caravans (ones you have keep
    carrying goods to the market). ===== */
 try{DEF.ranch.trains=DEF.ranch.trains.filter(k=>k!=='caravan')}catch(err){}
+try{RETIRE.catapult=5}catch(err){}
 try{const rc0=ranchChips;ranchChips=function(one){if((G.rtab||'a')!=='a')return '';return rc0.apply(this,arguments).replace(/<button[^>]*data-act="rhadd"[\s\S]*?<\/button>/g,'')}}catch(err){}
 try{rhRoleRow=function(R){const tab=G.rtab||'a',k=tab==='c'?'cow':tab==='s'?'sheep':'ranch',L=RROLE.list.find(x=>x[0]===k),n=rhRoleN(R,k),iv=idleVills().length;
   if(k==='sheep'&&!ranchSheep(R))return '';if(k==='cow'&&!rhWing(R)&&!rhCows(R).length&&!n)return '';
@@ -13877,6 +13878,31 @@ try{(function(){
   window.__clifftree=CLIFFTREE;window.__cliffSweep=sweep;
 })()}catch(err){}
 /* ===== END cliff trees ===== */
+/* ===== r204 (Josh, Oct 26: "The game is running really slow right now in industrial age ... 2 fps, logic 507 ms").
+   Measured in Josh's saved game: the computer's 2 logging trucks were the cause. A truck whose tree it could not reach searched every tree on
+   the map (and, for each one, every unit) and planned a failing path on every frame. Now a truck looks for a new tree at most every 2 s,
+   skips an unreachable tree after the first failed path, and the search is a single pass.
+   Also (Josh): guns show only the muzzle flash (no flying ball); catapults retire in the Industrial Age (field guns and mortars replace them). ===== */
+/* (Josh) gunners: show the muzzle flash, not a flying ball - bullets from guns are no longer drawn (they still hit as before) */
+const GUNNER=new Set(['arquebus','rifleman','infantry','mgunner','armoredcar']);
+try{drawParts=(function(prev){return function(c){const all=G.projs;try{G.projs=all.filter(p=>{if(p.kind!=='bullet')return true;const s=G.byId.get(p.src);return !(s&&GUNNER.has(s.type))})}catch(e){}try{return prev.apply(this,arguments)}finally{G.projs=all}}})(drawParts)}catch(err){}
+lgStep=function(u,dt){u.lgSkip=u.lgSkip||{};
+  if((u.lgW||0)>=LOGT.load||(u.lgW>0&&u.lgLeg==='home')){u.lgLeg='home';const b=lgDrop(u);if(!b){u.working=false;return}
+    const r=approach(u,b,TILE*1.2);if(r==='fail'){u.path=null;u.lgHF=(u.lgHF||0)+1;if(u.lgHF>3){u.lgHF=0;const P=G.players[u.owner];P.w+=u.lgW;u.lgW=0;u.lgLeg='cut'}return}if(r!==true)return;
+    const P=G.players[u.owner],a=u.lgW;P.w+=a*(u.owner===1?G.aiMult:1);inc(u.owner,'w',a,'logging');if(u.owner===0&&V0(b))G.fx.push({type:'float',x:b.x,y:b.y-30,t:1.4,text:'+'+Math.round(a)+' wood',col:'#e8c88a'});
+    u.lgW=0;u.lgLeg='cut';u.lgT=0;u.lgHF=0;u.path=null;return}
+  let t=G.byId.get(u.lgT);
+  if(!lgTreeOK(t,u.owner)){t=null;u.lgT=0;if(G.t<(u.lgNext||0)){u.working=false;return}u.lgNext=G.t+2;
+    const home=lgDrop(u)||u,R2=Math.pow(LOGT.reach*TILE,2),claimed=new Set();for(const v of G.ents)if(v!==u&&v.type==='logtruck'&&!v.dead&&v.lgT)claimed.add(v.lgT);
+    let bd=1e18;for(const e of G.ents){if(e.type!=='tree'||e.dead||e.stump||e.sapling||e.grove||!(e.amt>0))continue;const hx=e.x-home.x,hy=e.y-home.y;if(hx*hx+hy*hy>R2)continue;
+      if((u.lgSkip[e.id]||0)>G.t||claimed.has(e.id)||!lgTreeOK(e,u.owner))continue;const q=(e.x-u.x)*(e.x-u.x)+(e.y-u.y)*(e.y-u.y);if(q<bd){bd=q;t=e}}
+    if(!t){u.working=false;if(u.lgW>0)u.lgLeg='home';u.lgNext=G.t+6;if(u.owner===0&&!u.lgWarn&&G.t-(G.lgMsg||-99)>30){G.lgMsg=G.t;toast('A logging truck has no trees left near your drop-offs')}u.lgWarn=1;return}
+    u.lgT=t.id;u.lgNF=0;u.lgWarn=0;u.path=null}
+  u.lgLeg='cut';const r=approach(u,t,TILE*.75);if(r==='fail'){u.path=null;u.lgSkip[t.id]=G.t+120;u.lgT=0;u.working=false;return}if(r!==true){u.working=false;return}
+  u.face=Math.atan2(t.y-u.y,t.x-u.x);u.working=true;const a=Math.min(t.amt,LOGT.rate*dt,LOGT.load-(u.lgW||0));t.amt-=a;u.lgW=(u.lgW||0)+a;
+  if(Math.random()<dt*3)emit('dust',t.x,t.y-4,1);if(Math.random()<dt*1.5)emit('chip',t.x,t.y-6,2,'#c9a26a');
+  if(t.amt<=.01){lgFell(t,u);u.lgT=0}};
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
