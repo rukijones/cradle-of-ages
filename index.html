@@ -2277,7 +2277,7 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
     if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['sentry','bronzearmor','weapons']:['weapons','bronzearmor','sentry']))if(enqueue(fg,k))break;}
     if(bar&&bar.queue.length===0&&P.f>300){for(const k of['axemen','legion','pikes'])if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0&&P.f>200)enqueue(rng,'bows');
     if(age>=2&&P.f>350){if(rng&&rng.queue.length===0)enqueue(rng,'composite');if(stb&&stb.queue.length===0)enqueue(stb,'cavtech');if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['guardtower','chainmail','ironweap']:['ironweap','chainmail','guardtower']))if(enqueue(fg,k))break;}if(sp&&sp.queue.length===0)enqueue(sp,'wheel');}
-    if(age>=3&&P.f>450){if(bar&&bar.queue.length===0){for(const k of(age>=4?['longswords','halberds','landsknechts','pikesquares']:['longswords','halberds']))if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0)enqueue(rng,age>=4?'guns':'crossbows');if(stb&&stb.queue.length===0)enqueue(stb,age>=4&&P.tech.chivalry?'lances':'chivalry');if(age>=5){const rg5=bld('range'),st5=bld('stable'),ws5=bld('workshop'),fc5=bld('factory');if(rg5&&rg5.queue.length===0)enqueue(rg5,'rifles');if(st5&&st5.queue.length===0)enqueue(st5,'cuirass');if(ws5&&ws5.queue.length===0){for(const k of['shells','sappers','mortars'])if(!P.tech[k]&&enqueue(ws5,k))break;}{const bk5=bld('barracks');if(bk5&&bk5.queue.length===0)for(const k of['grenades','mguns'])if(!P.tech[k]&&P.g>300&&enqueue(bk5,k))break;}if(fc5&&fc5.queue.length===0){if(!P.tech.steam)enqueue(fc5,'steam');else enqueue(fc5,'harvesters');}}
+    if(age>=3&&P.f>450){if(bar&&bar.queue.length===0){for(const k of(age>=4?['longswords','halberds','landsknechts','pikesquares']:['longswords','halberds']))if(enqueue(bar,k))break;}if(rng&&rng.queue.length===0)enqueue(rng,age>=4?'guns':'crossbows');if(stb&&stb.queue.length===0)enqueue(stb,age>=4&&P.tech.chivalry?'lances':'chivalry');if(age>=5){const rg5=bld('range'),st5=bld('stable'),ws5=bld('workshop'),fc5=bld('factory');if(rg5&&rg5.queue.length===0)enqueue(rg5,'rifles');if(st5&&st5.queue.length===0)enqueue(st5,'cuirass');if(ws5&&ws5.queue.length===0){for(const k of['shells','sappers','mortars'])if(!P.tech[k]&&enqueue(ws5,k))break;}{const bk5=bld('barracks');if(bk5&&bk5.queue.length===0)for(const k of(P.age>=6?['grenades','mguns','rockets','snipers']:['grenades','mguns']))if(!P.tech[k]&&P.g>300&&enqueue(bk5,k))break;}if(fc5&&fc5.queue.length===0){if(!P.tech.steam)enqueue(fc5,'steam');else enqueue(fc5,'harvesters');}}
   {const un=bld('university');if(un&&un.queue.length===0)for(const k of['printing','medicine','chemistry','cartography'])if(!P.tech[k]&&P.g>350&&enqueue(un,k))break;}
   if(age>=4){if(fg&&fg.queue.length===0)enqueue(fg,'ballistics');if(mkt&&mkt.queue.length===0)enqueue(mkt,'banking');}if(fg&&fg.queue.length===0){for(const k of(PS.towers>2?['keeps','plate','steel']:['steel','plate','keeps']))if(enqueue(fg,k))break;}}}
   for(const b of blds)if(!b.built&&!vills.some(v=>v.order&&v.order.type==='build'&&v.order.id===b.id)){
@@ -13978,6 +13978,34 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
    arquebus, grenadier musket) were still drawn by the main map draw as small grey dots; now only the muzzle effects show. They still hit as before.
    Wording: power plant / rail stop / textile mill unlock hints and Steam power now name the Textile mill and the Logistics hub. ===== */
 function hideProj(p){try{if(p.kind!=='bullet')return false;const s=G.byId.get(p.src);return !!(s&&GUNNER.has(s.type))}catch(e){return false}}
+
+/* ===== r207 (Josh, Oct 26): the Modern Age army lines.
+   "grenadier should turn into bazooka. Machine gunner should turn into something else that is modern (sniper?)"
+   - Rocket launchers (barracks, Modern): Grenadiers -> Bazooka men.
+   - Sniper rifles (barracks, Modern): Machine gunners -> Snipers. 10-tile range, slow, deadly single shots; extra damage to foot soldiers.
+     Weak to vehicles and artillery. Drawn with the modern infantry figure until art chat 3 makes his own.
+   - Scout: no longer trained from the Modern Age (Josh picked).
+   - Archery range: no longer in the build menu from the Industrial Age (it trains nothing then; riflemen train at the barracks). ===== */
+try{
+  DEF.sniper={kind:'unit',name:'Sniper',plural:'Snipers',hp:55,atk:34,arm:0,range:10,cd:3.6,speed:70,sight:11,r:8,cost:{f:60,g:90},time:26,age:6};
+  const ins=(arr,after,k)=>{if(arr.includes(k))return;const i=arr.indexOf(after);arr.splice(i>=0?i+1:arr.length,0,k)};
+  ins(DEF.barracks.trains,'mgunner','sniper');ins(DEF.barracks.techs,'mguns','snipers');ins(DEF.barracks.techs,'grenades','rockets');
+  TECH.rockets={name:'Rocket launchers',desc:'Grenadiers become bazooka men: rockets that wreck tanks and vehicles',cost:{f:350,g:300},time:50,age:6};
+  TECH.snipers={name:'Sniper rifles',desc:'Machine gunners become snipers: long range, deadly single shots at foot soldiers',cost:{f:350,g:350},time:50,age:6};
+  CONV.rockets=['grenadier','bazooka'];CONV.snipers=['mgunner','sniper'];
+  BONUS.sniper={vs:['rifleman','infantry','mgunner','grenadier','bazooka','arquebus','landsknecht','pikesquare','sapper','sniper','villager'],amt:10,label:'Foot soldiers'};
+  WEAK.sniper='Armored cars, tanks, artillery';
+  RANGED.add('sniper');GUNS.add('sniper');GUNNER.add('sniper');MUSKET.add('sniper');
+  RETIRE.scout=6;
+  try{if(typeof UPSHORT==='object'){UPSHORT.rockets='Rockets';UPSHORT.snipers='Snipers'}}catch(e){}
+  setTimeout(()=>{try{if(!PFULL.sniper)PFULL.sniper=PFULL.infantry}catch(e){}},0);
+}catch(err){console.error('r207',err)}
+/* sniper shots are bullets (only the muzzle flash shows); a bigger flash and a long crack */
+try{shoot=(function(prev){return function(src,t,dmg,kind){if(src&&src.type==='sniper')kind='bullet';return prev.call(this,src,t,dmg,kind)}})(shoot)}catch(err){}
+/* sniper: drawn with the modern infantry figure for now */
+try{drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='sniper'&&!u._v){const p=Object.create(u);p.type='infantry';p._sn=1;return prev.call(this,c,p,x,y,now)}return prev.apply(this,arguments)}})(drawUnit)}catch(err){}
+/* archery range: gone from the build menu once it trains nothing */
+try{bAvail=(function(prev){return function(o,b){if(b==='range'&&G.players[o].age>=5)return false;return prev.apply(this,arguments)}})(bAvail)}catch(err){}
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
