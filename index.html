@@ -11731,7 +11731,7 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
       for(const c of ch){for(const f in c[1])add('f:'+f,JSON.stringify(c[1][f]===undefined?null:c[1][f]).length+f.length+3);}}
     return {k:'snap',t:G.t,n:N,rm,ch,g,ta,sp:speed,pz:!!G.paused};}
   function hostTick(){if(MP.role!=='host'||!G)return;try{
-      if(!MP.conn||!MP.conn.open)return;send(snapshot());
+      if(!MP.conn||!MP.conn.open)return;{const c=MP.conn,dc=c.dataChannel||c._dc,q=((dc&&dc.bufferedAmount)||0)+((c.bufferSize||0)*16384);MP.stats.q=q;if(q>(window.MPQMAX||65536)){MP.stats.skip=(MP.stats.skip||0)+1;return}}send(snapshot());
       if(G.over&&!MP.endSent){MP.endSent=true;const t=($('endTitle')||{}).textContent||'';send({k:'end',title:t,text:($('endText')||{}).textContent||''});}
     }catch(err){console.warn('mp host',err);}}
 
@@ -14503,8 +14503,12 @@ try{(function(){let fr=0,lastR=0,lastT=performance.now();const f=()=>{fr++;reque
   setInterval(()=>{try{let d=document.getElementById('mpStats');const show=(MP.role==='client'||MP.role==='host')&&G&&!G.over;
     if(!d&&show){const sp=document.getElementById('speedBtn');if(!sp)return;d=document.createElement('span');d.id='mpStats';d.style.cssText='font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums';sp.parentNode.insertBefore(d,sp)}
     const now=performance.now(),dt=(now-lastT)/1000;lastT=now;const r=(MP.stats&&(MP.role==='client'?MP.stats.recv:MP.stats.sent))||0,ups=(r-lastR)/dt;lastR=r;
-    if(d){d.hidden=!show;d.textContent=Math.round(fr/dt)+' fps · '+(tn?Math.round(tms/tn):0)+' ms · '+Math.round(ups)+' upd/s'+(MP.role==='client'&&!MPINTERP.off?' · '+MPINTERP.delay.toFixed(2)+'s':'')}
+    if(d){d.hidden=!show;const by=(MP.stats&&MP.stats.bytes)||0,kbs=(by-(MPBG._by||0))/1024/dt;MPBG._by=by;const sk=(MP.stats&&MP.stats.skip)||0,sks=sk-(MPBG._sk||0);MPBG._sk=sk;d.textContent=Math.round(fr/dt)+' fps · '+(tn?Math.round(tms/tn):0)+' ms · '+Math.round(ups)+' upd/s'+(MP.role==='client'&&!MPINTERP.off?' · '+MPINTERP.delay.toFixed(2)+'s':'')+(MP.role==='host'?' · '+Math.round(kbs)+' KB/s · '+Math.round((MP.stats&&MP.stats.encMs)||0)+' ms/upd'+(sks?' · '+sks+' waited':''):'')}
     fr=0;tms=0;tn=0}catch(e){}},1000)})()}catch(e){}
+
+/* ===== r215 (Josh, Oct 26: the friend gets only 4 host updates a second, "painfully slow"). The host no longer stacks new updates on a
+   connection that hasn't delivered the previous ones (they used to queue up and arrive late and bunched); it waits and the next update carries
+   all the changes. The host's top bar also shows KB/s, ms per update and how many updates waited, to find the bottleneck. ===== */
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
