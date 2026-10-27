@@ -14372,6 +14372,53 @@ setTimeout(()=>setTimeout(()=>{try{if(MPSAVE.off||MP.off)return;const box=docume
   b.addEventListener('click',()=>{window.__mpResume=1;try{MP.startHosting()}catch(e){}const el=document.getElementById('mpMsg');setTimeout(()=>{try{if(el&&MP.code)el.innerHTML+='<br><span style="color:var(--gold)">Your saved game loads when your friend joins.</span>'}catch(e){}},1500)});
 }catch(err){}},0),0);
 
+/* ===== Age-up pays for skipped upgrades, gameplay chat 2 (Josh, Oct 26 2026: "I want to make sure that when something becomes obsolete,
+   it disappears" + "How do we eliminate gaming the system by not upgrading and getting the free upgrade?" -> picked "Age-up pays for it",
+   and "Turn into the next unit" for the Catapult and Scout) =====
+   1. Advancing to a new age now costs extra for every unit upgrade you skipped (a unit-line research available in your current age or
+      earlier that you never did), at that upgrade's normal price. When the new age arrives those upgrades are done: old units on the map
+      and in training queues turn into the new ones and the old ones leave the menu. Skipping saves nothing, and nothing obsolete is left.
+      Only lines you use count: you own a building that trains it, or you own units of it (never built a stable = no horse upgrades owed).
+      The age-up button shows the higher price and lists what it includes. Same for the computer.
+   2. The Catapult (leaves the menu in the Industrial Age) turns into the Trebuchet line and the Scout (leaves in the Modern Age) into the
+      Armored car, at that age-up, so they don't linger on the map.
+   AGEPAY.off=true = old behaviour. */
+const AGEPAY={off:false,retconv:{catapult:'trebuchet',scout:'armoredcar'}};
+try{(function(){
+  const AKI={};AGE_KEYS.forEach((k,i)=>AKI[k]=i+1);
+  const trains=t=>{for(const k in DEF){const d=DEF[k];if(d&&d.kind==='bld'&&d.trains&&d.trains.includes(t))return true}return false};
+  function uses(o,a,b){for(const e of G.ents){if(e.owner!==o||e.dead)continue;if(e.kind==='unit'&&(e.type===a))return true;
+      if(e.kind==='bld'&&e.built&&DEF[e.type]&&DEF[e.type].trains&&(DEF[e.type].trains.includes(a)||DEF[e.type].trains.includes(b)))return true;}return false;}
+  const prevOf=f=>Object.keys(CONV).find(c=>CONV[c][1]===f);
+  function owedRaw(o){const P=G.players[o];if(!P)return [];const age=P.age|0,have=Object.assign({},P.tech),out=[];let ch=true,g=0;
+    while(ch&&g++<12){ch=false;for(const k in CONV){if(have[k])continue;const T=TECH[k];if(!T||(T.age||0)>age)continue;const [a,b]=CONV[k];
+      const pk=prevOf(a);if(pk&&!have[pk])continue;const nb=DEF[b]&&DEF[b].needTech;if(nb&&!have[nb])continue;if(!uses(o,a,b))continue;
+      have[k]=1;out.push(k);ch=true;}}
+    return out;}
+  const C={};function owed(o){const key=o+'|'+Math.floor((G.t||0)*2)+'|'+(G.players[o]?G.players[o].age:0);if(C[o]&&C[o].k===key)return C[o].v;const v=owedRaw(o);C[o]={k:key,v};return v;}
+  window.__ageOwed=owedRaw;
+  const cpAge=()=>{try{return G.players[COSTP].age|0}catch(e){return -1}};
+  for(const K of AGE_KEYS){const T=TECH[K];if(!T)continue;const base=Object.assign({},T.cost),bdesc=T.desc;
+    Object.defineProperty(T,'cost',{configurable:true,enumerable:true,get(){if(AGEPAY.off||!G||!G.players)return base;let L=[];try{if(cpAge()+1===AKI[K])L=owed(COSTP)}catch(e){}
+        if(!L.length)return base;const c=Object.assign({},base);for(const k of L){const tc=TECH[k].cost||{};for(const r in tc)c[r]=(c[r]||0)+tc[r];}return c},set(v){}});
+    Object.defineProperty(T,'desc',{configurable:true,enumerable:true,get(){if(AGEPAY.off||!G||!G.players)return bdesc;let L=[];try{if(cpAge()+1===AKI[K])L=owed(COSTP)}catch(e){}
+        if(!L.length)return bdesc;return bdesc+'. Includes the unit upgrades you skipped: '+L.map(k=>TECH[k].name).join(', ')},set(v){}});}
+  // remember what was paid for at the moment the age-up is queued (the price is read then); applied when the age arrives
+  const _eq=enqueue;enqueue=function(b,k){const pend=AKI[k]&&!AGEPAY.off?owed(b.owner).slice():null;const r=_eq.apply(this,arguments);
+    if(r&&pend){const P=G.players[b.owner];P.agePaid=P.agePaid||{};P.agePaid[k]=pend;}return r;};
+  const _cq=cancelQ;cancelQ=function(b){const t=b.queue[b.queue.length-1];const r=_cq.apply(this,arguments);try{if(AKI[t]){const P=G.players[b.owner];if(P.agePaid)delete P.agePaid[t]}}catch(e){}return r;};
+  function convert(o,from,to){let n=0;for(const e of G.ents){if(e.owner!==o||e.dead)continue;
+      if(e.kind==='unit'&&e.type===from){const rk=1+.1*(e.rank||0);e.hp=e.hp/e.maxHp*DEF[to].hp*rk;e.maxHp=Math.round(DEF[to].hp*rk);e.type=to;n++;}
+      if(e.kind==='bld'&&e.queue)e.queue=e.queue.map(q=>q===from?to:q);}return n;}
+  const bestOf=(o,t)=>{const P=G.players[o];let x=t;for(let g=0;g<8;g++){const k=Object.keys(CONV).find(c=>CONV[c][0]===x&&P.tech[c]);if(!k)break;x=CONV[k][1];}return x;};
+  const _at=applyTech;applyTech=function(o,k){const r=_at.apply(this,arguments);if(AGEPAY.off||!AKI[k])return r;try{const P=G.players[o];
+      const L=(P.agePaid&&P.agePaid[k])||[];if(P.agePaid)delete P.agePaid[k];const done=[];
+      for(const c of L){if(P.tech[c])continue;_at.call(this,o,c);done.push(TECH[c].name);}
+      for(const t in AGEPAY.retconv){if(RETIRE[t]&&P.age>=RETIRE[t]){const to=bestOf(o,AGEPAY.retconv[t]);if(DEF[to]){const n=convert(o,t,to);if(n)done.push(n+' '+(n>1?DEF[t].plural:DEF[t].name).toLowerCase()+' → '+(n>1?DEF[to].plural:DEF[to].name).toLowerCase());}}}
+      if(done.length&&o===0)setTimeout(()=>{try{toast('⬆️ With the new age: '+done.join(', '))}catch(e){}},6000);}catch(e){}return r;};
+  window.__agepay=AGEPAY;
+})()}catch(err){}
+/* ===== END age-up pays ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
