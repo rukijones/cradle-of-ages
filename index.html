@@ -14277,6 +14277,36 @@ try{updUnit=(function(prev){return function(u,dt){
     else u._fout=null}
   return prev.apply(this,arguments)}})(updUnit)}catch(err){}
 
+/* ===== r211 (Josh, Oct 26: "I just want the online save function so that the game can be picked up again later").
+   - The host's phone saves the online game every 45 s (and when the friend drops) in its own slot (cradle-mpsave-v1), so the
+     single-player save is never touched. Only the host saves; the whole game lives on the host's phone.
+   - Start screen > Play with a friend: "Resume saved online game" (shows the age and how long ago). The host taps it, gets a new room
+     code, and when the friend joins with that code the saved game is loaded instead of a new one; both carry on where they left off.
+     "Host a game" still starts a new game. A finished online game (victory/defeat) deletes its save. MPSAVE.off=true = off. ===== */
+const MPSAVE={off:false,key:'cradle-mpsave-v1',every:45};
+const MPSV0=saveGame,MPLD0=loadGame;
+function mpWithKey(fn){const k0=SAVE_KEY,k1=MPSAVE.key,LS=Storage.prototype,si=LS.setItem,gi=LS.getItem,map=k=>k===k0?k1:k===k0+'-meta'?k1+'-meta':k;
+  LS.setItem=function(k,v){return si.call(this,map(k),v)};LS.getItem=function(k){return gi.call(this,map(k))};try{return fn()}finally{LS.setItem=si;LS.getItem=gi}}
+function mpSaveNow(){if(MPSAVE.off||!G||!G.mp||G.mp.role!=='host'||G.over)return;try{mpWithKey(()=>MPSV0())}catch(e){}}
+function mpSaveMeta(){try{const m=localStorage.getItem(MPSAVE.key+'-meta');return m&&localStorage.getItem(MPSAVE.key)?JSON.parse(m):null}catch(e){return null}}
+function mpClearSave(){try{localStorage.removeItem(MPSAVE.key);localStorage.removeItem(MPSAVE.key+'-meta')}catch(e){}}
+setInterval(()=>{try{if(MPSAVE.off||!G||!G.mp||G.mp.role!=='host')return;if(G.over){mpClearSave();return}
+  if(G.t-(G._mpSaveT||0)>=MPSAVE.every||(MP.role!=='host'&&!G._mpSavedDrop)){G._mpSaveT=G.t;if(MP.role!=='host')G._mpSavedDrop=1;mpSaveNow()}}catch(e){}},2000);
+/* the host's new game becomes the saved game when resuming */
+try{newGame=(function(prev){return function(){if(window.__mpResume&&MP.role==='host'){window.__mpResume=0;let ok=false;try{ok=mpWithKey(()=>MPLD0())}catch(e){}
+  if(ok){G._mpSavedDrop=0;G._mpSaveT=G.t;try{toast('Saved online game loaded')}catch(e){}return}}return prev.apply(this,arguments)}})(newGame)}catch(err){}
+/* lobby button */
+setTimeout(()=>setTimeout(()=>{try{if(MPSAVE.off||MP.off)return;const box=document.getElementById('mpBox'),host=document.getElementById('mpHost');if(!box||!host||document.getElementById('mpResume'))return;
+  host.addEventListener('click',()=>{window.__mpResume=0},true);
+  const b=document.createElement('button');b.className='big';b.id='mpResume';b.style.cssText='font-size:14px;padding:8px 14px;border-color:var(--gold)';b.hidden=true;
+  host.parentNode.insertBefore(b,host);
+  const upd=()=>{const m=mpSaveMeta();if(!m){b.hidden=true;return}const mins=Math.max(0,Math.round((Date.now()-(m.when||0))/60000));
+    const ago=mins<1?'just now':mins<60?mins+' min ago':mins<1440?Math.round(mins/60)+' h ago':Math.round(mins/1440)+' days ago';
+    b.innerHTML='Resume saved online game<br><span style="font-size:11px;opacity:.8">'+((typeof AGES!=='undefined'&&AGES[m.age])||'')+' · saved '+ago+'</span>';b.hidden=false};
+  upd();document.getElementById('mpOpen').addEventListener('click',upd);
+  b.addEventListener('click',()=>{window.__mpResume=1;try{MP.startHosting()}catch(e){}const el=document.getElementById('mpMsg');setTimeout(()=>{try{if(el&&MP.code)el.innerHTML+='<br><span style="color:var(--gold)">Your saved game loads when your friend joins.</span>'}catch(e){}},1500)});
+}catch(err){}},0),0);
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
