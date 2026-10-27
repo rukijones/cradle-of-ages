@@ -14419,6 +14419,49 @@ try{(function(){
   window.__agepay=AGEPAY;
 })()}catch(err){}
 /* ===== END age-up pays ===== */
+/* ===== r212 (Josh, Oct 26: online game "when we got into a fight it started to glitch ... his is running very glitchy, mine looks OK").
+   The friend's screen guessed every unit's movement between the host's updates (10 a second) and then snapped to what the host said,
+   so in fights (chasing, stopping, swinging) units jumped back and forth. Now, on the friend's side only, units are shown where the host
+   says they were a moment ago (MPINTERP.delay = 0.2 s), moving smoothly between the host's updates; the friend's own guess no longer
+   moves them. The game clock is eased toward the host's too. Real teleports (over 3 tiles, e.g. out of a building) still snap.
+   The host's game is unchanged. MPINTERP.off=true = old behaviour. ===== */
+const MPINTERP={off:false,delay:.2,snap:3,maxBuf:12};
+try{(function(){const B=new WeakMap();let lastHT=null,prevHT=null,rt=null,lastG=null;
+  const sample=(buf,t,x,y)=>{buf.push([t,x,y]);if(buf.length>MPINTERP.maxBuf)buf.splice(0,buf.length-MPINTERP.maxBuf)};
+  function absorb(){if(MPINTERP.off||!G||!G.mp||G.mp.role!=='client'||MP.role!=='client')return;let HT=null;
+    try{/* did a host update arrive since the last frame? (the host's update sets G.t) */
+      if(lastG==null||G.t!==lastG){HT=G.t;if(lastHT==null||HT>lastHT){prevHT=lastHT;lastHT=HT}}
+      if(rt==null)rt=(lastHT!=null?lastHT:G.t)-MPINTERP.delay;
+      for(const e of G.ents){if(e.kind!=='unit'||e.dead)continue;let b=B.get(e);
+        if(!b){b={buf:[],sx:e.x,sy:e.y};B.set(e,b);sample(b.buf,lastHT!=null?lastHT:G.t,e.x,e.y);continue}
+        if(e.x!==b.sx||e.y!==b.sy){/* the host moved this unit */
+          const last=b.buf[b.buf.length-1],nx=e.x,ny=e.y;
+          if(last&&(Math.abs(nx-last[1])>MPINTERP.snap*TILE||Math.abs(ny-last[2])>MPINTERP.snap*TILE))b.buf.length=0;
+          else if(last&&prevHT!=null&&last[0]<prevHT-.001)sample(b.buf,prevHT,last[1],last[2]);   // it was standing still until the previous update
+          sample(b.buf,lastHT!=null?lastHT:G.t,nx,ny);e.x=b.sx;e.y=b.sy}}
+    }catch(err){}}
+
+  /* run it the moment a host update is applied (right after the game's own message handler), so a frame drawn before the next tick
+     never shows the raw jump */
+  setInterval(()=>{try{const c=MP.conn;if(c&&!c._mpi&&typeof c.on==='function'){c._mpi=1;c.on('data',()=>{try{absorb()}catch(e){}})}}catch(e){}},500);
+  tick=(function(prev){return function(dt){
+    if(MPINTERP.off||!G||!G.mp||G.mp.role!=='client'||MP.role!=='client'){rt=null;return prev.apply(this,arguments)}
+    absorb();
+    const r=prev.apply(this,arguments);
+    try{/* the clock shown: runs smoothly, kept MPINTERP.delay behind the newest host update */
+      rt+=dt*(typeof speed==='number'&&speed>0?speed:1);if(lastHT!=null){const want=lastHT-MPINTERP.delay,d=want-rt;if(Math.abs(d)>.6)rt=want;else rt+=d*.08}
+      G.t=rt+MPINTERP.delay;lastG=G.t;
+      for(const e of G.ents){if(e.kind!=='unit'||e.dead)continue;const b=B.get(e);if(!b||!b.buf.length)continue;const L=b.buf;
+        let x,y;if(rt<=L[0][0]){x=L[0][1];y=L[0][2]}else if(rt>=L[L.length-1][0]){x=L[L.length-1][1];y=L[L.length-1][2]}
+        else{let i=1;while(i<L.length&&L[i][0]<rt)i++;const a=L[i-1],c=L[i],f=(rt-a[0])/Math.max(1e-4,c[0]-a[0]);x=a[1]+(c[1]-a[1])*f;y=a[2]+(c[2]-a[2])*f;
+          if(i>2)L.splice(0,i-2)}
+        const ox=e.px!=null?e.px:e.x,oy=e.py!=null?e.py:e.y,mx=x-ox,my=y-oy;e.x=x;e.y=y;b.sx=x;b.sy=y;
+        if(Math.abs(mx)+Math.abs(my)>.15){e.moving=true;e.face=Math.atan2(my,mx)}else if(e.moving&&!(rt<L[L.length-1][0]))e.moving=false}
+    }catch(err){}
+    return r}})(tick);
+  window.__mpi=MPINTERP;
+})()}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
