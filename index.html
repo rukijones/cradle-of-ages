@@ -14419,21 +14419,22 @@ try{(function(){
   window.__agepay=AGEPAY;
 })()}catch(err){}
 /* ===== END age-up pays ===== */
-/* ===== r212 (Josh, Oct 26: online game "when we got into a fight it started to glitch ... his is running very glitchy, mine looks OK").
+/* ===== r212/r213 (Josh, Oct 26: online game; r213 after "his is more glitchy": facing and walk/stand now follow a smoothed speed and the host's facing, so units in a fight stop flipping direction "when we got into a fight it started to glitch ... his is running very glitchy, mine looks OK").
    The friend's screen guessed every unit's movement between the host's updates (10 a second) and then snapped to what the host said,
    so in fights (chasing, stopping, swinging) units jumped back and forth. Now, on the friend's side only, units are shown where the host
    says they were a moment ago (MPINTERP.delay = 0.2 s), moving smoothly between the host's updates; the friend's own guess no longer
    moves them. The game clock is eased toward the host's too. Real teleports (over 3 tiles, e.g. out of a building) still snap.
    The host's game is unchanged. MPINTERP.off=true = old behaviour. ===== */
-const MPINTERP={off:false,delay:.2,snap:3,maxBuf:12};
-try{(function(){const B=new WeakMap();let lastHT=null,prevHT=null,rt=null,lastG=null;
+const MPINTERP={off:false,delay:.2,snap:3,maxBuf:12,walkOn:18,walkOff:8};
+try{(function(){const B=new WeakMap();let lastHT=null,prevHT=null,rt=null,lastG=null,lastWall=performance.now()/1000;
   const sample=(buf,t,x,y)=>{buf.push([t,x,y]);if(buf.length>MPINTERP.maxBuf)buf.splice(0,buf.length-MPINTERP.maxBuf)};
   function absorb(){if(MPINTERP.off||!G||!G.mp||G.mp.role!=='client'||MP.role!=='client')return;let HT=null;
     try{/* did a host update arrive since the last frame? (the host's update sets G.t) */
-      if(lastG==null||G.t!==lastG){HT=G.t;if(lastHT==null||HT>lastHT){prevHT=lastHT;lastHT=HT}}
+      if(lastG==null||G.t!==lastG){HT=G.t;if(lastHT==null||HT>lastHT){prevHT=lastHT;lastHT=HT;lastWall=performance.now()/1000}}
       if(rt==null)rt=(lastHT!=null?lastHT:G.t)-MPINTERP.delay;
       for(const e of G.ents){if(e.kind!=='unit'||e.dead)continue;let b=B.get(e);
         if(!b){b={buf:[],sx:e.x,sy:e.y};B.set(e,b);sample(b.buf,lastHT!=null?lastHT:G.t,e.x,e.y);continue}
+        if(b.sf!==undefined&&e.face!==b.sf){b.hf=e.face;e.face=b.sf}   // the host turned this unit
         if(e.x!==b.sx||e.y!==b.sy){/* the host moved this unit */
           const last=b.buf[b.buf.length-1],nx=e.x,ny=e.y;
           if(last&&(Math.abs(nx-last[1])>MPINTERP.snap*TILE||Math.abs(ny-last[2])>MPINTERP.snap*TILE))b.buf.length=0;
@@ -14449,14 +14450,18 @@ try{(function(){const B=new WeakMap();let lastHT=null,prevHT=null,rt=null,lastG=
     absorb();
     const r=prev.apply(this,arguments);
     try{/* the clock shown: runs smoothly, kept MPINTERP.delay behind the newest host update */
-      rt+=dt*(typeof speed==='number'&&speed>0?speed:1);if(lastHT!=null){const want=lastHT-MPINTERP.delay,d=want-rt;if(Math.abs(d)>.6)rt=want;else rt+=d*.08}
+      if(lastHT!=null){const want=lastHT-MPINTERP.delay+(performance.now()/1000-lastWall)*(typeof speed==='number'&&speed>0?speed:1),d=want-rt;if(Math.abs(d)>.6)rt=want;else rt+=dt*(typeof speed==='number'&&speed>0?speed:1)*Math.max(.6,Math.min(1.4,1+d*3))}else rt+=dt
       G.t=rt+MPINTERP.delay;lastG=G.t;
       for(const e of G.ents){if(e.kind!=='unit'||e.dead)continue;const b=B.get(e);if(!b||!b.buf.length)continue;const L=b.buf;
         let x,y;if(rt<=L[0][0]){x=L[0][1];y=L[0][2]}else if(rt>=L[L.length-1][0]){x=L[L.length-1][1];y=L[L.length-1][2]}
         else{let i=1;while(i<L.length&&L[i][0]<rt)i++;const a=L[i-1],c=L[i],f=(rt-a[0])/Math.max(1e-4,c[0]-a[0]);x=a[1]+(c[1]-a[1])*f;y=a[2]+(c[2]-a[2])*f;
           if(i>2)L.splice(0,i-2)}
         const ox=e.px!=null?e.px:e.x,oy=e.py!=null?e.py:e.y,mx=x-ox,my=y-oy;e.x=x;e.y=y;b.sx=x;b.sy=y;
-        if(Math.abs(mx)+Math.abs(my)>.15){e.moving=true;e.face=Math.atan2(my,mx)}else if(e.moving&&!(rt<L[L.length-1][0]))e.moving=false}
+        /* walking / facing from a smoothed speed (with a dead band), so units jostling in a fight don't flip direction or flicker between walk and stand */
+        const id=Math.max(dt,1e-3),k2=Math.min(1,id*8);b.vx=(b.vx||0)+(mx/id-(b.vx||0))*k2;b.vy=(b.vy||0)+(my/id-(b.vy||0))*k2;const sp=Math.hypot(b.vx,b.vy);
+        const nowW=performance.now()/1000;if(!b.mv&&sp>MPINTERP.walkOn&&nowW-(b.mvT||0)>.25){b.mv=1;b.mvT=nowW}else if(b.mv&&sp<MPINTERP.walkOff&&nowW-(b.mvT||0)>.25){b.mv=0;b.mvT=nowW}
+        e.moving=!!b.mv;if(b.mv&&sp>MPINTERP.walkOff)e.face=Math.atan2(b.vy,b.vx);else if(b.hf!=null)e.face=b.hf;b.sf=e.face;
+        if(e.anim){e.anim.ang=e.face;e.anim.dir8=((Math.round(e.face/(Math.PI/4))%8)+8)%8}}
     }catch(err){}
     return r}})(tick);
   window.__mpi=MPINTERP;
