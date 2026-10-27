@@ -6009,6 +6009,9 @@ try{(function(){
      (mesh turned onto its skeleton + new limb weights) and re-baked walk / idle / die into art/c/ex3d_p1.webp (same layout, replaced in
      place, +0 files). ARTV bumped so phones fetch the new sheet. His button now has his own 3D icon (GFX.R4UICON.explorer). */
   try{GFX.ARTV=String(Math.max(+GFX.ARTV||0,38))}catch(e){}
+  /* Oct 26 (Josh: "The lancers look too small for the horse"): Lancer re-baked with the rider 21% bigger (horse and footprint unchanged); new
+     ln3d_a/b/c pictures in pk/r4u.js. ARTV bumped so phones fetch the new pack (pk/r4u.js?v=ARTV). */
+  try{GFX.ARTV=String(Math.max(+GFX.ARTV||0,39))}catch(e){}
   /* Oct 26 fix: landsknecht / pikesquare are real unit types (not _v variants), and new foot types only reach the 3D path when GFX.rigFor
      returns a rig name. Same hook as the arquebus and art chat 3's Industrial soldiers: register them as soldiers posed like their base unit
      (rig data borrowed only until the 3D sheet loads), and skip the painted-sprite step once a sheet is in. */
