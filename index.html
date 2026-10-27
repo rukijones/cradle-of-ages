@@ -223,7 +223,7 @@ button.sb{border:0;background:none;padding:0;width:100%;color:inherit;font:inher
 <script>/* r186 black-screen guard (Josh Oct 24): if the browser handed back an older cached art bundle than this page needs, load a fresh copy before the game starts */(function(){var N=479;try{if(!window.__PK||window.__PK.length<N)document.write('<script src="pk/p1.js?r='+Date.now()+'"><\/script>')}catch(e){}})();</script>
 <script>
 (()=>{'use strict';
-const TILE=32,BASE=12,LAND=128,OCEAN=16;let MW=LAND+2*OCEAN,MH=LAND+2*OCEAN,WW=MW*TILE,WH=MH*TILE;/* ocean ring (Josh Oct 17): the land is still 128x128, set inside a 16-tile ocean */
+const TILE=32,BASE=12,LAND=128,OCEAN=16;let MW=(LAND+2*OCEAN)*2,MH=(LAND+2*OCEAN)*2,/* big map (gameplay chat 2, Oct 27): startup buffers sized for the 2x map; each game sets its own size */WW=MW*TILE,WH=MH*TILE;/* ocean ring (Josh Oct 17): the land is still 128x128, set inside a 16-tile ocean */
 const RATE={f:.8,w:.65,s:.55,g:.5,tin:.45},CARRY=10,POPMAX=150,STEP=1/30;
 const RCOL={f:'#d9534f',w:'#a8723d',s:'#b1b1aa',g:'#e6c34a'};
 const PCOL=['#3f7fd6','#d6453a'],PDARK=['#244f8c','#8c2a22'];
@@ -604,7 +604,7 @@ function renderGround(){
   });
   const CH=2048,LB=G.landBox||[0,0,MW,MH],LX0=LB[0]*TILE,LY0=LB[1]*TILE,LX1=LB[2]*TILE,LY1=LB[3]*TILE,nx=Math.ceil((LX1-LX0)/CH),ny=Math.ceil((LY1-LY0)/CH),chunks=[];
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
-    const cx=LX0+i*CH,cy=LY0+j*CH,c=document.createElement('canvas');c.width=Math.min(CH,LX1-cx);c.height=Math.min(CH,LY1-cy);const g=c.getContext('2d');
+    const cx=LX0+i*CH,cy=LY0+j*CH,c=window.__vcan?window.__vcan():document.createElement('canvas');/* big map: half-detail ground canvas */c.width=Math.min(CH,LX1-cx);c.height=Math.min(CH,LY1-cy);const g=c.getContext('2d');
     g.translate(-cx,-cy);g.imageSmoothingEnabled=true;g.lineCap='butt';
     if(!GFX.ground(g,cx,cy,CH,n1)){g.drawImage(n1,0,0,WW,WH);g.globalAlpha=.5;g.drawImage(n2,0,0,WW,WH);g.globalAlpha=.22;g.drawImage(n3,0,0,WW,WH);g.globalAlpha=1;}
     for(const[x,y,r,f]of feats){if(r<ALL&&(x+r<cx||y+r<cy||x-r>cx+CH||y-r>cy+CH))continue;f(g,cx,cy,CH);}
@@ -752,7 +752,7 @@ function astar(sx,sy,goal,hx,hy,partial){
     const x=n%MW,y=(n/MW)|0;
     if(goal(x,y)){found=n;break;}
     const hh=h(x,y);if(hh<bestH){bestH=hh;best=n;}
-    if(++exp>ASTAR_LIM)break;
+    if(++exp>ASTAR_LIM*(MW>200?4:1))break;/* big map: longer searches */
     for(const[dx,dy]of DIRS){
       const nx=x+dx,ny=y+dy;if(!WK(nx,ny))continue;
       const diag=dx&&dy;if(diag&&(!WK(x+dx,y)||!WK(x,y+dy)))continue;
@@ -8953,7 +8953,7 @@ function draw(){
   c.setTransform(dpr*z,0,0,dpr*z,-cam.x*dpr*z,-cam.y*dpr*z);
   const vx0=Math.max(0,cam.x),vy0=Math.max(0,cam.y),vx1=Math.min(WW,cam.x+W/z),vy1=Math.min(WH,cam.y+H/z);
   try{drawOcean(c,vx0,vy0,vx1,vy1)}catch(err){}
-  if(!(window.FXOFF&&FXOFF.ground))for(const ch of G.ground.chunks){const x0=Math.max(vx0,ch.x),y0=Math.max(vy0,ch.y),x1=Math.min(vx1,ch.x+ch.c.width),y1=Math.min(vy1,ch.y+ch.c.height);if(x1>x0&&y1>y0)c.drawImage(ch.c,x0-ch.x,y0-ch.y,x1-x0,y1-y0,x0,y0,x1-x0,y1-y0);}
+  if(!(window.FXOFF&&FXOFF.ground))for(const ch of G.ground.chunks){const x0=Math.max(vx0,ch.x),y0=Math.max(vy0,ch.y),k_=ch.k||1,x1=Math.min(vx1,ch.x+ch.c.width*k_),y1=Math.min(vy1,ch.y+ch.c.height*k_);if(x1>x0&&y1>y0)c.drawImage(ch.c,(x0-ch.x)/k_,(y0-ch.y)/k_,(x1-x0)/k_,(y1-y0)/k_,x0,y0,x1-x0,y1-y0);}/* big map: half-detail ground pieces (ch.k) */
   const inView=(x,y,m)=>x>cam.x-m&&y>cam.y-m&&x<cam.x+W/z+m&&y<cam.y+H/z+m;
   drawWater(c,now,inView);
   const E=G.exp[0],V=G.vis[0],selSet=new Set(G.sel);
@@ -11464,7 +11464,7 @@ function riverFinish(){const O=OCEAN,T=G.terrain,N=MW,C=(N-1)/2,Rn=Math.random;G
   pick((x,y)=>Math.hypot(x-la,y-lb)<lr-1,2);pick((x,y)=>{const d=Math.hypot(x-C,y-C);return d>Rs-4&&d<Rs-1&&!islAt(x,y)},4);
   G.oceanPic=null;G.forestPic=null}
 /* the deep forest picture (1/2 scale), drawn where the ocean picture would be */
-const FRS=16;
+let FRS=16;/* big map: 8 on big maps */
 function forestPaint(){const c=document.createElement('canvas');c.width=MW*FRS;c.height=MH*FRS;const g=c.getContext('2d'),T=G.terrain,R=mulberry((G.seed||1)+311);
   if(G.mapType!=='corners'){g.fillStyle='#1d3519';g.fillRect(0,0,c.width,c.height)}const cols=['#24421f','#2b4d24','#335a2a','#1f3a1b','#3a6430'];
   const LBf=G.landBox||[0,0,MW,MH],outL=(x,y)=>x<LBf[0]||y<LBf[1]||x>=LBf[2]||y>=LBf[3];for(let p=0;p<3;p++)for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const tt=T[ti(x,y)];if(!(tt===3||(G.mapType==='corners'&&tt===0&&outL(x,y)&&!islAt(x,y))))continue;for(let k=0;k<2;k++){const cx=(x+R())*FRS,cy=(y+R())*FRS,r=FRS*(.55+R()*.5);
@@ -11765,6 +11765,7 @@ function mpPeerLib(){if(window.Peer)return;(()=>{function e(e,t,n,r){Object.defi
     if(m.n!=null&&Math.abs(G.ents.length-m.n)>0&&(MP.chk=(MP.chk||0)+1)%(MP.hz*2)===0)send({k:'ids?'});   // every 2 s, if counts differ, ask for the full id list
     for(const k in m.g){let v=m.g[k];if(SWAPK.has(k)&&Array.isArray(v)&&v.length>=2){const t=v[0];v[0]=v[1];v[1]=t;}if(k==='spHold'&&v&&typeof v.o==='number')v.o=sw(v.o);G[k]=v;}   // spHold.o is a side: swap it like owners
     for(const k in m.ta){const d=m.ta[k];if(d.full){const C=window[d.ctor]||Uint8Array;G[k]=C.from(d.full);}else if(d.d&&G[k]){const a=G[k];for(let i=0;i<d.d.length;i+=2)a[d.d[i]]=d.d[i+1];}}
+    if(m.ta.terrain&&G.terrain&&G.terrain.length!==MW*MH&&window.__setMapSize){try{const n=Math.round(Math.sqrt(G.terrain.length));window.__setMapSize(n);G.vis=[0,1].map(()=>new Uint8Array(n*n));G.exp=[0,1].map(()=>new Uint8Array(n*n));}catch(err){}}   // big map (Oct 27): take the host's map size
     if(m.ta.terrain||m.ta.road)try{renderGround();}catch(err){}
     G.t=m.t;if(m.sp)speed=m.sp;if(!!m.pz!==!!MP.hostPaused&&MP.rawToast)MP.rawToast(m.pz?'Your friend paused the game':'Your friend is back');MP.hostPaused=m.pz;}
   function clientSetup(){G.mp={role:'client'};swapOwners();G.aiPlayers=[];G.ais=[null,null];G.nextId=Math.max(G.nextId||1,1e9);G.sel=[];G.place=null;
@@ -14598,6 +14599,128 @@ try{checkEnd=(function(prev){return function(){try{if(G&&!G.over&&!(typeof MP!==
     else if(G.doom[o]){G.doom[o]=0;try{toast(o===0?'Your tribe is recovering':'The red tribe is rebuilding')}catch(e){}}}}}catch(err){}
   if(G&&G.over)return;return prev.apply(this,arguments)}})(checkEnd)}catch(err){}
 
+/* ===== Big map: same layouts at 2x, gameplay chat 2 (Josh, Oct 27 2026: "Can you make the map 2X the size ... The map should be the same
+   layout"; picked "Twice as wide and tall", step 1 of 2 before up to 4 players) =====
+   New games: the map is generated exactly as before (160x160 with its ocean ring, River & Lake or Forest Corners), then doubled: every tile
+   becomes a 2x2 block (lakes, rivers, fords, cliffs, forest border, islands keep their shape at twice the size: 320x320, land 256x256).
+   - Each town's own start area keeps its normal spacing (berries, stone, gold, nearby trees within 14 tiles of the town are moved with the
+     town, not spread out), so the opening plays the same; only the distances to everything else double.
+   - Coasts, banks and cliff edges are smoothed while doubling (Scale2x), so they keep clean diagonals instead of 2-tile steps.
+   - Berries, stone and gold away from the towns fill their whole 2x2 block, so deposits look the same, just bigger. Trees away from the towns
+     fill 2 of the 4 tiles (Josh picked "Thinner forests": same forest shapes, half the trees, so the game's per-second work stays ~1.5x
+     today's instead of 2x; total wood ~2x today). BIGMAP.treeFill=4 = full forests.
+   - Animals, sacred sites, trade posts, ruins, island docks, hidden veins, mushrooms and map chests move to their doubled positions.
+   - The mystery, the Wonder and the 4-ruin layout set themselves up on the first ticks, already at the new size.
+   - Saved games keep the size they were made at (G.mapW). Online games stay at the old size for now.
+   - Startup buffers are sized for the big map (build patch on the MW line); pathfinding search limit x4 on big maps (build patch in astar).
+   - Half-detail ground (Josh picked "Half-resolution ground"): on big maps the ground canvases store half the pixels (ch.k=2 pieces), so
+     ground memory is the same as the old map; the painters are unchanged (see below). Build patches: ground canvas creation, main ground draw.
+     The deep-forest picture is also half scale on big maps (FRS 8). GHALF.on=false = full detail.
+   - Start screen button "Map size: Large / Original" (next to Spirit Age victory) picks the size for new games; remembered on the device.
+   BIGMAP.on=false = old size for new games. */
+const BIGMAP={on:true,K:2,keepR:14,treeFill:2};
+try{(function(){
+  const SMALL=LAND+2*OCEAN;
+  function setSize(n){MW=MH=n;WW=WH=n*TILE;try{FRS=n>200?8:16}catch(e){}try{for(const c of [fogC,fogK,fogE])if(c.width!==n){c.width=n;c.height=n;}}catch(e){}}
+  window.__setMapSize=setSize;
+  const isMP=()=>{try{return !!(window.__mp&&(window.__mp.on||window.__mp.conn))}catch(e){return false}};
+  function upscale(){const K=BIGMAP.K,N0=MW,N1=N0*K;
+    const B0=(G.bases||[]).map(b=>[b[0],b[1]]),NB=B0.map(([x,y])=>[x*K,y*K]);
+    const home=(x,y)=>{for(let i=0;i<B0.length;i++)if(Math.hypot(x-B0[i][0],y-B0[i][1])<=BIGMAP.keepR)return i;return -1};
+    // tile arrays: every typed array the size of the map is doubled (nearest tile)
+    const big=(A)=>{const B=new A.constructor(N1*N1);for(let y=0;y<N1;y++){const r=((y/K)|0)*N0;for(let x=0;x<N1;x++)B[y*N1+x]=A[r+((x/K)|0)];}return B};
+    const T0=G.terrain;for(const k of Object.keys(G)){const v=G[k];if(ArrayBuffer.isView(v)&&v.length===N0*N0&&k!=='occ'&&k!=='wocc')G[k]=big(v);}
+    // terrain: EPX (Scale2x) instead of plain doubling, so coasts, lake and river banks and cliff edges stay smooth diagonals, not 2-tile stairs
+    if(K===2&&T0){const O=new T0.constructor(N1*N1),at=(x,y)=>T0[Math.max(0,Math.min(N0-1,y))*N0+Math.max(0,Math.min(N0-1,x))];
+      for(let y=0;y<N0;y++)for(let x=0;x<N0;x++){const P=at(x,y),A=at(x,y-1),B=at(x+1,y),C=at(x-1,y),D=at(x,y+1);let p1=P,p2=P,p3=P,p4=P;
+        if(C===A&&C!==D&&A!==B)p1=A;if(A===B&&A!==C&&B!==D)p2=B;if(D===C&&D!==B&&C!==A)p3=C;if(B===D&&B!==A&&D!==C)p4=D;
+        const i=(2*y)*N1+2*x;O[i]=p1;O[i+1]=p2;O[i+N1]=p3;O[i+N1+1]=p4;}G.terrain=O;}
+    setSize(N1);G.mapW=N1;
+    G.occ=new Int32Array(N1*N1);G.wocc=new Int32Array(N1*N1);G.vis=[0,1].map(()=>new Uint8Array(N1*N1));G.exp=[0,1].map(()=>new Uint8Array(N1*N1));
+    const T=G.terrain;
+    // entities
+    const add=[];
+    for(const e of G.ents){if(e.dead)continue;
+      if(e.kind==='unit'){const tx=e.x/TILE,ty=e.y/TILE,h=home(tx,ty);if(h>=0){e.x=(NB[h][0]+(tx-B0[h][0]))*TILE;e.y=(NB[h][1]+(ty-B0[h][1]))*TILE;}else{e.x*=K;e.y*=K;}
+        if(e.hx!=null){const hh=home(e.hx,e.hy);if(hh>=0){e.hx=NB[hh][0]+(e.hx-B0[hh][0]);e.hy=NB[hh][1]+(e.hy-B0[hh][1]);}else{e.hx*=K;e.hy*=K;}}
+        e.order=null;e.path=null;e.px=e.x;e.py=e.y;delete e._home;delete e._sx;delete e._sy;continue;}
+      if(e.tx==null){e.x*=K;e.y*=K;continue;}   // fish etc. placed by world position
+      const s=e.size||1,cx=e.tx+s/2,cy=e.ty+s/2,h=home(cx,cy);
+      if(h>=0){e.tx=NB[h][0]+(e.tx-B0[h][0]);e.ty=NB[h][1]+(e.ty-B0[h][1]);}
+      else{const ox=e.tx,oy=e.ty;e.tx=ox*K+((s*K-s)>>1);e.ty=oy*K+((s*K-s)>>1);
+        if(e.kind==='res'&&s===1&&e.type==='tree'&&K===2&&BIGMAP.treeFill===2){const alt=((ox*73856093^oy*19349663)>>>3)&1,Q=alt?[[1,0],[0,1]]:[[0,0],[1,1]];
+          e.tx=ox*K+Q[0][0];e.ty=oy*K+Q[0][1];add.push([e.type,ox*K+Q[1][0],oy*K+Q[1][1],e]);}
+        else if(e.kind==='res'&&s===1&&e.type!=='fish'){for(let j=0;j<K;j++)for(let i=0;i<K;i++){if(!i&&!j)continue;add.push([e.type,ox*K+i,oy*K+j,e]);}}}
+      if(e.wx!=null){e.wx=e.wx*K;e.wy=e.wy*K;}
+      e.x=(e.tx+s/2)*TILE;e.y=(e.ty+s/2)*TILE;}
+    // occupancy back, then the extra resource tiles
+    const occ=e=>{if(e.noOcc)return;const s=e.size||1;for(let y=e.ty;y<e.ty+s;y++)for(let x=e.tx;x<e.tx+s;x++)if(inB(x,y))G.occ[ti(x,y)]=e.id;};
+    for(const e of G.ents){if(e.dead||e.kind!=='res'||e.noOcc||(e.size||1)!==1||e.type==='fish')continue;const t=T[ti(e.tx,e.ty)];if(t===0)continue;
+      let ok=false;for(let j=0;j<K&&!ok;j++)for(let i=0;i<K&&!ok;i++){const x=e.tx-(e.tx%K)+i,y=e.ty-(e.ty%K)+j;if(inB(x,y)&&T[ti(x,y)]===0&&!G.ents.some(q=>q!==e&&!q.dead&&q.kind==='res'&&q.tx===x&&q.ty===y)){e.tx=x;e.ty=y;e.x=(x+.5)*TILE;e.y=(y+.5)*TILE;ok=true}}
+      if(!ok&&t!==3)e.dead=true;}
+    G.ents=G.ents.filter(e=>!e.dead);
+    for(const e of G.ents)if(!e.dead&&(e.kind==='res'||e.kind==='bld'))occ(e);
+    for(const [type,x,y,src] of add){if(!inB(x,y)||T[ti(x,y)]!==0||G.occ[ti(x,y)])continue;const r=mkRes(type,x,y);if(r){r.amt=src.amt;if(src.v!=null)r.v=Math.random();}}
+    // map data with tile coordinates
+    G.bases=NB;
+    if(G.landBox)G.landBox=G.landBox.map(v=>v*K);
+    for(const k of ['veins','mapChests','mush'])if(Array.isArray(G[k]))for(const v of G[k]){if(typeof v.x==='number'){v.x*=K;v.y*=K;}}
+    if(Array.isArray(G.islands))for(const s of G.islands){if(Array.isArray(s.tiles)){const nt=[];for(const i of s.tiles){const x=i%N0,y=(i/N0)|0;for(let j=0;j<K;j++)for(let q=0;q<K;q++)nt.push((y*K+j)*N1+x*K+q);}s.tiles=nt;}
+      for(const k of ['x0','y0','cx','cy'])if(typeof s[k]==='number')s[k]*=K;for(const k of ['x1','y1'])if(typeof s[k]==='number')s[k]=s[k]*K+K-1;s.set=null;try{islSet(s)}catch(e){}}
+    if(G.river){for(const k of ['la','lb','Rs'])if(typeof G.river[k]==='number')G.river[k]*=K;}
+    for(const k of ['ground','miniBase','oceanPic','forestPic','water'])G[k]=null;
+    try{G._clK=null}catch(e){}
+  }
+  const _gm=genMap;genMap=function(){try{gInstall()}catch(e){}setSize(SMALL);const r=_gm.apply(this,arguments);
+    if(BIGMAP.on&&!isMP()){try{upscale()}catch(err){console.error('bigmap',err)}}else{G.mapW=MW;G.vis=[0,1].map(()=>new Uint8Array(MW*MH));G.exp=[0,1].map(()=>new Uint8Array(MW*MH));}
+    return r;};
+  // saved games: set the size before the save is read
+  const _lg=loadGame;loadGame=function(){try{gInstall()}catch(e){}try{let raw=null;try{raw=localStorage.getItem(SAVE_KEY)}catch(e){}const m=raw&&/"mapW":(\d+)/.exec(raw);setSize(m?+m[1]:SMALL);}catch(e){}return _lg.apply(this,arguments);};
+  // ---- half-detail ground on big maps ----
+  /* While the ground is painted, each 2048 px ground canvas is a "half canvas": it reports its full size (width/height) and every
+     transform / source rectangle is scaled by 1/2, so all the ground painters (other chats' code) work unchanged in world units while
+     only half the pixels are stored. The finished canvases are cut into 256 px pieces that cover 512 world px (ch.k=2). */
+  const GHALF={on:true};window.__ghalf=GHALF;let busy=false;const VS=.5;
+  const CP=CanvasRenderingContext2D.prototype,_di=CP.drawImage,_st=CP.setTransform,_gt=CP.getTransform,_gid=CP.getImageData;
+  const _wD=Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype,'width'),_hD=Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype,'height');
+  function vcan(){const c=document.createElement('canvas'),g=c.getContext('2d');let W=300,H=150;const rs=()=>_st.call(g,VS,0,0,VS,0,0);
+    Object.defineProperty(c,'width',{configurable:true,get(){return W},set(v){W=+v||0;_wD.set.call(c,Math.ceil(W*VS));rs()}});
+    Object.defineProperty(c,'height',{configurable:true,get(){return H},set(v){H=+v||0;_hD.set.call(c,Math.ceil(H*VS));rs()}});
+    g.setTransform=function(a,b,cc,d,e,f){if(a&&typeof a==='object')return _st.call(g,a.a*VS,a.b*VS,a.c*VS,a.d*VS,a.e*VS,a.f*VS);return _st.call(g,a*VS,b*VS,cc*VS,d*VS,e*VS,f*VS)};
+    g.resetTransform=rs;g.getTransform=function(){const m=_gt.call(g);return new DOMMatrix([m.a/VS,m.b/VS,m.c/VS,m.d/VS,m.e/VS,m.f/VS])};
+    g.getImageData=function(x,y,w,h){return _gid.call(g,Math.floor(x*VS),Math.floor(y*VS),Math.max(1,Math.round(w*VS)),Math.max(1,Math.round(h*VS)))};
+    c.__v=VS;c.width=300;c.height=150;return c;}
+  function diV(img){if(img&&img.__v){const s=img.__v,n=arguments.length;
+      if(n===3)return _di.call(this,img,arguments[1],arguments[2],img.width,img.height);
+      if(n===9)return _di.call(this,img,arguments[1]*s,arguments[2]*s,arguments[3]*s,arguments[4]*s,arguments[5],arguments[6],arguments[7],arguments[8]);}
+    return _di.apply(this,arguments);}
+  function gTileV(){if(!G||!G.ground||!G.ground.chunks)return;const out=[],PZ=256;
+    for(const ch of G.ground.chunks){const c=ch.c;if(!c||!c.__v||ch.tile){out.push(ch);continue}const RW=_wD.get.call(c),RH=_hD.get.call(c),k=1/c.__v;
+      for(let y=0;y<RH;y+=PZ)for(let x=0;x<RW;x+=PZ){const w=Math.min(PZ,RW-x),h=Math.min(PZ,RH-y),wx=ch.x+x*k,wy=ch.y+y*k;
+        if(ch.isl==null&&tileAllSea(wx,wy,w*k,h*k))continue;const n=document.createElement('canvas');n.width=w;n.height=h;_di.call(n.getContext('2d'),c,x,y,w,h,0,0,w,h);out.push({x:wx,y:wy,c:n,tile:1,isl:ch.isl,k});}
+      _wD.set.call(c,0);_hD.set.call(c,0);}
+    // the ground-lost check reads the middle pixel of the first piece: a land piece goes first
+    const lm=out.findIndex(t=>{if(t.isl!=null)return false;const kk=t.k||1,tx=Math.floor((t.x+t.c.width*kk/2)/TILE),ty=Math.floor((t.y+t.c.height*kk/2)/TILE);return inB(tx,ty)&&G.terrain[ti(tx,ty)]===0});
+    if(lm>0)out.unshift(out.splice(lm,1)[0]);G.ground.chunks=out;}
+  function gInstall(){if(window.__ghInst)return;window.__ghInst=1;const prev=renderGround;
+    renderGround=function(){if(busy||!GHALF.on||!G||MW<=200)return prev.apply(this,arguments);
+      let og=null;try{og=groundTile;groundTile=gTileV}catch(e){og=null}
+      busy=true;window.__vcan=vcan;CP.drawImage=diV;let r;
+      try{r=prev.apply(this,arguments);}finally{CP.drawImage=_di;window.__vcan=null;busy=false;try{if(og)groundTile=og}catch(e){}}
+      try{if(G.ground&&G.ground.chunks.some(ch=>ch.c&&ch.c.__v))gTileV();}catch(e){}
+      try{for(const t of G.ground.chunks){const c=t.c;if(t.k===2&&c&&c.getContext)toBitmap(c,bm=>{if(t.c!==c)return false;bm.w0=c.width;t.c=bm;return true});}}catch(e){}
+      return r;};
+    for(const k of ['_gt','_rv'])if(prev[k])renderGround[k]=prev[k];}
+  setTimeout(()=>{try{gInstall()}catch(e){}},0);window.__rg=()=>renderGround();
+  // start screen: "Map size: Large / Original" (Josh, Oct 27: "make it an option - either play original map size or large map size before the game starts"); remembered
+  try{const v=localStorage.getItem('coaMapSize');if(v)BIGMAP.on=v!=='orig';}catch(e){}
+  try{const so=document.getElementById('spiritOpt');if(so&&!document.getElementById('mapSizeOpt')){const b=document.createElement('button');b.className='big alt';b.id='mapSizeOpt';b.style.cssText='font-size:13px;padding:7px 14px;margin-left:6px';
+      const lab=()=>{b.textContent='Map size: '+(BIGMAP.on?'Large':'Original');b.style.borderColor=BIGMAP.on?'var(--gold)':'';};lab();
+      b.addEventListener('click',()=>{BIGMAP.on=!BIGMAP.on;try{localStorage.setItem('coaMapSize',BIGMAP.on?'big':'orig')}catch(e){}lab();try{toast(BIGMAP.on?'Large map: twice as wide and tall':'Original map size')}catch(e){}});
+      so.parentNode.appendChild(b);}}catch(e){}
+  window.__bigmap=BIGMAP;
+})()}catch(err){console.error('bigmap',err)}
+/* ===== END big map ===== */
 /* ===== r220 (Josh, Oct 27: "when multiple farms are connected, the farm shows no farmer, but when you assign a farmer, they don't farm
    and just stand there idle"). A farm boxed in on all sides by other farms (or farms + buildings) had no open tile next to it, and farm
    tiles were solid for paths, so the farmer found no way in and gave up. Villagers now walk across their own tribe's farms (like
