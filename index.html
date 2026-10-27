@@ -11070,7 +11070,7 @@ const PCH={
   dairy:b=>{const w=pcWork(b);return [w&&['👷',w[0]+'<small>/'+w[1]+'</small>',w[2]?'':'lo'],['🐄',b.cowsA||b.flock||0],[b.use==='cheese'?'🧀':'🥛',Math.floor(b.cheese||b.milked||0)]]},
   coop:b=>{const h=b.hens||1,ch=b.chicks||0;return [['🐔',h+'<small>/6</small>'],ch?['🐣',ch]:null,['🍗',Math.round(h*3)+'<small>/min</small>'],(b.birds||[]).length<6?['🥚',Math.ceil(45-(b.layT||0))+'<small>s</small>']:null]},
   pen:b=>{const sh=G.ents.filter(e=>e.shep===(penLead(b)||b).id&&!e.dead).length;return [['🧑‍🌾',sh,sh?'':'lo'],['🐑',b.flock||G.ents.filter(e=>e.type==='sheep'&&e.owner===0&&!e.dead&&inPenArea(penLead(b)||b,e,0,'s')).length]]},
-  tower:b=>[['🏹',(DEF.tower.range+(G.players[0].tech.sentry?1:0))+'<small> tiles</small>'],['🧱','<small>walls ≤8</small>']]};
+  tower:b=>[['🏹',(DEF.tower.range+(G.players[0].tech.sentry?1:0))+'<small> tiles</small>'],null]};
 function pcLodge(b){try{if(!isLodge(b))return null;const n=foresterN(b),g=groveTrees(b);return [['🪓',n+'<small>/'+FORESTERS+'</small>',n?'':'lo'],['🌲',g.ready],['🌱',g.young]]}catch(e){return null}}
 function pcHtml(L){return L.filter(Boolean).map(x=>'<span class="ch'+(x[2]?' '+x[2]:'')+'">'+x[0]+'<b>'+x[1]+'</b></span>').join('')}
 function pcApply(){if(PANEL_CHIPS.off||!G||!G.sel||G.sel.length!==1||G.place)return;const b=G.byId.get(G.sel[0]);if(!b||b.owner!==0||b.kind!=='bld'||!b.built)return;
@@ -14795,6 +14795,31 @@ try{shadowLayer=(function(prev){return function(c){const r0=prev.apply(this,argu
     c.fillStyle=g;c.beginPath();c.arc(0,0,R,0,7);c.fill();c.restore();}}}catch(err){}
   return r0}})(shadowLayer)}catch(err){}
 
+/* ===== r224 (Josh, Oct 27: "make it so that towers and walls are separate? No need to make walls between towers. You can place towers
+   and then place walls wherever you want"). Walls no longer need towers:
+   - Stone wall (Bronze Age, no towers needed): tap where the wall starts, tap where it ends; the run follows the line in steps (no gaps),
+     up to WALLFREE.max tiles per placement. Tap again to move the end. Tiles that are blocked are skipped (shown red).
+   - Free walls stand on their own: a tower falling no longer knocks them down. Gates work on them as before.
+   - Towers no longer draw tower-to-tower wall guides. Old tower-to-tower walls in saves keep their old rules.
+   The computer player still builds its walls between its towers. WALLFREE.off=true = old. ===== */
+const WALLFREE={off:false,max:30};
+try{bReqMet=(function(prev){return function(o,b){if(!WALLFREE.off&&b==='wall')return true;return prev.apply(this,arguments)}})(bReqMet)}catch(err){}
+try{setPlace=(function(prev){return function(wx,wy){const p=G.place;if(WALLFREE.off||!p||p.type!=='wall')return prev.apply(this,arguments);
+  const t={x:Math.floor(wx/TILE),y:Math.floor(wy/TILE)};if(!inB(t.x,t.y))return;p.ta=0;p.tb=0;if(!p.a){p.a=t;p.b=null}else p.b=t;}})(setPlace)}catch(err){}
+try{wallTiles=(function(prev){return function(){const p=G.place;if(WALLFREE.off||!p||p.type!=='wall'||p.ta)return prev.apply(this,arguments);if(!p.a)return[];
+  const a=p.a,b=p.b||p.a,out=[];let x=a.x,y=a.y;const push=(x,y)=>{if(out.length>=WALLFREE.max)return;if(ownWallAt(x,y,0))return;out.push({x,y,ok:fits(x,y,1,0,true,true)})};push(x,y);
+  let guard=0;while((x!==b.x||y!==b.y)&&guard++<400&&out.length<WALLFREE.max){const ex=b.x-x,ey=b.y-y;
+    /* orthogonal steps (so the wall has no gaps), each time taking the step that stays closest to the straight line */
+    const sx=Math.sign(ex),sy=Math.sign(ey),LX=b.x-a.x,LY=b.y-a.y,dev=(px,py)=>Math.abs((px-a.x)*LY-(py-a.y)*LX);
+    if(sx&&(!sy||dev(x+sx,y)<=dev(x,y+sy)))x+=sx;else y+=sy;push(x,y);}
+  return out}})(wallTiles)}catch(err){}
+try{wallMsg=(function(prev){return function(n){const p=G.place;if(WALLFREE.off||!p||p.ta)return prev.apply(this,arguments);
+  if(!p.a)return 'Tap where the wall starts';if(!p.b)return 'Now tap where it ends (up to '+WALLFREE.max+' tiles)';
+  const all=wallTiles().length,bad=all-n;return n?n+' wall sections'+(bad?' ('+bad+' blocked, skipped)':'')+(all>=WALLFREE.max?'. Longest run is '+WALLFREE.max:'')+'. Tap again to move the end':'Something is in the way here'}})(wallMsg)}catch(err){}
+/* no tower-to-tower wall guides or "can wall to" messages */
+try{wallGuide=(function(prev){return function(){if(!WALLFREE.off)return;return prev.apply(this,arguments)}})(wallGuide)}catch(err){}
+try{towerUp=(function(prev){return function(b){if(WALLFREE.off)return prev.apply(this,arguments);const t0=toast;try{toast=function(m){if(/^Watchtower complete/.test(String(m)))return t0.call(this,'Watchtower complete');return t0.apply(this,arguments)};return prev.apply(this,arguments)}finally{toast=t0}}})(towerUp)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
@@ -15376,7 +15401,7 @@ function renderPanel(sel){
         acts+='<div class="hint">Donkeys, oxen and caravans live on the right, sheep top-left'+(P.tech.dairyfarm?', cows bottom-left. The shepherd also milks the cows':'')+'.</div>';}
       if(one.type==='pub'&&one.owner===0&&one.built){if(hasInn(one))acts+='<div class="hint"><b>Inn:</b> '+(one.innOn?'guests renting rooms, about 18 gold a minute':'no beer left, so no guests')+'. Rooms use a little beer. '+(pubRoad(one)?'<b>Roadside trap:</b> enemy soldiers walking past stop for a drink and lose 10 gold. Hidden from the enemy, but rumors give it away after every 300 gold':'Enemy soldiers who walk past stop for a drink and lose 10 gold. <b>Build a pub out on the enemy\'s roads</b> (outside your land) to make it a hidden trap')+'</div>';else if(one.innUpT>0)acts='<div class="hint" style="min-width:150px;border-color:var(--gold)"><b>Adding an inn: '+Math.ceil(one.innUpT)+'s left</b><div class="bar q"><i style="width:'+Math.round(100*(1-one.innUpT/30))+'%"></i></div><span style="font-size:10px">No workers needed</span></div>'+acts;else acts=btn('innup','Add an inn',costHtml(INNUP_COST),bldIcon('pub',THUMB.pub),!canAfford(P,INNUP_COST),0,'wide',PILL('up','Upgrade'))+'<div class="hint">Turns this pub into a <b>Pub & Inn</b>: travelers rent rooms for about 18 gold a minute</div>'+acts;}
       if(isLodge(one)&&one.owner===0&&one.built)acts+='<div class="hint" style="min-width:170px"><b id="prodinfo"></b><br><span id="prodsub"></span></div>';
-      if(one.type==='tower'){const rb=(G.rubble||[]).filter(r=>r.dead===one.id).length+towerHoles(0,one.id).length;if(rb)acts+=btn('wallfix','Restore wall',costHtml({s:rb*WALL_FIX}),THUMB.wall,P.s<WALL_FIX,rb,'wide');acts+='<div class="hint">Shoots enemy units in range. Walls run between towers up to '+WALL_SPAN+' tiles apart. If it falls, the '+WALL_FALL+' wall sections on each side fall with it.</div>';}
+      if(one.type==='tower'){const rb=(G.rubble||[]).filter(r=>r.dead===one.id).length+towerHoles(0,one.id).length;if(rb)acts+=btn('wallfix','Restore wall',costHtml({s:rb*WALL_FIX}),THUMB.wall,P.s<WALL_FIX,rb,'wide');acts+='<div class="hint">Shoots enemy units in range.'+(G.ents.some(w=>w.span&&w.span.includes(one.id)&&!w.dead)?' If it falls, the '+WALL_FALL+' old tower-to-tower wall sections on each side fall with it.':'')+'</div>';}
       if((one.type==='wall'||one.type==='gate')&&one.owner===0&&one.span){const hn=wallHoles(0,one.span).length;if(hn)acts+=btn('rebuildwall','Rebuild wall',costHtml({s:hn*WALL_FIX}),THUMB.wall,P.s<WALL_FIX,hn,'wide');}
       if(one.type==='wall')acts+=btn('mkgate','Make gate',costHtml(GATE_COST),THUMB.wall,!canAfford(P,GATE_COST),0,'wide')+'<div class="hint">'+(one.span?'Joins two towers. If one falls, the '+WALL_FALL+' sections next to it fall too.':'Blocks movement for everyone.')+' A gate takes 2 sections on a straight stretch, wide enough for rams and wagons. On a bendy wall the villagers straighten part of it first.</div>';
       if(one.type==='gate')acts+=btn('mkwall','Brick up',costHtml(BRICK_COST),THUMB.wall,!canAfford(P,BRICK_COST),0,'wide')+'<div class="hint">Opens for your units, stays shut to the enemy. Weaker than the wall around it. Bricking it up costs stone, takes villagers time, and is not possible with enemy soldiers nearby.</div>';
@@ -15498,7 +15523,7 @@ $('panel').addEventListener('click',e=>{
   else if(act==='place'&&G.place&&G.place.mg){placeMerge(sel);}
   else if(act==='place'){
     const p=G.place,d=DEF[p.type];
-    if(p.type==='wall'){const ok=wallTiles().filter(t=>t.ok),n=Math.min(ok.length,Math.floor(P.s/DEF.wall.cost.s));{const A=G.byId.get(p.ta),B=G.byId.get(p.tb);if(alive(A)&&alive(B)){const sp=wallSpan(A,B);for(const t of sp){const w=ownWallAt(t.x,t.y,0);if(w)w.span=[p.ta,p.tb];}if(G.rubble)G.rubble=G.rubble.filter(r=>!sp.some(t=>t.x===r.x&&t.y===r.y));}}if(!n&&!wallTiles().length){G.place=null;toast('This wall is already complete');return;}if(n){const bs=[];for(const t of ok.slice(0,n)){pay(P,d.cost);const bl=mkBld('wall',0,t.x,t.y,false);bl.span=[p.ta,p.tb];displaceUnits(bl);bs.push(bl);}
+    if(p.type==='wall'){const ok=wallTiles().filter(t=>t.ok),n=Math.min(ok.length,Math.floor(P.s/DEF.wall.cost.s));{const A=G.byId.get(p.ta),B=G.byId.get(p.tb);if(alive(A)&&alive(B)){const sp=wallSpan(A,B);for(const t of sp){const w=ownWallAt(t.x,t.y,0);if(w)w.span=[p.ta,p.tb];}if(G.rubble)G.rubble=G.rubble.filter(r=>!sp.some(t=>t.x===r.x&&t.y===r.y));}}if(!n&&!wallTiles().length){G.place=null;toast('This wall is already complete');return;}if(n){const bs=[];for(const t of ok.slice(0,n)){pay(P,d.cost);const bl=mkBld('wall',0,t.x,t.y,false);if(p.ta&&p.tb)bl.span=[p.ta,p.tb];displaceUnits(bl);bs.push(bl);}
       const vs=sel.filter(u=>u.type==='villager'&&u.owner===0);vs.forEach((u,i)=>{u.afterWall=u.order&&u.order.type==='gather'?u.order:(u.afterWall||null);orderBuild(u,bs[Math.floor(i*bs.length/vs.length)]);});G.place=null;G.sel=[];toast(vs.length?'Wall started: '+bs.length+' sections. Builders go back to work when it is done':'Wall marked out: '+bs.length+' sections. Send villagers to build it');}}
     else if(placeValid()&&canAfford(P,d.cost)){pay(P,d.cost);let bt=p.type;if(bt==='mine'){const cx=(p.tx+1)*TILE,cy=(p.ty+1)*TILE,dd=w=>{let m=1e9;for(const e of G.ents)if(e.type===w&&!e.dead)m=Math.min(m,Math.hypot(e.x-cx,e.y-cy));return m;};bt=P.tech.picks&&dd('gold')<3.6*TILE&&dd('gold')<=dd('stone')?'goldmine':'stonemine';}const bl=mkBld(bt,0,p.tx,p.ty,false);displaceUnits(bl);{let qd=0,nq=0;for(const u of sel)if((u.type==='villager'||u.type==='settler')&&u.owner===0){if(buildBusy(u)&&u.order.id!==bl.id){(u.bq=u.bq||[]).push(bl.id);qd++;nq=Math.max(nq,u.bq.length+1);}else{u.bq=[];orderBuild(u,bl);}}if(qd)toast('Queued: '+DEF[bt].name.toLowerCase()+' is job '+nq+' for '+(qd>1?'these builders':'this builder'));}if(p.wing){wingInit(bl,p.wing);G.sel=[p.wing];G.rtab='c';panelKeyLast='';}if(p.swing){swingInit(bl,p.swing);G.sel=[p.swing];G.rtab='s';panelKeyLast='';}G.place=null;}
   }
