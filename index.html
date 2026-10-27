@@ -7112,7 +7112,7 @@ try{(function(){
         c.fillStyle='rgba(255,160,50,.7)';c.beginPath();c.moveTo(hx-sa*2,hy+ca*1);c.lineTo(hx+ca*(7+Math.random()*3),hy+sa*(7+Math.random()*3));c.lineTo(hx+sa*2,hy-ca*1);c.closePath();c.fill();c.restore()}
       if(k==='u7mo'&&GFX.GF===false&&t<.9){const px=x-ca*0+(-sa)*7,py=y-9,kk=t/.9;c.save();for(let i=0;i<3;i++){c.globalAlpha=.5*(1-kk);c.fillStyle=i%2?'#cfc9bd':'#e8e3d8';circ(c,px+(i-1)*kk*4,py-kk*(10+i*4),2+kk*(4+i));c.fill()}
         if(t<.08){c.globalAlpha=1;c.globalCompositeOperation='lighter';c.fillStyle='rgba(255,200,90,.9)';circ(c,px,py,3.5);c.fill()}c.restore()}}}catch(e){}return r}})(drawUnit)}catch(e){}
-  const tag=(src,n)=>{const k=key(src);if(!k||GFX.U7===false)return;src._u7s=G.t;for(let i=n;i<G.projs.length;i++){const p=G.projs[i];if(p.src===src.id)p.u7=k}};
+  const tag=(src,n)=>{const k=key(src);if(!k||GFX.U7===false)return;if(k==='u7gr'&&!src._gThrow&&DEF.grenadier&&DEF.grenadier.range>=6)return;src._u7s=G.t;for(let i=n;i<G.projs.length;i++){const p=G.projs[i];if(p.src===src.id)p.u7=k}};
   try{const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);tag(src,n);return r}}catch(e){}
   try{const _sa=shootAt;shootAt=function(src){const n=G.projs.length;const r=_sa.apply(this,arguments);tag(src,n);return r}}catch(e){}
   GFX._u7fx=GFX._u7fx||[];
@@ -7242,7 +7242,7 @@ try{(function(){if(typeof GFX==='undefined')return;GFX.GF=true;
   if(GFX.juice){const SH=new WeakMap(),_j=GFX.juice;GFX.juice=function(c,u,x,y,now){try{if(GFX.GF!==false&&u){if(NOJ.has(tyOf(u)))return;
       if(Object.prototype.hasOwnProperty.call(u,'_v')){const b=Object.getPrototypeOf(u);if(b&&typeof b==='object'){let s=SH.get(b);if(!s){s=Object.create(u);SH.set(b,s)}else if(Object.getPrototypeOf(s)!==u)Object.setPrototypeOf(s,u);return _j.call(this,c,s,x,y,now)}}}}catch(e){}return _j.apply(this,arguments)}}
   /* 2) projectiles not drawn as the base ball: art-drawn grenades/bombs, and bullets from guns */
-  GFX.hideP=function(p){if(GFX.GF===false||!p)return false;if(p.u7&&p.u7!=='u7mg')return true;if(p.kind!=='rocket'&&p.kind!=='arrow'&&p.kind!=='boulder'){const s=G.byId&&G.byId.get(p.src);if(!s)return false;
+  GFX.hideP=function(p){if(GFX.GF===false||!p)return false;if(p.u7&&p.u7!=='u7mg')return true;{const s0=G.byId&&G.byId.get(p.src);if(s0&&tyOf(s0)==='grenadier'&&!p.u7)return (p._gfB=1)}if(p.kind!=='rocket'&&p.kind!=='arrow'&&p.kind!=='boulder'){const s=G.byId&&G.byId.get(p.src);if(!s)return false;
     if(HIDEB.has(tyOf(s)))return (p._gfB=1);if(s.kind==='bld'&&(s.type==='bunker'||(GFX.bunkerSpr&&s.type==='range'&&(()=>{try{return !!GFX.bunkerSpr(s)}catch(e){return false}})())))return (p._gfB=1)}return false};
   /* 3) shots */
   const FX=GFX._gfFX=[];const rnd=Math.random;
@@ -7262,6 +7262,8 @@ try{(function(){if(typeof GFX==='undefined')return;GFX.GF=true;
   const mark=n=>{for(let i=n;i<G.projs.length;i++){const p=G.projs[i];if(!p.bz&&(p.m10||GFX.hideP(p)))p.bz=2}};
   try{const _sh=shoot;shoot=function(src){const n=G.projs.length;const r=_sh.apply(this,arguments);try{if(GFX.GF!==false&&src){mark(n);if(src.kind==='unit')onShot(src)}}catch(e){}return r}}catch(e){}
   try{const _sa=shootAt;shootAt=function(src){const n=G.projs.length;const r=_sa.apply(this,arguments);try{if(GFX.GF!==false&&src){mark(n);if(src.kind==='unit')onShot(src)}}catch(e){}return r}}catch(e){}
+  /* gameplay's own musket flash (r205) is skipped for the units drawn here, so they don't get two */
+  try{if(typeof muzzleFx==='function'){const _mf=muzzleFx;muzzleFx=function(src){if(GFX.GF!==false&&GFX.mode==='V23D'&&src&&CL[src.type])return;return _mf.apply(this,arguments)}}}catch(e){}
   /* flash (drawn over the soldier) + recoil kick */
   function star(c,x,y,dx,dy,R,L,al){c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(x,y,0,x,y,R);g.addColorStop(0,'rgba(255,252,225,'+al+')');g.addColorStop(.35,'rgba(255,205,90,'+(al*.85)+')');g.addColorStop(1,'rgba(255,120,30,0)');
     c.fillStyle=g;c.beginPath();c.arc(x,y,R,0,7);c.fill();const px=-dy,py=dx;c.fillStyle='rgba(255,230,140,'+al+')';c.beginPath();c.moveTo(x+px*R*.35,y+py*R*.35);c.lineTo(x+dx*L,y+dy*L);c.lineTo(x-px*R*.35,y-py*R*.35);c.closePath();c.fill();
