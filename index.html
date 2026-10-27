@@ -14524,7 +14524,8 @@ try{(function(){if(typeof CompressionStream==='undefined'||typeof DecompressionS
   function patch(c){if(!c||c._mpz)return;c._mpz=1;
     /* outgoing: compress, keep the order */
     const send0=c.send.bind(c);let outQ=Promise.resolve();
-    c.send=function(d){if(MPZ.off||typeof d!=='string')return send0(d);const s=d;outQ=outQ.then(async()=>{try{const b=await z(s);
+    c.send=function(d,...rest){if(MPZ.off||typeof d!=='string'||rest.length)return send0(d,...rest);const s=d;   // the connection calls send(piece,true) for the pieces of a big message: pass those straight through
+    outQ=outQ.then(async()=>{try{const b=await z(s);
       /* big ones (the first full game) go as before: the connection splits those into pieces and pieced binary messages don't arrive */
       if(b.length+1>MPZ.maxBin){MPZ.outB+=s.length;send0(s);return}MPZ.outB+=b.length;const pkt=new Uint8Array(b.length+1);pkt[0]=0x5a;pkt.set(b,1);send0(pkt.buffer)}catch(e){try{send0(s)}catch(_){}}});};
     /* incoming: unpack in order before the game sees it */
