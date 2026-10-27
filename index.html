@@ -1403,7 +1403,7 @@ function animTick(u,dt){if(!(u.order&&u.order.type==='attack')){u.windT=0;u.recT
   else{const per=(st==='walk'||st==='carry')?Math.max(.25,36/Math.max(20,spd)):(ACYC[st]||1.2);a.period=per;const ph=a.t/per,c=Math.floor(ph);a.impact=c>a.cycle&&st!=='walk'&&st!=='carry'&&st!=='idle'&&st!=='aim';a.cycle=c;a.phase=ph-c;}
   a.ang=u.face||0;a.dir8=((Math.round(a.ang/(Math.PI/4))%8)+8)%8;a.hit=!!(u.hitT&&G.t-u.hitT<.25);}
 {const baseArm2=armOf;armOf=function(u){return baseArm2(u)+(u.buff&&u.buff.type==='morale'&&u.buff.until>G.t?1:0);};}
-function aiArmyCapped(o){const ai=G.ais&&G.ais[o];if(!ai||ai.diff==='hard')return false;const mins=(G.t+(G.aiOff||0))/60,cap=ai.diff==='easy'?Math.max(3,(mins-4)*.75):Math.max(5,(mins-3)*1.6);
+function aiArmyCapped(o){const ai=G.ais&&G.ais[o];if(!ai||ai.diff==='hard'||ai.diff==='normal')return false;const mins=(G.t+(G.aiOff||0))/60,cap=ai.diff==='easy'?Math.max(3,(mins-4)*.75):Math.max(5,(mins-3)*1.6);
   let n=0;for(const e of G.ents){if(e.owner!==o||e.dead)continue;if(e.kind==='unit'&&!NONMIL.has(e.type))n++;else if(e.kind==='bld')for(const q of e.queue)if(DEF[q]&&!NONMIL.has(q))n++;}return n>=cap;}
 function enqueue(b,k){if(DEF[k]&&DEF[k].kind==='unit'&&!NONMIL.has(k)&&aiArmyCapped(b.owner))return false;const p=G.players[b.owner],c=itemOf(k).cost;if(b.queue.length>=5||!canQueue(b,k)||!canAfford(p,c))return false;pay(p,c);b.queue.push(k);return true;}
 function cancelQ(b){if(!b.queue.length)return;const t=b.queue.pop();refund(G.players[b.owner],itemOf(t).cost);if(!b.queue.length)b.trainT=0;}
@@ -2248,9 +2248,9 @@ function aiTick(o){try{aiWalls(o);}catch(err){}try{aiForest(o);}catch(err){}
   if(ai.noDock&&G.t-ai.noDock>240)ai.noDock=0;
   /* r175: while a building the next age needs is missing (and the computer may age), it stops buying extra soldiers so it can afford it */const reqMiss=(()=>{try{if(age<2||!aiAgeOK(ai,age+1))return false;const nx=['bronze','iron','medieval','renaissance','industrial','modern'][age];const rq=(nx&&TECH[nx].req)||[];return rq.some(t=>!hasB(t))}catch(err){return false}})();
   /* r177 (Josh Oct 24: reach the Modern Age): from the Medieval Age, while the computer may advance, it keeps its army at a cap and banks the rest for the age-up */const ageSave=age>=3&&age<6&&aiAgeOK(ai,age+1)&&army.length>=14+3*age;
-  const spend=(army.length<4+3*age&&G.t>360)||((!saving&&!reqMiss&&!ageSave&&!needPicks&&!savingIron&&!savingMed&&!savingRen&&!savingInd&&!savingMod)&&(G.t>=PS.army||age>=1))||threat||(PS.raid&&G.t>=PS.army&&!needPicks);
+  const spend=(army.length<(ai.diff==='normal'?8+4*age:4+3*age)&&G.t>(ai.diff==='normal'?180:360))||((!saving&&!reqMiss&&!ageSave&&!needPicks&&!savingIron&&!savingMed&&!savingRen&&!savingInd&&!savingMod)&&(G.t>=(ai.diff==='normal'?Math.min(PS.army,150):PS.army)||age>=1))||threat||(PS.raid&&G.t>=PS.army&&!needPicks);
   const aiPick=(b,t)=>{if(canTrain(o,t))return t;const al=(DEF[b.type].trains||[]).filter(x=>canTrain(o,x)&&(!DEF[x].needTech||P.tech[DEF[x].needTech]));return al[al.length-1]||t;};
-  const bar=bld('barracks'),enemyRiders=G.ents.some(e=>e.owner===en&&e.type==='rider');if(army.length<4+3*age&&G.t>360&&bar&&bar.queue.filter(k=>DEF[k]).length<2)enqueue(bar,aiPick(bar,up('clubman')));
+  const bar=bld('barracks'),enemyRiders=G.ents.some(e=>e.owner===en&&e.type==='rider');if(army.length<(ai.diff==='normal'?8+4*age:4+3*age)&&G.t>(ai.diff==='normal'?180:360)&&bar&&bar.queue.filter(k=>DEF[k]).length<2)enqueue(bar,aiPick(bar,up('clubman')));
   if(spend&&bar&&bar.queue.length<2&&(vills.length>=ai.targetV*.55||P.f>=110)){
     let t;if(age>=1){const opts=['swordsman',enemyRiders?'spearman':(P.tech.axemen?'axeman':'slinger'),PS.name==='Raider'?'axeman':'spearman'];t=opts[ai.flip%3];}else t=ai.flip%2?'slinger':'clubman';
     t=up(t);if(!canTrain(o,t))t=aiPick(bar,up('clubman'));if(enqueue(bar,t))ai.flip++;}
@@ -14537,6 +14537,12 @@ try{(function(){if(typeof CompressionStream==='undefined'||typeof DecompressionS
   let cur=MP.conn;Object.defineProperty(MP,'conn',{configurable:true,enumerable:true,get(){return cur},set(v){cur=v;try{if(v&&typeof v.send==='function'&&typeof v.emit==='function')patch(v)}catch(e){}}});
   if(cur)patch(cur);window.__mpz=MPZ;
 })()}catch(err){}
+
+/* ===== r217 (Josh, Oct 27: "My friend beat hard mode in <5 minutes. Can you make it harder?" -> picked "Just fix hard").
+   On "Play hard" the computer was held to 5 soldiers for the first ~6 minutes (a limit meant for the easier levels), so a quick rush
+   won. Now on hard: no early soldier limit, it starts training soldiers by 2.5 minutes and keeps a home guard of 8 soldiers (+4 per age) from 3 minutes.
+   Its existing town defense (soldiers turn on raiders, villagers take shelter so the town center fires more) now has an army behind it.
+   Easy and normal are unchanged. ===== */
 
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
