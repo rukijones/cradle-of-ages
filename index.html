@@ -14751,6 +14751,51 @@ try{shadowLayer=(function(prev){return function(c){try{if(!TCRING.off&&G&&G.ents
     c.globalAlpha*=.55;c.lineWidth=2;c.strokeStyle='#fff';c.setLineDash([10,12]);c.beginPath();c.ellipse(cx,cy,R,R*.92,0,0,7);c.stroke();c.restore();}}}catch(err){}
   return prev.apply(this,arguments)}})(shadowLayer)}catch(err){}
 
+/* ===== Home defense: quick town bell + home ground, gameplay chat 2 (Josh, Oct 27 2026: balance plan items 4 and 5, picked for
+   human vs human: "an early attack should be more risky") =====
+   1. Quick bell: the town bell already existed (villagers shelter in the town center, houses and towers; the town center fires one extra
+      arrow for every 2 villagers inside; nobody gathers while hiding). New: when enemy soldiers come within 16 tiles of one of your town
+      centers, a pulsing bell button appears under the top bar, so you can ring it in one tap without finding the town center. While
+      villagers are sheltered it becomes "All clear". (Online: the guest uses the town center's own button.)
+   2. Home ground: within 14 tiles of their own town center, a player's units deal 15% more damage and take 13% less, and units that
+      haven't been hit for 5 s heal 2% of their health a second. Raiders far from home get none of this (no healing away from home, as
+      before), so attacking a town costs more than defending it.
+   HOMEDEF.off=true = old behaviour. */
+const HOMEDEF={off:false,R:14,atk:1.15,def:.87,heal:.02,calm:5,bellR:16};
+try{(function(){
+  let H={};const refresh=()=>{H={};try{for(const e of G.ents)if(e.type==='towncenter'&&!e.dead&&e.built&&e.owner>=0&&e.owner!==2)(H[e.owner]||(H[e.owner]=[])).push(e);}catch(e){}};
+  const home=(o,x,y)=>{const L=H[o];if(!L)return false;const r=HOMEDEF.R*TILE;for(const t of L)if(Math.abs(t.x-x)<r&&Math.abs(t.y-y)<r&&Math.hypot(t.x-x,t.y-y)<r)return true;return false};
+  const isAnimal=u=>DEF[u.type]&&DEF[u.type].animal;
+  window.__home=home;
+  const _dm=damage;damage=function(t,amt,src,ranged){
+    if(!HOMEDEF.off&&typeof amt==='number'&&G){try{
+      if(src&&src.kind==='unit'&&src.owner!==2&&!isAnimal(src)&&home(src.owner,src.x,src.y))amt*=HOMEDEF.atk;
+      if(t&&t.kind==='unit'&&t.owner!==2&&!isAnimal(t)&&home(t.owner,t.x,t.y))amt*=HOMEDEF.def;}catch(e){}}
+    return _dm.call(this,t,amt,src,ranged);};
+  // healing, once a second of game time
+  let acc=0;const _tk=tick;tick=function(dt){const r=_tk.apply(this,arguments);if(HOMEDEF.off||!G||G.over)return r;
+    try{acc+=dt||STEP;if(acc>=1){acc-=1;refresh();
+      for(const u of G.ents){if(u.kind!=='unit'||u.dead||u.owner===2||u.air||isAnimal(u)||!u.maxHp||u.hp>=u.maxHp)continue;
+        if(G.t-(u.hitT||-99)<HOMEDEF.calm)continue;if(!home(u.owner,u.x,u.y))continue;u.hp=Math.min(u.maxHp,u.hp+Math.max(1,u.maxHp*HOMEDEF.heal));}}}catch(e){}
+    return r;};
+  // quick bell button
+  let btn=null;
+  function ui(){if(btn)return btn;btn=document.createElement('button');btn.id='quickBell';btn.className='b';btn.hidden=true;
+    btn.style.cssText='position:absolute;left:calc(58px + var(--sl));top:calc(38px + var(--st));z-index:4;min-width:0;height:40px;padding:0 12px;flex-direction:row;gap:6px;font-size:13px;font-weight:700;border-color:var(--gold)';
+    const st=document.createElement('style');st.textContent='#quickBell.alarm{animation:qbP 1s ease-in-out infinite;border-color:#ff8a6a}@keyframes qbP{50%{box-shadow:0 0 0 2px #ff8a6a,0 0 14px rgba(255,120,80,.8)}}@media (prefers-reduced-motion:reduce){#quickBell.alarm{animation:none}}';document.head.appendChild(st);
+    btn.addEventListener('click',e=>{e.stopPropagation();try{if(btn.dataset.m==='clear'){allClear(0);toast('All clear');}else{const tc=btn._tc;if(tc){const n=ringBell(tc);toast(n?n+' villagers are taking shelter in the town center, houses and towers':'No villagers nearby');}}upd();}catch(err){}});
+    document.getElementById('app').appendChild(btn);return btn;}
+  function upd(){try{const b=ui();if(HOMEDEF.off||!G||G.over||(window.__mp&&window.__mp.role==='client')){b.hidden=true;return;}
+      const sheltered=shelteredN(0)>0||G.ents.some(u=>u.owner===0&&u.order&&u.order.type==='garrison');
+      let tc=null;const R=HOMEDEF.bellR*TILE;
+      for(const t of (H[0]||[])){for(const e of G.ents){if(e.kind!=='unit'||e.dead||e.owner===0||e.owner===2||e.owner<0||isAnimal(e)||e.type==='villager')continue;if(Math.abs(e.x-t.x)<R&&Math.abs(e.y-t.y)<R&&Math.hypot(e.x-t.x,e.y-t.y)<R){tc=t;break;}}if(tc)break;}
+      if(sheltered){b.hidden=false;b.dataset.m='clear';b.textContent='✅ All clear';b.classList.remove('alarm');}
+      else if(tc){b.hidden=false;b.dataset.m='bell';b._tc=tc;b.textContent='🔔 Ring bell';b.classList.add('alarm');}
+      else b.hidden=true;}catch(e){}}
+  setInterval(()=>{try{if(!H[0])refresh();upd();}catch(e){}},500);
+  window.__homedef=HOMEDEF;
+})()}catch(err){}
+/* ===== END home defense ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
