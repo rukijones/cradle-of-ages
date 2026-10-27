@@ -14516,7 +14516,7 @@ try{(function(){let fr=0,lastR=0,lastT=performance.now();const f=()=>{fr++;reque
      they restart; what a villager carries only when the whole number changes; the income log every 2 s;
    - every message is compressed (deflate) before it goes out and unpacked in order on arrival (about 5-10x smaller).
    MPZ.off=true sends uncompressed. Both players need this version. ===== */
-const MPZ={off:false,inB:0,outB:0};
+const MPZ={off:false,inB:0,outB:0,maxBin:15000};
 try{(function(){if(typeof CompressionStream==='undefined'||typeof DecompressionStream==='undefined'){MPZ.off=true;return}
   const enc=new TextEncoder(),dec=new TextDecoder();
   const z=async s=>new Uint8Array(await new Response(new Blob([enc.encode(s)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
@@ -14524,8 +14524,9 @@ try{(function(){if(typeof CompressionStream==='undefined'||typeof DecompressionS
   function patch(c){if(!c||c._mpz)return;c._mpz=1;
     /* outgoing: compress, keep the order */
     const send0=c.send.bind(c);let outQ=Promise.resolve();
-    c.send=function(d){if(MPZ.off||typeof d!=='string')return send0(d);const s=d;outQ=outQ.then(async()=>{try{const b=await z(s);MPZ.outB+=b.length;
-      const pkt=new Uint8Array(b.length+1);pkt[0]=0x5a;pkt.set(b,1);send0(pkt.buffer)}catch(e){try{send0(s)}catch(_){}}});};
+    c.send=function(d){if(MPZ.off||typeof d!=='string')return send0(d);const s=d;outQ=outQ.then(async()=>{try{const b=await z(s);
+      /* big ones (the first full game) go as before: the connection splits those into pieces and pieced binary messages don't arrive */
+      if(b.length+1>MPZ.maxBin){MPZ.outB+=s.length;send0(s);return}MPZ.outB+=b.length;const pkt=new Uint8Array(b.length+1);pkt[0]=0x5a;pkt.set(b,1);send0(pkt.buffer)}catch(e){try{send0(s)}catch(_){}}});};
     /* incoming: unpack in order before the game sees it */
     const emit0=c.emit.bind(c);let inQ=Promise.resolve();
     c.emit=function(ev,d){if(ev!=='data')return emit0.apply(c,arguments);
