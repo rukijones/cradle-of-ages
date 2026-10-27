@@ -14820,6 +14820,32 @@ try{wallMsg=(function(prev){return function(n){const p=G.place;if(WALLFREE.off||
 try{wallGuide=(function(prev){return function(){if(!WALLFREE.off)return;return prev.apply(this,arguments)}})(wallGuide)}catch(err){}
 try{towerUp=(function(prev){return function(b){if(WALLFREE.off)return prev.apply(this,arguments);const t0=toast;try{toast=function(m){if(/^Watchtower complete/.test(String(m)))return t0.call(this,'Watchtower complete');return t0.apply(this,arguments)};return prev.apply(this,arguments)}finally{toast=t0}}})(towerUp)}catch(err){}
 
+/* ===== r225 (Josh, Oct 27: "Can you make the computer follow the same rules?"). The computer's walls no longer run tower to tower:
+   - its watchtowers go wherever suits it (no need to line up with another tower);
+   - it builds free walls (the same as yours): runs of about 9 tiles across the side of its town facing you, about 10-14 tiles out,
+     one more run each age up to 3 (front first, then the two flanks), each with a gate; it still repairs damaged walls.
+   - its walls don't fall when a tower falls. Same difficulty rules as before (normal and hard, wall-building personalities).
+   WALLFREE.off=true = old. ===== */
+let FWSKIP=false;
+try{wallSpan=(function(prev){return function(){if(FWSKIP)return [];return prev.apply(this,arguments)}})(wallSpan)}catch(err){}
+try{aiWallTower=(function(prev){return function(o){try{if(!WALLFREE.off&&G.ais[o])G.ais[o].wallMiss=Math.max(3,G.ais[o].wallMiss||0)}catch(e){}return prev.apply(this,arguments)}})(aiWallTower)}catch(err){}
+function fwLine(a,b,max){const out=[];let x=a.x,y=a.y;out.push({x,y});let g=0;const LX=b.x-a.x,LY=b.y-a.y,dev=(px,py)=>Math.abs((px-a.x)*LY-(py-a.y)*LX);
+  while((x!==b.x||y!==b.y)&&g++<200&&out.length<max){const sx=Math.sign(b.x-x),sy=Math.sign(b.y-y);if(sx&&(!sy||dev(x+sx,y)<=dev(x,y+sy)))x+=sx;else y+=sy;out.push({x,y});}return out}
+function aiFreeWalls(o){const ai=G.ais[o];if(!ai)return;const PS=PERS[ai.pers],P=G.players[o];if(!PS||!PS.walls||ai.diff==='easy'||P.age<1)return;
+  if((ai.wallPend||[]).length||G.t<(ai.fwT||0))return;ai.fwT=G.t+30;ai.fwN=ai.fwN||0;const maxRuns=Math.min(3,P.age);if(ai.fwN>=maxRuns)return;
+  const tc=G.ents.find(e=>e.type==='towncenter'&&e.owner===o&&!e.dead&&e.built);if(!tc)return;const etc=G.ents.find(e=>e.type==='towncenter'&&e.owner===1-o&&!e.dead);
+  const ed=etc?Math.atan2(etc.y-tc.y,etc.x-tc.x):Math.random()*6.28,ang=ed+[0,-1,1][ai.fwN%3],bx=tc.x/TILE,by=tc.y/TILE;
+  const vills=G.ents.filter(e=>e.owner===o&&e.type==='villager'&&!e.dead);if(!vills.length)return;
+  for(let R=10;R<=14;R++){const a={x:Math.round(bx+Math.cos(ang-.45)*R),y:Math.round(by+Math.sin(ang-.45)*R)},b={x:Math.round(bx+Math.cos(ang+.45)*R),y:Math.round(by+Math.sin(ang+.45)*R)};
+    if(!inB(a.x,a.y)||!inB(b.x,b.y))continue;const L=fwLine(a,b,16),ok=L.filter(t=>fits(t.x,t.y,1,0,false,true));if(ok.length<5||ok.length<L.length*.8)continue;
+    const cost=ok.length*DEF.wall.cost.s;if(P.s<cost+GATE_COST.s+40)return;P.s-=cost;const key='fw'+o+'_'+ai.fwN;
+    const bs=ok.map(t=>{const w=mkBld('wall',o,t.x,t.y,false);w.span=[key,'x'];displaceUnits(w);return w});
+    (ai.wallPend=ai.wallPend||[]).push(key+',x');ai.fwN++;
+    vills.filter(v=>!v.order||v.order.type==='gather').sort((p,q)=>Math.hypot(p.x-bs[0].x,p.y-bs[0].y)-Math.hypot(q.x-bs[0].x,q.y-bs[0].y)).slice(0,2).forEach((v,n)=>{v.afterWall=v.order&&v.order.type==='gather'?v.order:null;orderBuild(v,bs[n?bs.length-1:0])});
+    return}
+  ai.fwN++;}
+try{aiWalls=(function(prev){return function(o){if(WALLFREE.off)return prev.apply(this,arguments);FWSKIP=true;let r;try{r=prev.apply(this,arguments)}finally{FWSKIP=false}try{aiFreeWalls(o)}catch(err){}return r}})(aiWalls)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
