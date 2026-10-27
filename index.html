@@ -1634,7 +1634,7 @@ function updUnit(u,dt){
     if(o.def&&Math.hypot(t.x-u.x,t.y-u.y)>(rangeOf(u)?rangeOf(u)+3:6)*TILE){const rb=G.byId.get(o.resume);u.order=alive(rb)&&rb.owner!==u.owner?{type:'attack',id:rb.id}:null;u.path=null;return;}
     if(t.kind==='bld'&&u.owner<2&&!NONMIL.has(u.type)&&!SIEGE.has(u.type)&&!(u.windT>0||u.recT>0)){u.defT=(u.defT||0)-dt;if(u.defT<=0){u.defT=.5;const th=defThreat(u);if(th){u.order={type:'attack',id:th.id,resume:t.id,def:1};u.path=null;return;}}}
     if(t.air&&!AAOK.has(u.type)){u.order=null;u.path=null;if(u.owner===0&&G.t-(G.airMsg||-99)>6){G.airMsg=G.t;toast('Only infantry, riflemen, armored cars, helicopters and anti-aircraft guns can hit aircraft');}return;}
-    if((u.type==='ram'||u.type==='sapper'||(u.type==='trebuchet'&&o.auto))&&t.kind!=='bld'){if(u.type==='sapper'&&u.owner===0&&!o.auto&&G.t-(G.sapMsg||-99)>8){G.sapMsg=G.t;toast('Sappers only blow up buildings and walls')}u.order=null;u.path=null;return;}
+    if((u.type==='ram'||u.type==='sapper'||(u.type==='trebuchet'&&o.auto))&&t.kind!=='bld'){if(u.type==='sapper'&&MPHU(u.owner)&&!o.auto&&G.t-(G['sapMsg'+u.owner]||-99)>8&&MPTW(u.owner)){G['sapMsg'+u.owner]=G.t;toast('Sappers only blow up buildings and walls')}u.order=null;u.path=null;return;}
     /* gameplay chat 1 (Josh, Oct 16: soldiers chase retreating enemies and are hard to keep back): your soldiers that picked a target on their own chase it at most CHASE_LEASH (6) tiles from where they started, then walk back */if(o.auto&&t.kind==='unit'&&Math.hypot(t.x-u.x,t.y-u.y)>d.sight*TILE*2.2){u.order=null;u.path=null;return;}if(o.auto&&MPHU(u.owner)&&!u._amDest&&!u.naval&&!u.air){if(o.ax==null){o.ax=u.x;o.ay=u.y}if(Math.hypot(u.x-o.ax,u.y-o.ay)>(window.CHASE_LEASH||6)*TILE&&Math.hypot(t.x-o.ax,t.y-o.ay)>(window.CHASE_LEASH||6)*TILE){u.order={type:'move',x:tl(o.ax),y:tl(o.ay),auto:1,leash:1};u.path=null;return;}}
     const rg=rangeOf(u),R=rg?rg*TILE:TILE*((HEAVY[u.type]&&HEAVY[u.type].reach)||.8);
     if(u.windT>0||u.recT>0){u.working=true;u.face=Math.atan2(t.y-u.y,t.x-u.x);
@@ -14065,7 +14065,7 @@ try{updUnit=(function(prev){return function(u,dt){
       let ok=true;try{ok=walk(tl(nx),tl(ny))}catch(e){}if(ok){u.x=nx;u.y=ny;u.moving=true;u.face=a}else u._runT=0;u.path=null;return}}
   if(u.type==='mortar'&&!u.dead){const o=u.order;
     if(o&&o.type==='attack'){const t=G.byId.get(o.id);if(alive(t)){const d=Math.hypot(t.x-u.x,t.y-u.y);
-      if(d<3*TILE&&t.kind==='unit'){const a=Math.atan2(u.y-t.y,u.x-t.x);if(u.owner===0&&G.t-(G.morMsg||-99)>10){G.morMsg=G.t;toast('Too close for the mortar - it backs away (it needs 3 tiles)')}
+      if(d<3*TILE&&t.kind==='unit'){const a=Math.atan2(u.y-t.y,u.x-t.x);if(MPHU(u.owner)&&G.t-(G['morMsg'+u.owner]||-99)>10&&MPTW(u.owner)){G['morMsg'+u.owner]=G.t;toast('Too close for the mortar - it backs away (it needs 3 tiles)')}
         u.order={type:'move',x:tl(u.x+Math.cos(a)*4*TILE),y:tl(u.y+Math.sin(a)*4*TILE)};u.path=null;}
       else if(G.t<(u._setT||0)&&d<=rangeOf(u)*TILE+(t.r||0)){u.cd-=dt;u.working=true;u.moving=false;u.face=Math.atan2(t.y-u.y,t.x-u.x);return}}}
     const x0=u.x,y0=u.y,r=prev.apply(this,arguments);if(Math.abs(u.x-x0)+Math.abs(u.y-y0)>.01)u._setT=G.t+2;return r}
@@ -14143,7 +14143,7 @@ function railCheck(d){const st=G.ents.filter(e=>e.type==='station'&&e.owner===d.
   for(let k=1;k<=n;k++){const x=Math.round(lx+(b.x-lx)*k/n),y=Math.round(ly+(b.y-ly)*k/n);if(!walk(x,y)){const S=st;if(x>=S.tx&&x<S.tx+S.size&&y>=S.ty&&y<S.ty+S.size)continue;why=railWhy(x,y);bx=x;by=y;break}}
   const was=d.rblk&&d.rblk.why;d.rblk={why,t:G.t,sx:st.x,sy:st.y,bx:(bx+.5)*TILE,by:(by+.5)*TILE,px:last.x,py:last.y};
   if((MPHU(d.owner)&&was!==why&&why!=='no hub')&&MPTW(d.owner))toast('🚫 Rail stop can\'t reach the logistics hub: '+why+' in the way (see the red line)')}
-try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!RAILBLK.off)for(const d of G.ents){if(d.type!=='depot'||d.owner!==0||!d.built||d.dead)continue;
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!RAILBLK.off)for(const d of G.ents){if(d.type!=='depot'||!MPHU(d.owner)||!d.built||d.dead)continue;
   if(d.rail){d.rblk=null;continue}if(d.rblk&&G.t-d.rblk.t<6)continue;railCheck(d)}}catch(err){}return r}})(railTick)}catch(err){}
 try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(RAILBLK.off||!G)return r;const T=performance.now(),z=cam.z||1;
   for(const d of G.ents){if(d.type!=='depot'||d.owner!==0||d.dead||d.rail||!d.rblk)continue;const B=d.rblk;c.save();
@@ -14209,6 +14209,9 @@ try{(function(){
   window.__twrshot=TWRSHOT;
 })()}catch(err){}
 /* ===== END tower shots ===== */
+/* ===== r209 (Josh, Oct 26: online play check). The sapper / mortar messages and the rail-stop "what's in the way" check now also work for
+   the friend in an online game (MPHU/MPTW instead of owner 0), so the friend gets the messages and a steady red sign. ===== */
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
