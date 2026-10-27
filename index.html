@@ -7296,6 +7296,23 @@ try{(function(){if(typeof GFX==='undefined')return;GFX.GF=true;
     }}catch(e){}return r}}catch(e){}
   try{GFX.ARTV=String(Math.max(+GFX.ARTV||0,40))}catch(e){}
 })()}catch(err){}
+/* ===== art chat 3: Industrial/Modern buildings bigger (Josh Oct 26: "Town center in industrial age looks too small. Barracks and other
+   buildings in industrial age look too small."). Drawn bigger on the same plot, grown upward from the picture's own ground line (same method
+   as the Oct 15 SCALEFIX), applied last so it also reaches pictures that bypass SCALEFIX. Table GFX.BS3T[age][type]; door boxes are
+   fractions of the picture, so they scale with it. GFX.BS3=false = old size. ===== */
+try{(function(){GFX.BS3=true;
+  const T=GFX.BS3T={"5":{"castle":1.25,"towncenter":1.35,"barracks":1.35,"workshop":1.15,"market":1.15,"university":1.1,"house":1.1},"6":{"towncenter":1.2,"barracks":1.35,"workshop":1.15,"castle":1.15}};
+  const C=new WeakMap();
+  function grow(s,k,S){let m=C.get(s);if(!m){m={};C.set(s,m)}const key=k+'_'+S;if(m[key])return m[key];const c=document.createElement('canvas');c.width=s.width;c.height=s.height;c.getContext('2d').drawImage(s,0,0);
+    for(const p of Object.keys(s))c[p]=s[p];const dx=s.dx||0,ov=s.ov||0;c.w=s.w*k;c.h=s.h*k;c.dx=-S/2+(S/2+dx)*k;let by=s.h;
+    try{const g=s.getContext('2d'),d=g.getImageData(0,0,s.width,s.height).data;let r=s.height-1;outer:for(;r>=0;r--){for(let x=0;x<s.width;x+=2)if(d[(r*s.width+x)*4+3]>60)break outer}by=(r+1)/s.height*s.h}catch(err){}
+    c.ov=ov+by*(k-1);c._scaled=k;c._bs3=k;return m[key]=c}
+    /* doors (fractions of the picture: x,y,w,h, wall l/r/d, mode) for pictures that had none: army barracks (Industrial hall / Modern quonset), logistics hub */
+  const DR=GFX.BS3DOOR={barracks:{5:[.283,.742,.075,.12,'l','open'],6:[.165,.419,.053,.105,'l','open']},station:{5:[.574,.512,.046,.11,'l','open'],6:[.062,.552,.056,.16,'l','open']}};DR.armybase=DR.barracks;
+  setTimeout(()=>setTimeout(()=>{try{const _b=bldSpr0;bldSpr0=function(e){const s=_b.apply(this,arguments);try{if(!s||!s.w||!e||e.owner>1||GFX.BS3===false||GFX.mode!=='V23D')return s;
+    const a=G.players[e.owner].age|0,f=T[a]&&T[a][e.type];let r=s;if(f&&!s._scaled&&!(e.type==='house'&&e.mgrp))r=grow(s,f,(e.size||DEF[e.type].size)*TILE);
+    const d=DR[e.type]&&DR[e.type][a];if(d&&!r.door)r.door=d.slice();return r}catch(err){return s}}}catch(err){}},0),0);
+})()}catch(err){}
 /* ===== END art chat 3: late ===== */
 
 /* ===== V23D pack donkey + veteran slingers (art chat 1, Oct 14 2026).
