@@ -14544,6 +14544,23 @@ try{(function(){if(typeof CompressionStream==='undefined'||typeof DecompressionS
    Its existing town defense (soldiers turn on raiders, villagers take shelter so the town center fires more) now has an army behind it.
    Easy and normal are unchanged. ===== */
 
+/* ===== Right-click = Esc, army bar hidden, gameplay chat 2 (Josh, Oct 27 2026: "right click on the computer does the same as ESC.
+   get rid of the bar that shows your army strength relative to the competition") =====
+   - A right-click (mouse button 2) on the map does exactly what Esc does (closes the pause menu, cancels placing / digging / landing,
+     otherwise clears the selection) and nothing else; it is stopped before the map's own tap handling. Touch screens are unaffected.
+   - The "Army" strength bar in the top bar is hidden. UIX.off=true = old behaviour. */
+const UIX={off:false};
+try{(function(){
+  const isMap=t=>t&&(t.id==='view');
+  const esc=()=>{try{document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,bubbles:true}))}catch(e){}};
+  let rdown=false;
+  for(const ev of ['pointerdown','mousedown']){window.addEventListener(ev,e=>{if(UIX.off||e.button!==2||!isMap(e.target))return;e.stopImmediatePropagation();e.preventDefault();if(ev==='pointerdown'){rdown=true;esc();}},true);}
+  for(const ev of ['pointerup','mouseup','click','auxclick']){window.addEventListener(ev,e=>{if(UIX.off||e.button!==2||!isMap(e.target))return;e.stopImmediatePropagation();e.preventDefault();rdown=false;},true);}
+  window.addEventListener('pointermove',e=>{if(!UIX.off&&rdown&&isMap(e.target)&&(e.buttons&2))e.stopImmediatePropagation();},true);
+  const st=document.createElement('style');st.textContent='body:not(.uix-off) #armyW{display:none!important}';document.head.appendChild(st);
+  window.__uix=UIX;
+})()}catch(err){}
+/* ===== END ui tweaks ===== */
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
