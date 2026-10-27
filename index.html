@@ -6005,6 +6005,46 @@ try{(function(){
   if(GFX.IRON3D&&GFX.IRONMAP){GFX.IRON3D.lk3d=R.lk3d;GFX.IRON3D.pq3d=R.pq3d;GFX.IRONMAP.landsknecht='lk3d';GFX.IRONMAP.pikesquare='pq3d'}
   if(GFX.MOUNT3D&&GFX.MOUNTMAP){R.ln3d.stride=64;R.ln3d.rstride=80;GFX.MOUNT3D.ln3d=R.ln3d;GFX.MOUNTMAP.lancer='ln3d'}
   GFX.R4U=R;
+  /* Oct 27 (Josh: yes to cannon fire on Renaissance towers + castles; gameplay chat 2's tower-shots block fires p.twk='cball'):
+     a cannon blast at the gun (white-hot flash cone, fireball, shock ring, rolling smoke cloud that drifts up for ~2 s), a bigger
+     shaded iron ball with a smoke trail, and on landing a dirt/smoke burst with a short scorch. Art only; GFX.CBALL=false = gameplay's look. */
+  GFX.CBALL=true;
+  setTimeout(function(){try{
+    const MZ=[],HIT=[],LIVE=new Set();
+    const _sh=shoot;shoot=function(src,t,dmg,kind){const n=G.projs.length;const r=_sh.apply(this,arguments);
+      try{if(GFX.CBALL&&src&&src.kind==='bld'&&(src.type==='tower'||src.type==='castle'))for(let i=n;i<G.projs.length;i++){const q=G.projs[i];
+        if(q&&q.twk==='cball'&&!q._cb){q._cb=1;LIVE.add(q);const a=Math.atan2((t&&t.y||q.y)-q.y,(t&&t.x||q.x)-q.x);
+          MZ.push({x:q.x+Math.cos(a)*8,y:q.y+Math.sin(a)*4-6,a,t0:performance.now(),big:src.type==='castle'?1.15:1,s:Math.random()*99})}}}catch(e){}return r};
+    const ell2=(c,x,y,rx,ry)=>{c.beginPath();c.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,Math.PI*2)};
+    function blast(c,m,now){const t=(now-m.t0)/1000;if(t>2.2)return false;const K=m.big,ca=Math.cos(m.a),sa=Math.sin(m.a);
+      // rolling smoke: 6 puffs pushed out along the shot, then rising and spreading
+      for(let i=0;i<6;i++){const d=i/5,tt=t-.03*i;if(tt<0)continue;const g=Math.min(1,tt/1.6),out=(6+d*16)*K*(1-Math.exp(-tt*5)),
+        px=m.x+ca*out+Math.sin(m.s+i*2.1)*4*g,py=m.y+sa*out*.5-tt*14*K-d*3,r=(4+d*3+tt*9)*K,al=.55*(1-tt/2.2)*(i%2?.8:1);
+        if(al<=0)continue;c.fillStyle='rgba('+(i%2?'196,190,180':'226,221,212')+','+al.toFixed(3)+')';ell2(c,px,py,r,r*.82);c.fill()}
+      if(t<.5){c.save();c.globalCompositeOperation='lighter';const f=1-t/.5;
+        // shock ring
+        c.strokeStyle='rgba(255,236,190,'+(.5*f).toFixed(3)+')';c.lineWidth=1.6;ell2(c,m.x+ca*6,m.y+sa*3,(6+t*60)*K,(3+t*30)*K);c.stroke();
+        if(t<.18){const k=(1-t/.18)*K,L=(16+8*Math.random())*k;
+          c.fillStyle='rgba(255,170,60,.85)';c.beginPath();c.moveTo(m.x+ca*L,m.y+sa*L*.5);c.lineTo(m.x-sa*5*k,m.y+ca*2.5*k);c.lineTo(m.x+sa*5*k,m.y-ca*2.5*k);c.closePath();c.fill();
+          c.fillStyle='rgba(255,236,170,.95)';ell2(c,m.x+ca*3,m.y+sa*1.5,6*k,5*k);c.fill();c.fillStyle='rgba(255,255,240,1)';ell2(c,m.x,m.y,3*k,2.6*k);c.fill()}
+        c.restore()}
+      return true}
+    function impact(c,h,now){const t=(now-h.t0)/1000;if(t>1.8)return false;
+      if(t<1.2){c.fillStyle='rgba(40,30,20,'+(.28*(1-t/1.2)).toFixed(3)+')';ell2(c,h.x,h.y+2,10,4);c.fill()}
+      for(let i=0;i<5;i++){const a=h.s+i*1.26,tt=t-.04*i;if(tt<0)continue;const r=(3+tt*12),al=.5*(1-tt/1.8);if(al<=0)continue;
+        c.fillStyle='rgba('+(i%2?'150,128,100':'190,176,150')+','+al.toFixed(3)+')';ell2(c,h.x+Math.cos(a)*tt*16,h.y-tt*12-Math.abs(Math.sin(a))*tt*6,r,r*.8);c.fill()}
+      if(t<.16){c.save();c.globalCompositeOperation='lighter';const k=1-t/.16;c.fillStyle='rgba(255,190,90,'+(.9*k).toFixed(3)+')';ell2(c,h.x,h.y-3,9*k,6*k);c.fill();c.restore()}
+      if(t<.5)for(let i=0;i<6;i++){const a=h.s*3+i*1.05,d=t*55,yy=h.y-3-d*.9*Math.abs(Math.sin(a))+t*t*120;c.fillStyle='rgba(90,70,48,.85)';ell2(c,h.x+Math.cos(a)*d,yy,1.4,1.4);c.fill()}
+      return true}
+    const _dp=drawParts;drawParts=function(c){const r=_dp.apply(this,arguments);if(!GFX.CBALL||GFX.mode!=='V23D')return r;try{const now=performance.now(),V=G.vis&&G.vis[0];
+      for(const q of LIVE){if(q.done||G.projs.indexOf(q)<0){LIVE.delete(q);HIT.push({x:q.tx!=null?q.tx:q.x,y:q.ty!=null?q.ty:q.y,t0:now,s:Math.random()*9});continue}
+        if(V&&!V[ti(tl(q.x),tl(q.y))])continue;const f=Math.min(1,q.trav/Math.max(1,q.d0)),lift=Math.sin(f*Math.PI)*Math.min(20,q.d0*.18),x=q.x,y=q.y-lift;
+        for(let i=1;i<=4;i++){c.fillStyle='rgba(200,196,188,'+(.22-.045*i).toFixed(3)+')';ell2(c,x-(q.vx||0)*5*i,y-(q.vy||0)*5*i+i*.6,2.2+i*.7,2+i*.6);c.fill()}
+        c.fillStyle='rgba(15,20,8,.22)';ell2(c,x,q.y+3,3.4,1.3);c.fill();
+        const g=c.createRadialGradient(x-1.4,y-1.6,.4,x,y,4.3);g.addColorStop(0,'#8a8780');g.addColorStop(.35,'#3a3834');g.addColorStop(1,'#0e0d0c');c.fillStyle=g;ell2(c,x,y,4.3,4.3);c.fill()}
+      for(let i=MZ.length-1;i>=0;i--){if(!blast(c,MZ[i],now))MZ.splice(i,1)}
+      for(let i=HIT.length-1;i>=0;i--){if(!impact(c,HIT[i],now))HIT.splice(i,1)}}catch(e){}return r};
+  }catch(err){}},0);
   /* Oct 26 (Josh: "The explorer doesn't walk"): his Tripo rig had the whole mesh bound to the hips, so only the body bobbed. Re-skinned
      (mesh turned onto its skeleton + new limb weights) and re-baked walk / idle / die into art/c/ex3d_p1.webp (same layout, replaced in
      place, +0 files). ARTV bumped so phones fetch the new sheet. His button now has his own 3D icon (GFX.R4UICON.explorer). */
