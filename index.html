@@ -14213,6 +14213,37 @@ try{(function(){
 /* ===== r209 (Josh, Oct 26: online play check). The sapper / mortar messages and the rail-stop "what's in the way" check now also work for
    the friend in an online game (MPHU/MPTW instead of owner 0), so the friend gets the messages and a steady red sign. ===== */
 
+/* ===== r210 (Josh, Oct 26: "Is there a way for people to get closer to the actual outline of the farm when farming? Right now, they look like
+   they are picking from far away"). Farmers used to stop about a tile outside the field. Now, once a farmer reaches the field, he walks the last
+   steps onto it and works just inside the drawn field's edge (each farmer gets his own spot on the side he came from). The field isn't
+   walkable for paths, so he only steps in from right next to it; when he leaves to drop off grain he walks out normally. FARMIN.off=true = old. ===== */
+const FARMIN={off:false,k:.8};
+function farmSpotOf(u,t){if(u._fsF===t.id&&u._fs)return u._fs;
+  /* the field is drawn as a diamond at the buildings' angle (art chat 1, farms v7): half-width S/2, half-height S*5/18, centred on the square.
+     The spot is on the line from the field's centre toward the farmer, just inside that diamond, nudged sideways a little per farmer */
+  const S=(t.size||2)*TILE,cx=t.x,cy=t.y,hw=S/2*(GFX.FARM7K||1),hh=S*5/18*(GFX.FARM7K||1);
+  let a=Math.atan2((u.y-cy)/hh,(u.x-cx)/hw)+((((u.id||0)*0.618)%1)-.5)*2.2;const vx=Math.cos(a),vy=Math.sin(a),k=1/(Math.abs(vx)+Math.abs(vy));
+  const x=cx+vx*k*hw*FARMIN.k,y=cy+vy*k*hh*FARMIN.k;u._fsF=t.id;u._fs={x,y};return u._fs}
+try{approachWork=(function(prev){return function(u,t,R){
+  if(FARMIN.off||!t||t.type!=='farm'||u.type!=='villager'||u.naval||!t.built)return prev.apply(this,arguments);
+  const d=distPtEnt(u.x,u.y,t);
+  if(d>R+u.r*.9+6){if(u._fsF!==t.id)u._fs=null;return prev.apply(this,arguments)}
+  const sp=farmSpotOf(u,t),dx=sp.x-u.x,dy=sp.y-u.y,L=Math.hypot(dx,dy);
+  if(L<=1.5){u.path=null;return true}
+  const st=Math.min(speedOf(u)*STEP,L);u.x+=dx/L*st;u.y+=dy/L*st;u.face=Math.atan2(dy,dx);u.moving=true;u.path=null;return false}})(approachWork)}catch(err){}
+
+/* stepping off the field: a farmer standing inside it (not walkable for paths) first walks straight out to the nearest open tile when he
+   goes to drop off his grain, gets a new order or stops, so his path can start from there */
+try{updUnit=(function(prev){return function(u,dt){
+  if(!FARMIN.off&&u.type==='villager'&&u._fsF&&!u.dead){const f=G.byId.get(u._fsF),tx=tl(u.x),ty=tl(u.y);
+    if(!f||f.dead){u._fsF=0;u._fs=null}
+    else if(tx>=f.tx&&tx<f.tx+f.size&&ty>=f.ty&&ty<f.ty+f.size){const o=u.order;
+      if(!(o&&o.type==='gather'&&o.id===f.id&&o.phase!=='drop')){
+        if(!u._fout||u._foutF!==f.id){const ex=exitTile(f,tx,ty,0);u._fout={x:(ex.x+.5)*TILE,y:(ex.y+.5)*TILE};u._foutF=f.id}
+        const dx=u._fout.x-u.x,dy=u._fout.y-u.y,L=Math.hypot(dx,dy)||1,st=Math.min(speedOf(u)*dt,L);u.cd-=dt;u.x+=dx/L*st;u.y+=dy/L*st;u.face=Math.atan2(dy,dx);u.moving=true;u.working=false;u.path=null;return}}
+    else u._fout=null}
+  return prev.apply(this,arguments)}})(updUnit)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
