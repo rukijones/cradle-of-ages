@@ -14737,6 +14737,20 @@ try{follow=(function(prev){return function(u,dt){if(!FWALK.off&&u&&!u.naval&&u.p
 try{updUnit=(function(prev){return function(u,dt){if(FWALK.off||!u||!u._fsF||u.type!=='villager')return prev.apply(this,arguments);{const o=u.order;if(o&&o.type==='gather'&&o.id===u._fsF&&o.phase!=='drop')return prev.apply(this,arguments)}const k=u._fsF;u._fsF=0;try{return prev.apply(this,arguments)}finally{if(!u._fsF)u._fsF=k;u._fout=null}}})(updUnit)}catch(err){}
 try{staleWp=(function(prev){return function(u,p){if(!FWALK.off&&u&&p&&(u.type==='villager'||u.type==='settler')&&fwOwnFarm(tl(p.x),tl(p.y),u.owner))return false;return prev.apply(this,arguments)}})(staleWp)}catch(err){}
 
+/* ===== r222 (Josh, Oct 27: "can all town centers have a different colored base or some way to make them stand out?"; picked a team-color
+   base ring). Every town center you can see (yours, or an enemy one you've explored) sits on a wide ring of paving in its owner's colour,
+   drawn on the ground under the building and its shadow.
+   TCRING.off=true = old. ===== */
+const TCRING={off:false,r:1.25,w:.42,a:.8};
+try{shadowLayer=(function(prev){return function(c){try{if(!TCRING.off&&G&&G.ents){const z=cam.z,vx=cam.x,vy=cam.y,vw=W/z,vh=H/z;
+  for(const e of G.ents){if(e.dead||e.type!=='towncenter'||e.owner<0||e.owner>1)continue;if(e.owner!==0&&!(G.exp&&G.exp[0]&&G.exp[0][ti(e.tx,e.ty)]))continue;
+    const s=(e.size||3),R=(s/2+TCRING.r)*TILE,cx=(e.tx+s/2)*TILE,cy=(e.ty+s/2)*TILE;if(cx<vx-R*2||cy<vy-R*2||cx>vx+vw+R*2||cy>vy+vh+R*2)continue;
+    const col=PCOL[e.owner]||'#fff',dk=PDARK[e.owner]||'#000',lw=TCRING.w*TILE;c.save();c.globalAlpha=e.built?TCRING.a:TCRING.a*.5;
+    c.lineWidth=lw+6;c.strokeStyle=dk;c.beginPath();c.ellipse(cx,cy,R,R*.92,0,0,7);c.stroke();
+    c.lineWidth=lw;c.strokeStyle=col;c.beginPath();c.ellipse(cx,cy,R,R*.92,0,0,7);c.stroke();
+    c.globalAlpha*=.55;c.lineWidth=2;c.strokeStyle='#fff';c.setLineDash([10,12]);c.beginPath();c.ellipse(cx,cy,R,R*.92,0,0,7);c.stroke();c.restore();}}}catch(err){}
+  return prev.apply(this,arguments)}})(shadowLayer)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
