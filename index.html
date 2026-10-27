@@ -14013,6 +14013,35 @@ try{drawUnit=(function(prev){return function(c,u,x,y,now){if(u&&u.type==='sniper
 /* archery range: gone from the build menu once it trains nothing */
 try{bAvail=(function(prev){return function(o,b){if(b==='range'&&G.players[o].age>=5)return false;return prev.apply(this,arguments)}})(bAvail)}catch(err){}
 
+/* ===== r208 (Josh, Oct 26: "The rail stop didn't connect to the logistics hub ... I think the rail stop was too far away").
+   Distance doesn't matter; the track can't cross water, cliffs, walls/buildings or thick forest. A rail stop that can't reach the hub now shows it:
+   a red sign over the stop saying what is in the way, and a red dotted line from the stop toward the hub with an X where the track is blocked.
+   Checked every 6 s; it clears the moment the track is laid. ===== */
+const RAILBLK={off:false};
+function railWhy(x,y){if(!inB(x,y))return 'map edge';const i=ti(x,y),t=G.terrain[i];if(t===1)return 'water';if(t===3||(G.cblk&&G.cblk[i]))return 'cliffs';
+  const id=G.occ[i];if(id){const e=G.byId.get(id);if(e&&e.type==='tree')return 'forest';if(e&&(e.type==='wall'||e.type==='gate'))return 'walls';if(e&&e.kind==='bld')return 'buildings';if(e&&e.kind==='res')return 'rocks';}return 'rough ground'}
+function railCheck(d){const st=G.ents.filter(e=>e.type==='station'&&e.owner===d.owner&&e.built&&!e.dead).sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0];
+  if(!st){d.rblk={why:'no hub',t:G.t};return}
+  const a=exitTile(d,st.x/TILE,st.y/TILE,0),b=exitTile(st,d.x/TILE,d.y/TILE,0);WK=walk;ASTAR_LIM=160000;const path=astar(a.x,a.y,(x,y)=>x===b.x&&y===b.y,b.x,b.y,true);ASTAR_LIM=24000;
+  const last=path&&path.length?path[path.length-1]:{x:(a.x+.5)*TILE,y:(a.y+.5)*TILE};let lx=tl(last.x),ly=tl(last.y);
+  /* walk the straight line from the closest reachable point toward the hub: the first tile that can't be crossed is the blocker */
+  const n=Math.max(Math.abs(b.x-lx),Math.abs(b.y-ly))||1;let why='rough ground',bx=lx,by=ly;
+  for(let k=1;k<=n;k++){const x=Math.round(lx+(b.x-lx)*k/n),y=Math.round(ly+(b.y-ly)*k/n);if(!walk(x,y)){const S=st;if(x>=S.tx&&x<S.tx+S.size&&y>=S.ty&&y<S.ty+S.size)continue;why=railWhy(x,y);bx=x;by=y;break}}
+  const was=d.rblk&&d.rblk.why;d.rblk={why,t:G.t,sx:st.x,sy:st.y,bx:(bx+.5)*TILE,by:(by+.5)*TILE,px:last.x,py:last.y};
+  if(d.owner===0&&was!==why&&why!=='no hub')toast('🚫 Rail stop can\'t reach the logistics hub: '+why+' in the way (see the red line)')}
+try{railTick=(function(prev){return function(dt){const r=prev.apply(this,arguments);try{if(!RAILBLK.off)for(const d of G.ents){if(d.type!=='depot'||d.owner!==0||!d.built||d.dead)continue;
+  if(d.rail){d.rblk=null;continue}if(d.rblk&&G.t-d.rblk.t<6)continue;railCheck(d)}}catch(err){}return r}})(railTick)}catch(err){}
+try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arguments);try{if(RAILBLK.off||!G)return r;const T=performance.now(),z=cam.z||1;
+  for(const d of G.ents){if(d.type!=='depot'||d.owner!==0||d.dead||d.rail||!d.rblk)continue;const B=d.rblk;c.save();
+    if(B.sx!=null){c.setLineDash([7,6]);c.lineDashOffset=-T/60;c.lineWidth=2.5;c.strokeStyle='rgba(255,70,50,.85)';c.beginPath();c.moveTo(d.x,d.y);c.lineTo(B.px,B.py);c.lineTo(B.bx,B.by);c.stroke();
+      c.strokeStyle='rgba(255,70,50,.35)';c.beginPath();c.moveTo(B.bx,B.by);c.lineTo(B.sx,B.sy);c.stroke();c.setLineDash([]);
+      const s=9;c.lineWidth=4;c.strokeStyle='#fff';c.beginPath();c.moveTo(B.bx-s,B.by-s);c.lineTo(B.bx+s,B.by+s);c.moveTo(B.bx+s,B.by-s);c.lineTo(B.bx-s,B.by+s);c.stroke();
+      c.lineWidth=2.5;c.strokeStyle='#e8321e';c.stroke()}
+    const txt=B.why==='no hub'?'No logistics hub yet':'No track: '+B.why+' in the way',k=1/Math.max(.6,z),y0=d.y-58;c.translate(d.x,y0);c.scale(k,k);
+    c.font='bold 12px system-ui,sans-serif';const w=c.measureText(txt).width+16,pu=.75+.25*Math.sin(T/300);
+    c.fillStyle='rgba(150,25,15,'+(.85*pu+.1).toFixed(3)+')';c.strokeStyle='#ffd25a';c.lineWidth=1.5;c.beginPath();c.roundRect?c.roundRect(-w/2,-11,w,22,8):c.rect(-w/2,-11,w,22);c.fill();c.stroke();
+    c.fillStyle='#fff';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,0,1);c.restore()}}catch(err){}return r}})(drawBirds)}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
