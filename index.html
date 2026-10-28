@@ -15093,7 +15093,8 @@ try{(function(){
    (manifest.webmanifest, icons). While you're online it quietly saves every art file in the background (about 190 MB on first run,
    only changed files after updates); the start screen shows "Saving for offline: n/m" and then "Ready to play offline".
    New versions still load whenever you're online. Online play with a friend still needs the internet. OFFLINE.off=true = don't install. ===== */
-const OFFLINE={off:false,state:null};
+const OFFLINE={off:true,state:null};/* r227 (Josh, Oct 27: "a problem repeatedly occurs" when opening the website): offline helper switched off and removed from phones that installed it */
+try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)navigator.serviceWorker.getRegistrations().then(L=>{for(const r of L)r.unregister()}).catch(()=>{});if(window.caches&&caches.keys)caches.keys().then(K=>{for(const k of K)if(k.startsWith('coa-'))caches.delete(k)}).catch(()=>{})}catch(err){}
 try{(function(){if(OFFLINE.off||!('serviceWorker' in navigator)||!/github\.io$/.test(location.hostname))return;
   const hd=document.head||document.documentElement,add=(t,a)=>{const e=document.createElement(t);for(const k in a)e.setAttribute(k,a[k]);hd.appendChild(e)};
   add('link',{rel:'manifest',href:'manifest.webmanifest'});add('link',{rel:'apple-touch-icon',href:'apple-touch-icon.png'});
