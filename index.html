@@ -15088,6 +15088,27 @@ try{(function(){
   window.__ffa=FFA;window.__ply=()=>PLY;window.__foe=FOE;
 })()}catch(err){console.error('ffa',err)}
 /* ===== END four players ===== */
+/* ===== r226 (Josh, Oct 27: "Will the game work without internet?" -> "yes"). On the website (github.io) the page installs an offline
+   helper (sw.js): after one visit online the game opens and plays with no connection, and it can be added to the home screen
+   (manifest.webmanifest, icons). While you're online it quietly saves every art file in the background (about 190 MB on first run,
+   only changed files after updates); the start screen shows "Saving for offline: n/m" and then "Ready to play offline".
+   New versions still load whenever you're online. Online play with a friend still needs the internet. OFFLINE.off=true = don't install. ===== */
+const OFFLINE={off:false,state:null};
+try{(function(){if(OFFLINE.off||!('serviceWorker' in navigator)||!/github\.io$/.test(location.hostname))return;
+  const hd=document.head||document.documentElement,add=(t,a)=>{const e=document.createElement(t);for(const k in a)e.setAttribute(k,a[k]);hd.appendChild(e)};
+  add('link',{rel:'manifest',href:'manifest.webmanifest'});add('link',{rel:'apple-touch-icon',href:'apple-touch-icon.png'});
+  add('meta',{name:'apple-mobile-web-app-capable',content:'yes'});add('meta',{name:'mobile-web-app-capable',content:'yes'});add('meta',{name:'apple-mobile-web-app-title',content:'Cradle of Ages'});
+  const line=()=>{let d=document.getElementById('offlineLine');const st=document.getElementById('start');if(!d&&st){const so=document.getElementById('spiritOpt');d=document.createElement('div');d.id='offlineLine';d.style.cssText='font-size:12px;color:var(--muted);margin:6px 0 0';(so&&so.parentNode&&so.parentNode.parentNode===st?so.parentNode:st).insertAdjacentElement('afterend',d)}return d};
+  const show=()=>{const d=line(),s=OFFLINE.state;if(!d)return;if(!s){d.textContent='';return}
+    d.textContent=s.ok?'✓ Ready to play offline':s.err?'Offline copy: will finish next time you are online':'Saving for offline: '+s.done+'/'+s.total+' art files (keep the game open)';};
+  navigator.serviceWorker.addEventListener('message',e=>{const m=e.data||{};if(m.k!=='offline')return;OFFLINE.state=m;try{if(m.ok)localStorage.setItem('coa-offline',String(GFX.ARTV))}catch(err){}show()});
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(reg=>{
+    setTimeout(()=>{try{if(!navigator.onLine)return;let have=null;try{have=localStorage.getItem('coa-offline')}catch(err){}
+      if(have===String(GFX.ARTV)){OFFLINE.state={ok:1};show()}
+      (reg.active||navigator.serviceWorker.controller)&&(reg.active||navigator.serviceWorker.controller).postMessage({k:'precache',v:String(GFX.ARTV)})}catch(err){}},8000)}).catch(()=>{})});
+  window.__offline=OFFLINE;
+})()}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
