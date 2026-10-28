@@ -13442,11 +13442,11 @@ try{drawBirds=(function(prev){return function(c,now){const r=prev.apply(this,arg
    or it was hit in the last RINGFIGHT.hold s. Selection rings are unchanged. RINGFIGHT.off=true = rings always (r160). ===== */
 const RINGFIGHT={off:false,r:9,hold:6};
 let RF_SET=new Set(),RF_T=-9,RF_HIT=new Map();
-function ringFightScan(){RF_T=G.t;const S=new Set(),U=[[],[]];
-  for(const u of G.ents){if(u.kind!=='unit'||u.dead||NPA(u.owner)||u.air&&false||(DEF[u.type]&&DEF[u.type].animal))continue;U[u.owner].push(u);
+function ringFightScan(){RF_T=G.t;const S=new Set(),U={};
+  for(const u of G.ents){if(u.kind!=='unit'||u.dead||NPA(u.owner)||u.air&&false||(DEF[u.type]&&DEF[u.type].animal))continue;(U[u.owner]||(U[u.owner]=[])).push(u);
     if(u.order&&u.order.type==='attack')S.add(u.id);if(u.hp<(u.maxHp||0)&&RF_HIT.has(u.id)&&G.t-RF_HIT.get(u.id)<RINGFIGHT.hold)S.add(u.id)}
   const R=RINGFIGHT.r*TILE,R2=R*R,mil=u=>u.type!=='villager'&&!NONMIL.has(u.type);
-  for(const a of U[0])for(const b of U[1]){if(!mil(a)&&!mil(b))continue;const dx=a.x-b.x,dy=a.y-b.y;if(dx*dx+dy*dy<R2){S.add(a.id);S.add(b.id)}}
+  const OW=Object.keys(U);for(let i=0;i<OW.length;i++)for(let j=i+1;j<OW.length;j++)for(const a of U[OW[i]])for(const b of U[OW[j]]){if(!mil(a)&&!mil(b))continue;const dx=a.x-b.x,dy=a.y-b.y;if(dx*dx+dy*dy<R2){S.add(a.id);S.add(b.id)}}
   RF_SET=S}
 function ringFight(e){if(RINGFIGHT.off)return true;if(!G)return true;if(G.t-RF_T>.5||G.t<RF_T)ringFightScan();return RF_SET.has(e.id)}
 /* remember when a unit last lost health (so a unit shot from far away still shows its ring for a few seconds) */
