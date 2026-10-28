@@ -15110,6 +15110,26 @@ try{(function(){if(OFFLINE.off||!('serviceWorker' in navigator)||!/github\.io$/.
   window.__offline=OFFLINE;
 })()}catch(err){}
 
+/* ===== r229 (Josh, Oct 27: his friend's iPhone shows "a problem repeatedly occurred" as soon as the phone turns sideways).
+   The page held ~0.8 GB of pictures: every unit animation sheet kept a full-size untinted copy (cut from its art pack) next to its two
+   team-coloured copies, and those untinted copies were not counted in the picture budget (140-200 MB on phones), so the budget never
+   freed anything. iPhones close a page that uses that much. Now the untinted copy is counted while it exists and is dropped as soon as
+   both team colours are made (it is cut again from the pack if ever needed). TEXSRC.off=true = old. ===== */
+const TEXSRC={off:false,freed:0};
+try{(function(){if(!GFX.seg3fin||!GFX.texTint||!GFX.texFree)return;
+  const rel=q=>{if(!q)return;if(q._srcB){GFX.texUsed-=q._srcB;q._srcB=0}const im=q.im;if(im&&typeof HTMLCanvasElement!=='undefined'&&im instanceof HTMLCanvasElement&&im.width&&!(q.T&&(q.T[0]===im))){im.width=0;im.height=0;TEXSRC.freed++}};
+  const f0=GFX.seg3fin;GFX.seg3fin=function(D,q,im){const r=f0.apply(this,arguments);try{if(!TEXSRC.off&&q&&q.im&&q.im instanceof HTMLCanvasElement&&!(D&&D.notint)){q._srcB=q.im.width*q.im.height*4;GFX.texUsed+=q._srcB}}catch(e){}return r};
+  const fr=GFX.texFree;GFX.texFree=function(q){try{if(!TEXSRC.off)rel(q)}catch(e){}return fr.apply(this,arguments)};
+  const tt=GFX.texTint;GFX.texTint=function(q,o){const r=tt.apply(this,arguments);try{if(!TEXSRC.off&&r&&q&&q.im&&(o===0?q.c1:q.c0)){rel(q);q.im=null}}catch(e){}return r};
+  /* sweep: on the start screen (no game) sheets idle for 3 s are freed (the start screen draws every unit once for its icons, which used
+     to leave every animation sheet in memory); in a game, while over the budget, the least recently used idle sheets go first */
+  setInterval(()=>{try{if(TEXSRC.off||!GFX.S3)return;const now=performance.now(),noGame=!G,L=[];
+    for(const K in GFX.S3){const E=GFX.S3[K];for(const sg in E){const q=E[sg];if(!q||!q.D||GFX.texProtected(q.D))continue;L.push([q.used||0,K,sg,q])}}
+    L.sort((a,b)=>a[0]-b[0]);
+    for(const [u,K,sg,q] of L){const idle=now-u;if(noGame?idle<3000:(GFX.texUsed<=GFX.TEXB||idle<4000))continue;if(!q.ok&&!q.err)continue;GFX.texFree(q);q.c0=q.c1=null;delete GFX.S3[K][sg];TEXSRC.swept=(TEXSRC.swept||0)+1}}catch(e){}},1000);
+  window.__texsrc=TEXSRC;
+})()}catch(err){}
+
 /* sacred sites: hidden = glow only, found = ghost fade-in (gameplay; wraps GFX.sacFloor / GFX.sacPiece / drawSacred) */
 try{(function(){const A=(f)=>function(c,e){const a=sacAlpha(e);if(a<=0)return;if(a>=1)return f.apply(this,arguments);c.save();c.globalAlpha*=a;try{return f.apply(this,arguments)}finally{c.restore()}};
   if(GFX.sacFloor)GFX.sacFloor=A(GFX.sacFloor);if(GFX.sacPiece)GFX.sacPiece=A(GFX.sacPiece);drawSacred=A(drawSacred);
