@@ -16971,6 +16971,39 @@ try{(function(){
     try{if(r&&GFX.FISHNET&&u&&u.type==='fishboat'&&!u.dead&&GFX.mode==='V23D'&&u.owner!=null&&!NPA(u.owner)){if(u.working&&!u.moving)net(c,u,x,y,now);else if(u.moving)oars(c,u,x,y,now)}}catch(e){}return r}})(GFX.drawUnitSpr);
 })()}catch(err){}
 /* ===== END art chat 1: fishing boat animation ===== */
+/* ===== Art chat 1: ox plough (Oct 27, Josh's pick D): the ploughing ox walks along the field's angled crop rows (drawing only) and drags a
+   3D wooden plough (Tripo, 16 directions, art/c/plough16.webp) that leaves a short-lived dark furrow. GFX.OXPLOUGH=false = old look. ===== */
+try{(function(){
+  GFX.OXPLOUGH=true;const IM=new Image();let req=false;const CW=80,CH=96,N=16,SC=.42,S_EL=.57;
+  const TR=new WeakMap();
+  function img(){if(!req){req=true;IM.src='art/c/plough16.webp?v='+(GFX.ARTV||1)}return IM.complete&&IM.naturalWidth?IM:null}
+  function geo(u){const f=u.farm&&G.byId.get(u.farm);if(!f||f.dead||f.type!=='farm')return null;const S=f.size*TILE,K=GFX.FARM7K||1;
+    return {f,S,hw:S*K/2,hh:S*K*5/18,cx:(f.tx+f.size/2)*TILE,cy:(f.ty+f.size/2)*TILE}}
+  function map(g,x,y){const f=g.f;let a=(x-(f.tx*TILE+6))/(g.S-12),b=(y-(f.ty*TILE+10))/(g.S-20);a=.16+.68*Math.max(0,Math.min(1,a));b=.16+.68*Math.max(0,Math.min(1,b));
+    return [g.cx-g.hw+(a+b)*g.hw,g.cy+(b-a)*g.hh]}
+  function furrow(c,u,now,bx,by,moving){let T=TR.get(u);if(!T){T=[];TR.set(u,T)}const l=T[T.length-1];
+    if(moving&&(!l||Math.hypot(l[0]-bx,l[1]-by)>1.6))T.push([bx,by,now]);while(T.length&&now-T[0][2]>3500)T.shift();if(T.length>140)T.splice(0,T.length-140);
+    if(T.length<2)return;c.save();c.lineCap='round';
+    for(let i=1;i<T.length;i++){const p0=T[i-1],p1=T[i];if(Math.hypot(p1[0]-p0[0],p1[1]-p0[1])>14)continue;const k=1-(now-p1[2])/3500;if(k<=0)continue;
+      c.globalAlpha=.75*k;c.strokeStyle='#3e2a18';c.lineWidth=4.2;c.beginPath();c.moveTo(p0[0],p0[1]);c.lineTo(p1[0],p1[1]);c.stroke();
+      c.globalAlpha=.5*k;c.strokeStyle='#8a6840';c.lineWidth=1.4;c.beginPath();c.moveTo(p0[0],p0[1]-1.4);c.lineTo(p1[0],p1[1]-1.4);c.stroke()}
+    c.restore()}
+  function plough(c,x,y,f){const im=img();if(!im)return false;let ps=Math.atan2(Math.sin(f)/S_EL,-Math.cos(f))*180/Math.PI;ps=(ps+360)%360;const k=Math.round(ps/22.5)%N;
+    const w=CW*SC,hgt=CH*SC;c.drawImage(im,k*CW,0,CW,CH,x-w/2,y-hgt/2,w,hgt);return true}
+  const _ox=drawOx;drawOx=function(c,u,x,y,now){
+    if(GFX.OXPLOUGH===false||GFX.FARM7===false||GFX.mode!=='V23D'||!u||!u.plowing||u.raise||u.owner==null||NPA(u.owner))return _ox.apply(this,arguments);
+    const g=geo(u);if(!g||!img())return _ox.apply(this,arguments);
+    const dx0=x-u.x,dy0=y-u.y,[X0,Y0]=map(g,u.x,u.y),X=X0+dx0,Y=Y0+dy0;
+    const cf=Math.cos(u.face||0),sf=Math.sin(u.face||0),du=cf/(g.S-12),dv=sf/(g.S-20);const mf=Math.atan2(g.hh*(dv-du),g.hw*(du+dv));
+    const fx=Math.cos(mf),fy=Math.sin(mf),L=18,px=X-fx*L,py=Y-fy*L*.62+1,bx=px-fx*7,by=py-fy*4+4;
+    furrow(c,u,now,bx,by,u.moving);
+    const p=Object.create(u);p.face=mf;p.plowing=false;
+    const behind=fy>0;if(behind)plough(c,px,py,mf);
+    _ox.call(this,c,p,X,Y,now);
+    if(!behind)plough(c,px,py,mf);
+    if(u.moving&&Math.random()<.18)try{emit('dust',bx,by,1)}catch(e){}};
+})()}catch(err){}
+/* ===== END art chat 1: ox plough ===== */
 window.__cradle={get G(){return G;},tick,onTap,cam,newAI,PERS,mk:(t,o,x,y)=>mkBld(t,o,x,y,true),unit:(t,o,x,y)=>mkUnit(t,o,x,y),reveal(){G.vis[0].fill(1);G.exp[0].fill(1);fogX.clearRect(0,0,MW,MH);fogImages();G.visT=1e9;}};
 makeCloudTex();makeIcons();document.querySelectorAll('[data-ico]').forEach(i=>i.src=ICON[i.dataset.ico]);
 resize();makeThumbs();trimTiers();refreshContinue();requestAnimationFrame(frame);
