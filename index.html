@@ -177,7 +177,7 @@ button.sb{border:0;background:none;padding:0;width:100%;color:inherit;font:inher
       <ul class="how">
         <li>Drag to scroll the map, pinch to zoom, tap the minimap to jump.</li>
         <li>Tap a unit, then tap the ground to move, a tree, bush or rock to gather, or an enemy to attack.</li>
-        <li>Tap a selected soldier again to select every soldier of that kind on screen.</li>
+        <li>Tap the Army button to select all your soldiers.</li>
         <li>With villagers selected, pick a building from the bottom bar, tap the map to position it, then tap Place.</li>
         <li>Destroy every enemy building and unit to win.</li>
       </ul>
@@ -15218,7 +15218,7 @@ function onTap(wx,wy){
     if((hit&&MPHU(hit.owner)&&LIVE[hit.type]&&youngOf(hit))&&MPTW(hit.owner)){orderMove(mine,hit.x,hit.y);toast((hit.type==='cow'?'Calves':'Lambs')+' are too young to slaughter');return;}
     if(hit&&hit.owner===0&&LIVE[hit.type]&&mine.some(u=>u.type==='villager')){const v=mine.filter(u=>u.type==='villager');v.forEach(u=>orderGather(u,hit));mark(hit.x,hit.y,'#ffd25a');if(v.length===mine.length)jobSet();return;}
     if(hit&&hit.owner===0&&hit.kind==='unit'){
-      if(sel.length===1&&sel[0]===hit&&hit.type!=='villager'){const list=G.ents.filter(e=>e.kind==='unit'&&e.owner===0&&e.type===hit.type&&e.x>cam.x&&e.y>cam.y&&e.x<cam.x+W/cam.z&&e.y<cam.y+H/cam.z);setSel(list);}
+      if(false&&sel.length===1&&sel[0]===hit){const list=G.ents.filter(e=>e.kind==='unit'&&e.owner===0&&e.type===hit.type&&e.x>cam.x&&e.y>cam.y&&e.x<cam.x+W/cam.z&&e.y<cam.y+H/cam.z);setSel(list);}
       else setSel([hit]);
       return;
     }
