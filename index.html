@@ -4579,6 +4579,10 @@ try{const _cs=castShadow;castShadow=function(c,sp,...a){if(sp&&sp.noShadow)retur
    - in a game, art files load at most ARTQ.max at a time, in the order asked, so memory rises gradually.
    ARTQ.on=false = old. ===== */
 const ARTQ={on:(('ontouchstart' in window)||navigator.maxTouchPoints>0),max:6,busy:0,q:[],held:0};/* r233: 6 at a time, newest first */
+/* r234 (Josh, Nov 14: "I can't see the buildings" on the phone): building pictures were made at up to 4x screen sharpness (16x the memory);
+   iPhone Safari wipes pictures when a page holds too many, so buildings went blank. On phones they are now made at 2x (the phone's own
+   sharpness), a quarter of the memory. */
+try{if(ARTQ.on&&typeof GFX!=='undefined')GFX.HDSPR=false}catch(err){}
 try{(function(){if(!ARTQ.on)return;
   const d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,'src');if(!d||!d.set)return;
   const isArt=v=>typeof v==='string'&&GFX.ART&&v.indexOf(GFX.ART)===0;
