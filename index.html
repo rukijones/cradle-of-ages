@@ -4578,12 +4578,12 @@ try{const _cs=castShadow;castShadow=function(c,sp,...a){if(sp&&sp.noShadow)retur
    - nothing from the art folder loads on the start screen (icons that need it use their simple pictures until the art is in);
    - in a game, art files load at most ARTQ.max at a time, in the order asked, so memory rises gradually.
    ARTQ.on=false = old. ===== */
-const ARTQ={on:(('ontouchstart' in window)||navigator.maxTouchPoints>0),max:2,busy:0,q:[],held:0};
+const ARTQ={on:(('ontouchstart' in window)||navigator.maxTouchPoints>0),max:6,busy:0,q:[],held:0};/* r233: 6 at a time, newest first */
 try{(function(){if(!ARTQ.on)return;
   const d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,'src');if(!d||!d.set)return;
   const isArt=v=>typeof v==='string'&&GFX.ART&&v.indexOf(GFX.ART)===0;
   function go(img,v){ARTQ.busy++;let done=false;const fin=()=>{if(done)return;done=true;ARTQ.busy--;pump()};img.addEventListener('load',fin,{once:true});img.addEventListener('error',fin,{once:true});setTimeout(fin,20000);d.set.call(img,v)}
-  function pump(){if(!G)return;while(ARTQ.busy<ARTQ.max&&ARTQ.q.length){const [img,v]=ARTQ.q.shift();if(img._artWant!==v)continue;go(img,v)}}
+  function pump(){if(!G)return;while(ARTQ.busy<ARTQ.max&&ARTQ.q.length){const [img,v]=ARTQ.q.pop();if(img._artWant!==v)continue;go(img,v)}}
   Object.defineProperty(HTMLImageElement.prototype,'src',{configurable:true,enumerable:d.enumerable,get(){return d.get.call(this)},set(v){
     if(!ARTQ.on||!isArt(v))return d.set.call(this,v);this._artWant=v;
     if(G&&ARTQ.busy<ARTQ.max&&!ARTQ.q.length)return go(this,v);ARTQ.q.push([this,v]);ARTQ.held++}});
@@ -15137,7 +15137,7 @@ try{(function(){if(OFFLINE.off||!('serviceWorker' in navigator)||!/github\.io$/.
 const TEXSRC={off:false,freed:0};
 try{(function(){if(!GFX.seg3fin||!GFX.texTint||!GFX.texFree)return;
   const rel=q=>{if(!q)return;if(q._srcB){GFX.texUsed-=q._srcB;q._srcB=0}const im=q.im;if(im&&typeof HTMLCanvasElement!=='undefined'&&im instanceof HTMLCanvasElement&&im.width&&!(q.T&&(q.T[0]===im))){im.width=0;im.height=0;TEXSRC.freed++}};
-  const f0=GFX.seg3fin;GFX.seg3fin=function(D,q,im){const r=f0.apply(this,arguments);try{if(!TEXSRC.off&&q&&q.im&&q.im instanceof HTMLCanvasElement&&!(D&&D.notint)){q._srcB=q.im.width*q.im.height*4;GFX.texUsed+=q._srcB}}catch(e){}return r};
+  const f0=GFX.seg3fin;GFX.seg3fin=function(D,q,im){const r=f0.apply(this,arguments);try{if(false){}}catch(e){}return r};
   const fr=GFX.texFree;GFX.texFree=function(q){try{if(!TEXSRC.off)rel(q)}catch(e){}return fr.apply(this,arguments)};
   const tt=GFX.texTint;GFX.texTint=function(q,o){const r=tt.apply(this,arguments);try{if(!TEXSRC.off&&r&&q&&q.im&&(o===0?q.c1:q.c0)){rel(q);q.im=null}}catch(e){}return r};
   /* sweep: on the start screen (no game) sheets idle for 3 s are freed (the start screen draws every unit once for its icons, which used
@@ -15145,7 +15145,7 @@ try{(function(){if(!GFX.seg3fin||!GFX.texTint||!GFX.texFree)return;
   setInterval(()=>{try{if(TEXSRC.off||!GFX.S3)return;const now=performance.now(),noGame=!G,L=[];
     for(const K in GFX.S3){const E=GFX.S3[K];for(const sg in E){const q=E[sg];if(!q||!q.D||GFX.texProtected(q.D))continue;L.push([q.used||0,K,sg,q])}}
     L.sort((a,b)=>a[0]-b[0]);
-    for(const [u,K,sg,q] of L){const idle=now-u;if(noGame?idle<3000:(GFX.texUsed<=GFX.TEXB||idle<4000))continue;if(!q.ok&&!q.err)continue;GFX.texFree(q);q.c0=q.c1=null;delete GFX.S3[K][sg];TEXSRC.swept=(TEXSRC.swept||0)+1}}catch(e){}},1000);
+    if(!noGame)return;for(const [u,K,sg,q] of L){const idle=now-u;if(idle<3000)continue;if(!q.ok&&!q.err)continue;GFX.texFree(q);q.c0=q.c1=null;delete GFX.S3[K][sg];TEXSRC.swept=(TEXSRC.swept||0)+1}}catch(e){}},1000);
   window.__texsrc=TEXSRC;
 })()}catch(err){}
 
